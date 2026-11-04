@@ -92,7 +92,11 @@ public final class CyloxInstaller {
                     }
                     if (url != null) releases.add(new Release(name == null ? tag : name, tag, url));
                 }
-                if (releases.isEmpty()) throw new IOException("No versioned client releases found yet.");
+                if (releases.isEmpty()) {
+                    log("GitHub API returned no usable assets; trying release feed...");
+                    loadAtomReleases();
+                }
+                if (releases.isEmpty()) throw new IOException("No versioned client releases found in GitHub API or release feed.");
                 SwingUtilities.invokeLater(() -> {
                     for (Release r : releases) versions.addItem(r);
                     versions.setSelectedIndex(0); log("Found " + releases.size() + " client version(s).");
@@ -100,6 +104,25 @@ public final class CyloxInstaller {
             } catch (Exception ex) { log("Release check failed: " + ex.getMessage()); log("Check your internet connection or GitHub Releases."); }
         }, "cylox-release-check").start();
     }
+    private void loadAtomReleases() throws IOException {
+        String xml = readUrl("https://github.com/dap144p/Cylox-Clients/releases.atom");
+        Matcher entries = Pattern.compile("(?s)<entry>(.*?)</entry>").matcher(xml);
+        while (entries.find()) {
+            String entry = entries.group(1);
+            Matcher link = Pattern.compile("<link[^>]*href=" + "\"" + "([^" + "\"" + "]+)" + "\"" + "[^>]*/?>").matcher(entry);
+            Matcher title = Pattern.compile("(?s)<title>(.*?)</title>").matcher(entry);
+            if (!link.find() || !title.find()) continue;
+            String page = link.group(1).replace("&amp;", "&");
+            Matcher tagMatch = Pattern.compile("/tag/([^/?#]+)").matcher(page);
+            if (!tagMatch.find()) continue;
+            String tag = tagMatch.group(1);
+            if ("latest".equals(tag)) continue;
+            String version = tag.startsWith("v") ? tag.substring(1) : tag;
+            String asset = "https://github.com/dap144p/Cylox-Clients/releases/download/" + tag + "/Cylox-Client-Forge-1.8.9-" + version + ".jar";
+            releases.add(new Release(title.group(1).replace("&amp;", "&"), tag, asset));
+        }
+    }
+
     private static List<String> objects(String json) {
         List<String> out = new ArrayList<String>();
         boolean quoted = false, escaped = false;
