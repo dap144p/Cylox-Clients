@@ -87,7 +87,9 @@ jobs:
             gh release edit latest --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
             while IFS= read -r asset; do
               case "$asset" in
-                *Forge*|*Installer*)
+                "$ZIP"|"${CORE##*/}")
+                  ;;
+                *)
                   gh release delete-asset latest "$asset" --yes || true
                   ;;
               esac
