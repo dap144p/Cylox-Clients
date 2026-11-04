@@ -69,7 +69,7 @@ jobs:
           VERSION="$(grep '^version' build.gradle | head -n 1 | cut -d "'" -f 2)"
           TAG="v$VERSION"
           VERSIONED_JAR="build/libs/Cylox-Client-Forge-1.8.9-$VERSION.jar"
-          cp "$SOURCE_JAR" "$VERSIONED_JAR"
+          if [ "$SOURCE_JAR" != "$VERSIONED_JAR" ]; then cp "$SOURCE_JAR" "$VERSIONED_JAR"; fi
           INSTALLER="build/installer/Cylox-Client-Installer.jar"
           NOTES="Cylox Client $VERSION
 
