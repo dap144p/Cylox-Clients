@@ -17,9 +17,6 @@ on:
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
-concurrency:
-  group: cylox-client-build-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: write
