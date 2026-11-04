@@ -1,44 +1,42 @@
 # Cylox Client — Installation & Usage
 
 **Developer:** dapdev  
-**Client:** Cylox Client 0.2.0-alpha  
+**Client:** Cylox Client 0.2.1-alpha  
 **Minecraft:** Java Edition 1.8.9  
-**Runtime:** Vanilla-based; no Forge/Fabric runtime
+**Runtime:** Cylox client core on the vanilla 1.8.9 base; Forge/Fabric are not required
 
-## Install using the version-folder package
+## Install using the one-folder package
 
 1. Open MJ Launcher / MojoLauncher and confirm the Minecraft game directory used by the instance.
-2. Make sure Minecraft Java 1.8.9 is available in that directory. Launching vanilla 1.8.9 once is recommended so the launcher has downloaded its base files.
+2. Make sure Minecraft Java 1.8.9 is installed in that directory. Launch vanilla 1.8.9 once if its base files have not been downloaded.
 3. Download **Cylox-Client-Vanilla-1.8.9-<version>.zip** from [GitHub Releases](https://github.com/dap144p/Cylox-Clients/releases).
-4. Extract the ZIP into the Minecraft game directory, merging the included **versions/** and **libraries/** folders.
-5. Return to the version selector and choose **Cylox-1.8.9**.
-6. Launch. On first start, the launcher may download LaunchWrapper and ASM dependencies.
+4. Extract the ZIP and copy the single **Cylox-1.8.9** folder into the launcher's Minecraft `versions/` directory.
+5. Select **Cylox-1.8.9** in the version selector.
+6. Launch and allow the launcher to resolve dependencies on first start.
 
-Do not rename the version folder or JSON file. They must remain:
+The installed structure must be:
 
-\`\`\`text
+```text
 versions/Cylox-1.8.9/Cylox-1.8.9.json
-\`\`\`
+```
 
-The Cylox runtime library must remain in the included **libraries/dev/cylox/** path.
+Do not rename the folder or JSON file.
 
-## What is installed
+## Dependency handling
 
-- A launcher version profile that inherits the official Minecraft 1.8.9 base version.
-- The Cylox Client Core library.
-- LaunchWrapper and ASM are declared as runtime dependencies and are downloaded by the launcher if absent.
+The version JSON declares LaunchWrapper, ASM, and the Cylox Client Core artifact. A compatible launcher downloads these into its normal library cache. The ZIP itself contains only the one version folder; no separate top-level `libraries/` folder needs to be copied manually.
 
-The original Minecraft client JAR is not included in the Cylox package. It is supplied by the user's own vanilla installation.
+The original Minecraft 1.8.9 client JAR is not included. It comes from the user's own vanilla installation.
 
-## Current alpha limitations
+## Current development status
 
-This release validates the vanilla bootstrap and class-transformer pipeline. It does not yet contain the custom Bedrock-inspired main menu, PvP modules, performance toggles, HUD editor, or other planned in-game UI/features.
+This is an early client foundation, not a finished CMCLIENT-equivalent feature set. The current build provides the launch profile and Cylox bootstrap/core foundation. Custom PvP HUD, module system, rendering optimizations, menu, and additional client features remain under development.
 
-The JAR installer is deferred. This release uses a ZIP that is extracted into the Minecraft game directory.
+The JAR installer is deferred. The current distribution is a ZIP with one folder for `versions/`.
 
 ## Troubleshooting
 
-- **Cylox-1.8.9 is not listed:** check that the version profile JSON exists inside the launcher's actual game directory.
-- **Missing parent version:** install or launch vanilla Minecraft 1.8.9 once, then try the Cylox profile again.
-- **Missing library:** ensure the ZIP's libraries folder was merged into the game directory and allow the launcher to download required dependencies.
-- **Launch fails on Android:** save the launcher log and report the error with the MJ Launcher / MojoLauncher version. CI success does not guarantee runtime compatibility on every Android build.
+- **Cylox-1.8.9 is not listed:** verify the JSON is inside the launcher's actual game directory under `versions/Cylox-1.8.9/`.
+- **Missing parent version:** install or launch vanilla Minecraft 1.8.9 once.
+- **Missing library:** check the launcher network/download log and confirm it supports legacy version metadata with artifact downloads.
+- **Launch fails on Android:** save the complete launcher log and note the MJ Launcher / MojoLauncher version. CI success does not guarantee runtime compatibility on every Android build.

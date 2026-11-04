@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = findProperty('cyloxVersion') ?: '0.2.0-alpha'
+version = findProperty('cyloxVersion') ?: '0.2.1-alpha'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -59,16 +59,9 @@ tasks.register('buildClientPackage') {
         def distributionDir = file("$buildDir/distributions")
         def zipFile = new File(distributionDir, "Cylox-Client-Vanilla-1.8.9-${clientVersion}.zip")
         def libraryPath = "dev/cylox/cylox-client-core/${clientVersion}/cylox-client-core-${clientVersion}.jar"
-        def libraryFile = new File(packageDir, "libraries/${libraryPath}")
-
         delete packageDir, zipFile
-        libraryFile.parentFile.mkdirs()
+        packageDir.mkdirs()
         distributionDir.mkdirs()
-        copy {
-            from coreJar
-            into libraryFile.parentFile
-            rename { libraryFile.name }
-        }
 
         def sha1 = java.security.MessageDigest.getInstance('SHA-1')
             .digest(coreJar.bytes)
@@ -112,29 +105,12 @@ tasks.register('buildClientPackage') {
             .replace('@@CORE_SHA1@@', sha1)
             .replace('@@CORE_SIZE@@', coreJar.length().toString())
 
-        def versionDir = new File(packageDir, 'versions/Cylox-1.8.9')
+        def versionDir = new File(packageDir, 'Cylox-1.8.9')
         versionDir.mkdirs()
         new File(versionDir, 'Cylox-1.8.9.json').setText(versionJson + System.lineSeparator(), 'UTF-8')
 
-        def instructions = """CYLOX CLIENT — VANILLA 1.8.9
-Version: ${clientVersion}
-Developer: dapdev
-
-INSTALL
-1. Make sure Minecraft Java 1.8.9 is available in your launcher.
-2. Extract this ZIP into the launcher's Minecraft game directory.
-3. Keep the included versions/ and libraries/ folders in place.
-4. Select the Cylox-1.8.9 profile and launch.
-
-This package does not contain Minecraft's original client JAR.
-The launcher uses the user's own vanilla 1.8.9 installation.
-Forge and Fabric are not required.
-
-This alpha provides the vanilla bootstrap foundation. Custom in-game UI
-and gameplay modules are still under development.
-"""
-        new File(packageDir, 'INSTALL-CYLOX.txt').setText(instructions, 'UTF-8')
-
+        // The ZIP contains exactly one folder for direct placement in .minecraft/versions.
+        // Runtime dependencies are fetched by the launcher from the version metadata.
         ant.zip(destfile: zipFile.absolutePath, basedir: packageDir.absolutePath)
         logger.lifecycle("Cylox package created: ${zipFile}")
         logger.lifecycle("Core SHA-1: ${sha1}")

@@ -64,15 +64,15 @@ jobs:
           test -s "$CORE"
 
           NOTES="$(cat <<EOF
-          Cylox Client $VERSION — Vanilla 1.8.9 runtime foundation.
+          Cylox Client $VERSION — standalone client development build for Minecraft 1.8.9.
 
           - Minecraft Java Edition: 1.8.9
-          - Runtime: vanilla-based bootstrap; no Forge/Fabric runtime
+          - Architecture: Cylox client core on the vanilla 1.8.9 base; no required Forge/Fabric runtime
           - Developer: dapdev
-          - Includes a version-folder ZIP and the Cylox Client Core library
+          - Includes a one-folder version ZIP and the Cylox Client Core library
           - The original Minecraft client JAR is not redistributed
 
-          This alpha validates the bootstrap and transformer pipeline. The custom in-game UI and gameplay modules are still under development.
+          This is an early client foundation. Integrated PvP modules, HUD, rendering optimizations, and client UI remain under development.
           EOF
           )"
 
