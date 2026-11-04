@@ -23,11 +23,15 @@ public final class ClickGui {
     private static final int GREEN = 0xFF54D49A;
 
     private final ModuleRegistry registry;
+    private final NumberSetting uiScale = new NumberSetting("Window Scale", 1.0D, 0.75D, 1.0D, 0.05D);
+    private final NumberSetting opacity = new NumberSetting("Panel Opacity", 90.0D, 50.0D, 100.0D, 5.0D);
+    private final BooleanSetting compactMode = new BooleanSetting("Compact Rows", false);
     private Category selectedCategory = Category.COMBAT;
     private CyloxModule selectedModule;
     private String search = "";
     private boolean searchFocused;
     private boolean waitingForKey;
+    private boolean guiSettingsSelected;
     private boolean dragging;
     private boolean open = true;
     private float x = -1.0F;
@@ -56,8 +60,10 @@ public final class ClickGui {
 
     public void draw(UiRenderer renderer, int screenWidth, int screenHeight, int mouseX, int mouseY) {
         if (!open || renderer == null || screenWidth <= 0 || screenHeight <= 0) return;
-        width = Math.min(820.0F, Math.max(300.0F, screenWidth - 20.0F));
-        height = Math.min(470.0F, Math.max(250.0F, screenHeight - 20.0F));
+        float uiScaleFactor = (float) uiScale.getValue();
+        width = Math.min(820.0F, Math.max(300.0F, (screenWidth - 20.0F) * uiScaleFactor));
+        height = Math.min(470.0F, Math.max(250.0F, (screenHeight - 20.0F) * uiScaleFactor));
+        rowHeight = compactMode.getValue() ? 26.0F : 30.0F;
         if (x < 0.0F || y < 0.0F) {
             x = (screenWidth - width) / 2.0F;
             y = (screenHeight - height) / 2.0F;
@@ -67,15 +73,15 @@ public final class ClickGui {
         sidebarWidth = Math.max(72.0F, Math.min(142.0F, width * 0.19F));
         listWidth = Math.max(104.0F, Math.min(270.0F, width * 0.34F));
 
-        renderer.fill(x, y, width, height, BG);
+        renderer.fill(x, y, width, height, withOpacity(BG));
         renderer.outline(x, y, width, height, BORDER);
-        renderer.fill(x, y, width, headerHeight, PANEL_DARK);
+        renderer.fill(x, y, width, headerHeight, withOpacity(PANEL_DARK));
         renderer.text("CYLOX", x + 14.0F, y + 12.0F, TEXT, 1.15F);
         renderer.text("CLIENT  /  1.8.9", x + 68.0F, y + 14.0F, MUTED, 0.72F);
-        renderer.text("HYBRID GUI", x + width - 110.0F, y + 14.0F, BLUE, 0.75F);
-        renderer.fill(x, y + headerHeight, sidebarWidth, height - headerHeight, PANEL_DARK);
-        renderer.fill(x + sidebarWidth, y + headerHeight, listWidth, height - headerHeight, PANEL);
-        renderer.fill(x + sidebarWidth + listWidth, y + headerHeight, width - sidebarWidth - listWidth, height - headerHeight, PANEL_DARK);
+        renderer.text(guiSettingsSelected ? "BACK TO GUI" : "GUI SETTINGS", x + width - 126.0F, y + 14.0F, BLUE, 0.72F);
+        renderer.fill(x, y + headerHeight, sidebarWidth, height - headerHeight, withOpacity(PANEL_DARK));
+        renderer.fill(x + sidebarWidth, y + headerHeight, listWidth, height - headerHeight, withOpacity(PANEL));
+        renderer.fill(x + sidebarWidth + listWidth, y + headerHeight, width - sidebarWidth - listWidth, height - headerHeight, withOpacity(PANEL_DARK));
         renderer.fill(x + sidebarWidth, y + headerHeight, 1.0F, height - headerHeight, BORDER);
         renderer.fill(x + sidebarWidth + listWidth, y + headerHeight, 1.0F, height - headerHeight, BORDER);
 
@@ -101,7 +107,7 @@ public final class ClickGui {
         float panelY = y + headerHeight;
         renderer.text("MODULES", panelX + 12.0F, panelY + 12.0F, TEXT, 0.88F);
         float searchY = panelY + 29.0F;
-        renderer.fill(panelX + 9.0F, searchY, listWidth - 18.0F, 25.0F, PANEL_DARK);
+        renderer.fill(panelX + 9.0F, searchY, listWidth - 18.0F, 25.0F, withOpacity(PANEL_DARK));
         renderer.outline(panelX + 9.0F, searchY, listWidth - 18.0F, 25.0F, searchFocused ? BLUE : BORDER);
         String searchText = search.isEmpty() ? "Search modules..." : search;
         renderer.text(searchText, panelX + 16.0F, searchY + 8.0F, search.isEmpty() ? MUTED : TEXT, 0.76F);
@@ -129,8 +135,12 @@ public final class ClickGui {
     private void drawSettings(UiRenderer renderer, int mouseX, int mouseY) {
         float panelX = x + sidebarWidth + listWidth;
         float panelY = y + headerHeight;
-        renderer.text("MODULE SETTINGS", panelX + 13.0F, panelY + 12.0F, MUTED, 0.68F);
+        renderer.text(guiSettingsSelected ? "GUI SETTINGS" : "MODULE SETTINGS", panelX + 13.0F, panelY + 12.0F, MUTED, 0.68F);
         settingTop = panelY + 35.0F;
+        if (guiSettingsSelected) {
+            drawGuiPreferences(renderer, panelX);
+            return;
+        }
         if (selectedModule == null || selectedModule.getCategory() != selectedCategory) {
             renderer.text("Select a module", panelX + 13.0F, settingTop + 8.0F, TEXT, 0.94F);
             renderer.text("Its settings will appear here.", panelX + 13.0F, settingTop + 27.0F, MUTED, 0.72F);
@@ -153,7 +163,7 @@ public final class ClickGui {
             float controlW = Math.max(72.0F, width - sidebarWidth - listWidth - 28.0F);
             if (setting instanceof BooleanSetting) {
                 BooleanSetting bool = (BooleanSetting) setting;
-                renderer.fill(controlX, rowY + 17.0F, controlW, 19.0F, PANEL);
+                renderer.fill(controlX, rowY + 17.0F, controlW, 19.0F, withOpacity(PANEL));
                 renderer.text(bool.getDisplayValue(), controlX + 7.0F, rowY + 23.0F, bool.getValue() ? GREEN : MUTED, 0.72F);
             } else if (setting instanceof NumberSetting) {
                 NumberSetting number = (NumberSetting) setting;
@@ -163,18 +173,52 @@ public final class ClickGui {
                 renderer.fill(controlX + controlW * number.getRatio() - 3.0F, rowY + 18.0F, 7.0F, 13.0F, TEXT);
             } else if (setting instanceof ModeSetting) {
                 ModeSetting mode = (ModeSetting) setting;
-                renderer.fill(controlX, rowY + 17.0F, controlW, 19.0F, PANEL);
+                renderer.fill(controlX, rowY + 17.0F, controlW, 19.0F, withOpacity(PANEL));
                 renderer.text(mode.getDisplayValue() + "  ›", controlX + 7.0F, rowY + 23.0F, BLUE, 0.72F);
             }
             rowY += 45.0F;
         }
     }
 
+    private void drawGuiPreferences(UiRenderer renderer, float panelX) {
+        renderer.text("INTERFACE", panelX + 13.0F, settingTop, TEXT, 0.92F);
+        float controlX = panelX + 13.0F;
+        float controlW = Math.max(72.0F, width - sidebarWidth - listWidth - 28.0F);
+        drawPreferenceSlider(renderer, "Window Scale", uiScale, controlX, settingTop + 22.0F, controlW);
+        drawPreferenceSlider(renderer, "Panel Opacity", opacity, controlX, settingTop + 82.0F, controlW);
+        renderer.text("Compact Rows", controlX, settingTop + 166.0F, 0xFFDCE4F0, 0.78F);
+        renderer.fill(controlX, settingTop + 181.0F, controlW, 21.0F, withOpacity(PANEL));
+        renderer.text(compactMode.getDisplayValue(), controlX + 7.0F, settingTop + 188.0F,
+            compactMode.getValue() ? GREEN : MUTED, 0.72F);
+        renderer.text("ESC closes the Click GUI", controlX, settingTop + 224.0F, MUTED, 0.68F);
+    }
+
+    private void drawPreferenceSlider(UiRenderer renderer, String label, NumberSetting setting,
+                                      float controlX, float rowY, float controlW) {
+        renderer.text(label, controlX, rowY, 0xFFDCE4F0, 0.78F);
+        renderer.text(setting.getDisplayValue(), controlX + controlW - 42.0F, rowY, BLUE, 0.72F);
+        renderer.fill(controlX, rowY + 20.0F, controlW, 5.0F, 0xFF303B4E);
+        renderer.fill(controlX, rowY + 20.0F, controlW * setting.getRatio(), 5.0F, BLUE);
+        renderer.fill(controlX + controlW * setting.getRatio() - 3.0F, rowY + 16.0F, 7.0F, 13.0F, TEXT);
+    }
+
+    private int withOpacity(int color) {
+        int baseAlpha = (color >>> 24) & 0xFF;
+        int adjustedAlpha = Math.round(baseAlpha * (float) opacity.getValue() / 100.0F);
+        return (color & 0x00FFFFFF) | (adjustedAlpha << 24);
+    }
+
     public void mouseClicked(int mouseX, int mouseY, int button) {
         if (!open || button != 0) return;
         float panelX = x + sidebarWidth;
         float panelY = y + headerHeight;
-        if (inside(mouseX, mouseY, x, y, width, headerHeight)) {
+        if (inside(mouseX, mouseY, x + width - 134.0F, y + 5.0F, 128.0F, 28.0F)) {
+            guiSettingsSelected = !guiSettingsSelected;
+            searchFocused = false;
+            waitingForKey = false;
+            return;
+        }
+        if (inside(mouseX, mouseY, x, y, width - 138.0F, headerHeight)) {
             dragging = true;
             dragOffsetX = mouseX - x;
             dragOffsetY = mouseY - y;
@@ -185,6 +229,7 @@ public final class ClickGui {
             if (index >= 0 && index < Category.values().length) {
                 selectedCategory = Category.values()[index];
                 selectedModule = null;
+                guiSettingsSelected = false;
                 waitingForKey = false;
             }
             return;
@@ -198,6 +243,7 @@ public final class ClickGui {
         float rowY = searchY + 34.0F;
         for (CyloxModule module : visibleModules) {
             if (inside(mouseX, mouseY, panelX + 8.0F, rowY, listWidth - 16.0F, rowHeight - 3.0F)) {
+                guiSettingsSelected = false;
                 if (mouseX >= panelX + listWidth - 48.0F) module.toggle();
                 else selectedModule = module;
                 return;
@@ -209,6 +255,21 @@ public final class ClickGui {
 
     private void handleSettingClick(int mouseX, int mouseY) {
         float panelX = x + sidebarWidth + listWidth;
+        if (guiSettingsSelected) {
+            float controlX = panelX + 13.0F;
+            float controlW = Math.max(72.0F, width - sidebarWidth - listWidth - 28.0F);
+            float scaleY = settingTop + 43.0F;
+            float opacityY = settingTop + 103.0F;
+            float compactY = settingTop + 160.0F;
+            if (inside(mouseX, mouseY, controlX, scaleY, controlW, 16.0F)) {
+                uiScale.setFromRatio((mouseX - controlX) / controlW);
+            } else if (inside(mouseX, mouseY, controlX, opacityY, controlW, 16.0F)) {
+                opacity.setFromRatio((mouseX - controlX) / controlW);
+            } else if (inside(mouseX, mouseY, controlX, compactY, controlW, 24.0F)) {
+                compactMode.toggle();
+            }
+            return;
+        }
         float panelWidth = width - sidebarWidth - listWidth;
         float bindY = settingTop + 43.0F;
         float bindX = panelX + panelWidth - 80.0F;
