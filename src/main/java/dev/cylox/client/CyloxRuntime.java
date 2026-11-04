@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * This early vanilla migration release validates that the custom runtime loads.
  */
 public final class CyloxRuntime {
-    private static final String VERSION = "0.2.2-alpha";
+    private static final String VERSION = "0.2.3-alpha";
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
     private CyloxRuntime() {

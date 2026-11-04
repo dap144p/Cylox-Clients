@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = findProperty('cyloxVersion') ?: '0.2.2-alpha'
+version = findProperty('cyloxVersion') ?: '0.2.3-alpha'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -80,13 +80,6 @@ tasks.register('buildClientPackage') {
   "jar": "1.8.9",
   "minecraftArguments": "--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type} --tweakClass dev.cylox.launch.CyloxTweaker",
   "libraries": [
-    {
-      "name": "net.minecraft:launchwrapper:1.12",
-      "url": "https://libraries.minecraft.net/"
-    },
-    {
-      "name": "org.ow2.asm:asm-all:5.0.3"
-    },
     {
       "name": "dev.cylox:cylox-client-core:@@VERSION@@",
       "downloads": {

@@ -5,7 +5,7 @@ Cylox Client is an independent Minecraft Java Edition client project targeting *
 **Developer / Owner:** dapdev  
 **Minecraft:** Java Edition 1.8.9  
 **Client name:** Cylox Client  
-**Current project version:** 0.2.2-alpha  
+**Current project version:** 0.2.3-alpha  
 **Architecture:** Cylox client core + vanilla 1.8.9 base; no required Forge/Fabric runtime
 
 ## Download
@@ -22,7 +22,9 @@ The installer JAR is intentionally deferred. The ZIP contains one version folder
 2. Extract the ZIP.
 3. Copy the single **Cylox-1.8.9** folder into the launcher's Minecraft `versions/` directory.
 4. Select **Cylox-1.8.9** and launch.
-5. On first launch, allow the launcher to download the inherited Minecraft 1.8.9 base files and the declared Cylox libraries. An existing local Vanilla 1.8.9 installation should not be required when the launcher correctly supports inherited version metadata.
+5. On first launch only, allow the launcher to fetch any missing Minecraft 1.8.9 files and the Cylox core library. The launch profile explicitly reuses the **1.8.9 game JAR** through `"jar": "1.8.9"`.
+
+A compatible launcher stores downloaded game files in its normal game-directory cache. On later launches, it should reuse files that are already present and valid instead of downloading them again. A new download is expected only when files are missing, damaged, the cache was cleared, or a different game directory is selected. The launcher may separately manage its Java runtime.
 
 Expected structure:
 
@@ -33,7 +35,7 @@ Expected structure:
         └── Cylox-1.8.9.json
 ```
 
-The version metadata uses `inheritsFrom: "1.8.9"`. Compatible launchers merge the official 1.8.9 version metadata and resolve its client JAR, libraries, and assets automatically. Cylox's own core and LaunchWrapper/ASM dependencies are also declared in the metadata. Downloads are handled by the launcher; the ZIP does not redistribute Minecraft's original client JAR.
+The version metadata uses `inheritsFrom: "1.8.9"` and `jar: "1.8.9"`. Compatible launchers merge the official 1.8.9 metadata and reuse its client JAR, libraries, and assets from the launcher's cache. The Cylox profile adds only the Cylox Core library; LaunchWrapper and ASM are inherited from Vanilla 1.8.9 rather than declared a second time. Downloads are handled by the launcher and cached in the selected game directory; the ZIP does not redistribute Minecraft's original client JAR.
 
 The exact game-directory path depends on the launcher and instance configuration. Use the game directory selected by the launcher; do not assume Android's app-data path is the active game directory.
 
