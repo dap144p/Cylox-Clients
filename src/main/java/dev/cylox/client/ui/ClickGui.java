@@ -33,7 +33,7 @@ public final class ClickGui {
     private boolean waitingForKey;
     private boolean guiSettingsSelected;
     private boolean dragging;
-    private boolean open = true;
+    private boolean open = false;
     private float x = -1.0F;
     private float y = -1.0F;
     private float dragOffsetX;
