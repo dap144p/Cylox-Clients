@@ -108,7 +108,7 @@ public final class CyloxInstaller {
             char ch = json.charAt(i);
             if (quoted) {
                 if (escaped) escaped = false;
-                else if (ch == '\\\\') escaped = true;
+                else if (ch == '\\') escaped = true;
                 else if (ch == '"') quoted = false;
                 continue;
             }
