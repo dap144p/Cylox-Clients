@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = '0.3.0'
+version = '0.4.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -15,14 +15,26 @@ repositories {
 
 sourceSets {
     minecraft189 {
-        java.srcDir 'src/minecraft189/java'
+        java {
+            srcDir 'src/minecraft189/java'
+            include '**/CyloxTweaker.java'
+            include '**/CyloxClientTransformer.java'
+            include '**/CyloxKeyHook.java'
+            include '**/CyloxOverlayRenderer.java'
+        }
         compileClasspath += sourceSets.main.output
+    }
+    verify {
+        java.srcDir 'src/verify/java'
+        compileClasspath += sourceSets.main.output + sourceSets.minecraft189.output
+            + configurations.minecraft189CompileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.minecraft189.output
+            + configurations.minecraft189CompileClasspath
     }
 }
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
-    minecraft189CompileOnly files(findProperty('mc189Jar') ?: 'libs/minecraft-1.8.9-mcp.jar')
     minecraft189CompileOnly('net.minecraft:launchwrapper:1.12') {
         transitive = false
     }
@@ -30,7 +42,7 @@ dependencies {
     minecraft189CompileOnly 'org.lwjgl.lwjgl:lwjgl:2.9.1'
 }
 
-compileJava {
+tasks.named('compileJava') {
     options.encoding = 'UTF-8'
 }
 
@@ -38,18 +50,88 @@ tasks.named('compileMinecraft189Java') {
     options.encoding = 'UTF-8'
 }
 
+tasks.named('compileVerifyJava') {
+    options.encoding = 'UTF-8'
+}
+
 tasks.register('minecraft189AdapterJar', Jar) {
     dependsOn tasks.named('minecraft189Classes')
-    archiveBaseName = 'Cylox-1.8.9-GameAdapter'
+    archiveBaseName = 'Cylox-Client-1.8.9'
+    archiveVersion = project.version
     from sourceSets.main.output
     from sourceSets.minecraft189.output
     manifest {
         attributes(
-            'Implementation-Title': 'Cylox Client 1.8.9 Game Adapter',
+            'Implementation-Title': 'Cylox Client 1.8.9',
             'Implementation-Version': project.version,
             'Client-Developer': 'dapdev',
-            'Cylox-Tweaker-Class': 'dev.cylox.client.minecraft189.CyloxTweaker'
+            'Cylox-Tweaker-Class': 'dev.cylox.client.minecraft189.CyloxTweaker',
+            'Minecraft-Version': '1.8.9',
+            'Client-Architecture': 'Vanilla + LaunchWrapper'
         )
+    }
+}
+
+tasks.register('generateClientVersion') {
+    def outputFile = layout.buildDirectory.file('generated/cylox/Cylox-1.8.9.json')
+    outputs.file(outputFile)
+    doLast {
+        def releaseTag = "v${project.version}"
+        def artifactName = "Cylox-Client-1.8.9-${project.version}.jar"
+        def versionData = [
+            id: 'Cylox-1.8.9',
+            time: '2026-11-05T00:00:00+07:00',
+            releaseTime: '2026-11-05T00:00:00+07:00',
+            type: 'release',
+            inheritsFrom: '1.8.9',
+            mainClass: 'net.minecraft.launchwrapper.Launch',
+            minimumLauncherVersion: 21,
+            minecraftArguments: '--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type} --tweakClass dev.cylox.client.minecraft189.CyloxTweaker',
+            libraries: [
+                [name: 'net.minecraft:launchwrapper:1.12', url: 'https://libraries.minecraft.net/'],
+                [name: 'org.ow2.asm:asm-debug-all:5.0.3', url: 'https://repo1.maven.org/maven2/'],
+                [name: "dev.cylox:client:${project.version}", downloads: [artifact: [
+                    path: "dev/cylox/client/${project.version}/${artifactName}",
+                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/${artifactName}"
+                ]]]
+            ]
+        ]
+        def file = outputFile.get().asFile
+        file.parentFile.mkdirs()
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(versionData)) + '\n'
+    }
+}
+
+tasks.register('buildClientPackage', Zip) {
+    dependsOn tasks.named('minecraft189AdapterJar'), tasks.named('generateClientVersion')
+    archiveBaseName = 'Cylox-Client-Vanilla-1.8.9'
+    archiveVersion = project.version
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from(layout.buildDirectory.file('generated/cylox/Cylox-1.8.9.json')) {
+        into 'versions/Cylox-1.8.9'
+    }
+    from(tasks.named('minecraft189AdapterJar').flatMap { it.archiveFile }) {
+        into 'versions/Cylox-1.8.9'
+        rename { 'Cylox-1.8.9.jar' }
+    }
+    from(tasks.named('minecraft189AdapterJar').flatMap { it.archiveFile }) {
+        into "libraries/dev/cylox/client/${project.version}"
+    }
+    from('INSTALLATION.md') {
+        rename { 'CYLOX-INSTALL.txt' }
+    }
+}
+
+tasks.register('verifyVanilla189Hooks', JavaExec) {
+    dependsOn tasks.named('verifyClasses')
+    mainClass = 'dev.cylox.client.verify.Vanilla189Verifier'
+    classpath = sourceSets.verify.runtimeClasspath
+    doFirst {
+        def vanillaJar = providers.gradleProperty('vanilla189Jar').orNull
+        if (vanillaJar == null) {
+            throw new GradleException('Pass -Pvanilla189Jar=/path/to/vanilla-1.8.9.jar')
+        }
+        args = [vanillaJar]
     }
 }
 
