@@ -19,7 +19,28 @@ public final class CyloxTweaker implements ITweaker {
         List<String> safeArguments = arguments == null
                 ? new ArrayList<String>()
                 : new ArrayList<String>(arguments);
+
+        // Some Android launchers omit --version when translating legacy
+        // minecraftArguments metadata. Vanilla 1.8.9 requires this option.
+        if (!hasVersionArgument(safeArguments)) {
+            String version = profile == null || profile.trim().isEmpty()
+                    ? "Cylox-1.8.9"
+                    : profile;
+            safeArguments.add("--version");
+            safeArguments.add(version);
+            System.out.println("[Cylox Client] Added missing required --version argument: " + version);
+        }
+
         launchArguments = safeArguments.toArray(new String[safeArguments.size()]);
+    }
+
+    private static boolean hasVersionArgument(List<String> arguments) {
+        for (String argument : arguments) {
+            if ("--version".equals(argument) || (argument != null && argument.startsWith("--version="))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

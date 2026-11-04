@@ -4,10 +4,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Runtime bootstrap for Cylox Client.
- * This first vanilla migration release validates that the custom runtime loads.
+ * This early vanilla migration release validates that the custom runtime loads.
  */
 public final class CyloxRuntime {
-    private static final String VERSION = "0.2.0-alpha";
+    private static final String VERSION = "0.2.2-alpha";
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
     private CyloxRuntime() {
