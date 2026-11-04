@@ -1,0 +1,33 @@
+plugins {
+    id 'java'
+}
+
+group = 'dev.cylox'
+version = '0.1.0'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+jar {
+    archiveBaseName = 'Cylox-UI-Core'
+    manifest {
+        attributes(
+            'Implementation-Title': 'Cylox Client UI Core',
+            'Implementation-Version': project.version,
+            'Built-For-Minecraft': '1.8.9',
+            'Client-Developer': 'dapdev'
+        )
+    }
+}
