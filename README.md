@@ -1,52 +1,73 @@
-# Cylox Client — Forge 1.8.9
+# Cylox Client — Vanilla 1.8.9
 
-Cylox Client is a client-side Minecraft Forge 1.8.9 project with a compact Bedrock-inspired interface and PvP/AFK client direction. Visual identity: black base with green, blue, and orange accents.
+Cylox Client is a custom Minecraft Java Edition client project targeting **1.8.9**. The runtime is being migrated away from Forge/Fabric to a vanilla-based bootstrap and client-owned bytecode hooks.
 
 **Developer / Owner:** dapdev  
 **Minecraft:** Java Edition 1.8.9  
-**Loader:** Minecraft Forge 11.15.1.2318  
-**Current client version:** 0.1.0-alpha
+**Client name:** Cylox Client  
+**Current project version:** 0.2.0-alpha  
+**Runtime:** Vanilla 1.8.9 + Cylox bootstrap (no Forge/Fabric runtime)
 
 ## Download
 
-- [**Cylox Android / MJ Launcher Installer (.jar)**](https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-Installer.jar)
-- [**Cylox Client mod (.jar)**](https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-Forge-1.8.9-0.1.0-alpha.jar)
-- [Latest releases](https://github.com/dap144p/Cylox-Clients/releases)
+- [Latest Cylox Client releases](https://github.com/dap144p/Cylox-Clients/releases)
+- The vanilla package is published as **Cylox-Client-Vanilla-1.8.9-<version>.zip**.
+- The core library is published as **Cylox-Client-Core-<version>.jar**.
 
-The installer lists published versioned releases from GitHub. A new version appears in the selector after its release is published; the installer itself does not need to be rebuilt for each client version.
+The installer JAR is intentionally deferred. The current distribution is a ZIP containing the version metadata and Cylox-owned runtime library.
 
 ## Install on MJ Launcher / MojoLauncher
 
-1. Download `Cylox-Client-Installer.jar`.
-2. Open MJ Launcher and choose **Execute A .jar**.
-3. Select the installer JAR.
-4. Choose a published Cylox version and the Minecraft game directory.
-5. Press **Install Selected Version** and wait for the installer log to finish.
-6. Select the installed Forge 1.8.9 profile in the launcher.
+1. Make sure Minecraft Java 1.8.9 is available in the launcher's game directory. The launcher can download the official base files when needed.
+2. Download the latest vanilla package ZIP from GitHub Releases.
+3. Extract the ZIP into the same Minecraft game directory used by MJ Launcher / MojoLauncher.
+4. Keep the included **versions/** and **libraries/** folders in their original locations.
+5. Select the **Cylox-1.8.9** version profile.
+6. Launch the game. The launcher may download LaunchWrapper and ASM libraries on the first run.
 
-The installer downloads the selected Cylox mod and the official Forge 1.8.9 installer. The installer uses a Java Swing interface and requires the launcher's JAR execution environment to support Swing/AWT and the Forge installer runtime. Compatibility must be verified on the target launcher/device; a successful CI build does not prove that every Android launcher runtime can execute it.
+Example package structure:
 
-## Manual installation
+\`\`\`text
+.minecraft/
+├── versions/
+│   └── Cylox-1.8.9/
+│       └── Cylox-1.8.9.json
+└── libraries/
+    └── dev/cylox/cylox-client-core/<version>/
+        └── cylox-client-core-<version>.jar
+\`\`\`
 
-For another launcher, install Minecraft 1.8.9 + Forge 11.15.1.2318, then put the Cylox Client mod JAR in that game's `mods` directory.
+The exact Minecraft game-directory path depends on the launcher and instance configuration. Do not extract this package into Android's app data folder unless that is the actual game directory selected by the launcher.
 
-## v0.1 foundation
+## What this alpha contains
 
-- Cylox-styled main menu.
-- Singleplayer, Multiplayer, Modules, Settings, and Vanilla Menu navigation.
-- Basic module registry and ON/OFF interface.
-- Forge 1.8.9 client build pipeline.
+- Vanilla 1.8.9 version profile using **inheritsFrom**.
+- Cylox-owned LaunchWrapper tweaker and bytecode bootstrap hook.
+- Startup verification that confirms the Cylox runtime is loaded.
+- Automated unit test for the main-class transformer.
+- No Forge/FML or Fabric runtime dependency.
 
-## Planned modules
+**Important status:** this is the vanilla runtime foundation, not the finished PvP client UI. The Bedrock-inspired main menu, module interface, HUD, performance controls, and other gameplay features are still under development and are not included as working features in this alpha.
 
-Performance, Render Control, HUD Editor, AFK Tools, Alt Manager, and AutoProtocol. These are planned features; current module toggles are UI scaffolding and do not implement those systems yet.
+## Copyright and base game files
+
+The package does not include or redistribute Minecraft's original client JAR. The launcher uses the user's own official Minecraft 1.8.9 installation. You must have a legitimate Minecraft Java Edition installation and use the launcher with your own account.
 
 ## Build
 
-The client uses legacy ForgeGradle 2.1 and is built with JDK 8 / Gradle 2.14.1. The installer is compiled separately as a Java 8 executable JAR. GitHub Actions builds both artifacts, publishes a versioned release, and updates the rolling `latest` release.
+Requirements: JDK 8 and Gradle 8.10.2 or compatible.
 
-## Status and compatibility
+\`\`\`bash
+gradle clean test buildClientPackage
+\`\`\`
 
-- Target: Minecraft Java 1.8.9 + Forge 11.15.1.2318.
-- Client-side only; no Cylox server plugin required.
-- Early alpha; test alongside other mods before using an important instance.
+Build outputs:
+
+- **build/libs/Cylox-Client-Core-<version>.jar**
+- **build/distributions/Cylox-Client-Vanilla-1.8.9-<version>.zip**
+
+GitHub Actions tests the transformer and publishes versioned and rolling latest releases.
+
+## Compatibility notes
+
+The version metadata follows the legacy 1.8.9 launcher format. MJ Launcher / MojoLauncher compatibility still needs verification on the target Android device and launcher build. A successful GitHub Actions build validates compilation and packaging; it does not by itself prove that every Android launcher can launch the profile.

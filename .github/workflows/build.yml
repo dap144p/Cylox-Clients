@@ -1,93 +1,98 @@
-name: Build Cylox Client and Installer
+name: Build Cylox Client — Vanilla 1.8.9
 
 on:
   push:
     branches: [ main, master ]
     paths:
       - 'src/**'
-      - 'installer/**'
       - 'README.md'
       - 'INSTALLATION.md'
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
-      - 'gradlew'
-      - 'gradlew.bat'
-      - 'buildSrc/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
-
 
 permissions:
   contents: write
 
 jobs:
   build:
-    name: Build Cylox Client and Android JAR Installer
+    name: Test and package Cylox Client
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Set up JDK 8
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '8'
-      - name: Set up Gradle 2.14.1
+
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '2.14.1'
-      - name: Build Forge 1.8.9 client
-        run: gradle setupDecompWorkspace build --no-daemon
-      - name: Build standalone installer JAR
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build/installer-classes build/installer
-          javac -source 8 -target 8 -encoding UTF-8 -d build/installer-classes installer/src/main/java/dev/cylox/installer/CyloxInstaller.java
-          printf 'Main-Class: dev.cylox.installer.CyloxInstaller\n' > build/installer/MANIFEST.MF
-          jar cfm build/installer/Cylox-Client-Installer.jar build/installer/MANIFEST.MF -C build/installer-classes .
+          gradle-version: '8.10.2'
+
+      - name: Run tests and build vanilla package
+        run: gradle clean test buildClientPackage --no-daemon
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Cylox-Client-Android-JARs
+          name: Cylox-Client-Vanilla-1.8.9
           path: |
-            build/libs/*.jar
-            build/installer/Cylox-Client-Installer.jar
+            build/libs/Cylox-Client-Core-*.jar
+            build/distributions/Cylox-Client-Vanilla-1.8.9-*.zip
           if-no-files-found: error
+
       - name: Publish versioned and latest releases
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          SOURCE_JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n 1)"
-          test -n "$SOURCE_JAR"
-          VERSION="$(grep '^version' build.gradle | head -n 1 | cut -d "'" -f 2)"
+          VERSION="$(grep '^cyloxVersion=' gradle.properties | cut -d '=' -f 2-)"
           TAG="v$VERSION"
-          VERSIONED_JAR="build/libs/Cylox-Client-Forge-1.8.9-$VERSION.jar"
-          if [ "$SOURCE_JAR" != "$VERSIONED_JAR" ]; then cp "$SOURCE_JAR" "$VERSIONED_JAR"; fi
-          INSTALLER="build/installer/Cylox-Client-Installer.jar"
-          NOTES="Cylox Client $VERSION
+          ZIP="build/distributions/Cylox-Client-Vanilla-1.8.9-$VERSION.zip"
+          CORE="build/libs/Cylox-Client-Core-$VERSION.jar"
+          test -s "$ZIP"
+          test -s "$CORE"
 
-          Minecraft: Java Edition 1.8.9
-          Forge: 11.15.1.2318
-          Developer: dapdev
+          NOTES="$(cat <<EOF
+          Cylox Client $VERSION — Vanilla 1.8.9 runtime foundation.
 
-          Client mod JAR and Android/MJ Launcher installer are attached."
+          - Minecraft Java Edition: 1.8.9
+          - Runtime: vanilla-based bootstrap; no Forge/Fabric runtime
+          - Developer: dapdev
+          - Includes a version-folder ZIP and the Cylox Client Core library
+          - The original Minecraft client JAR is not redistributed
+
+          This alpha validates the bootstrap and transformer pipeline. The custom in-game UI and gameplay modules are still under development.
+          EOF
+          )"
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "Cylox Client $VERSION" --notes "$NOTES" --prerelease
-            gh release upload "$TAG" "$VERSIONED_JAR" --clobber
+            gh release edit "$TAG" --title "Cylox Client $VERSION — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release upload "$TAG" "$ZIP" "$CORE" --clobber
           else
-            gh release create "$TAG" "$VERSIONED_JAR" --title "Cylox Client $VERSION" --notes "$NOTES" --prerelease
+            gh release create "$TAG" "$ZIP" "$CORE" --title "Cylox Client $VERSION — Vanilla 1.8.9" --notes "$NOTES" --prerelease
           fi
+
           if gh release view latest >/dev/null 2>&1; then
-            gh release edit latest --title "Cylox Client latest — Forge 1.8.9" --notes "$NOTES" --prerelease
-            gh release upload latest "$VERSIONED_JAR" "$INSTALLER" --clobber
+            gh release edit latest --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            while IFS= read -r asset; do
+              case "$asset" in
+                *Forge*|*Installer*)
+                  gh release delete-asset latest "$asset" --yes || true
+                  ;;
+              esac
+            done < <(gh release view latest --json assets --jq '.assets[].name')
+            gh release upload latest "$ZIP" "$CORE" --clobber
           else
-            gh release create latest "$VERSIONED_JAR" "$INSTALLER" --title "Cylox Client latest — Forge 1.8.9" --notes "$NOTES" --prerelease
+            gh release create latest "$ZIP" "$CORE" --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
           fi
-          gh release upload "$TAG" "$INSTALLER" --clobber

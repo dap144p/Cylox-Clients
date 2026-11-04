@@ -1,44 +1,44 @@
 # Cylox Client — Installation & Usage
 
 **Developer:** dapdev  
-**Client:** Cylox Client 0.1.0-alpha  
+**Client:** Cylox Client 0.2.0-alpha  
 **Minecraft:** Java Edition 1.8.9  
-**Forge:** 11.15.1.2318
+**Runtime:** Vanilla-based; no Forge/Fabric runtime
 
-## MJ Launcher / MojoLauncher installer
+## Install using the version-folder package
 
-1. Download [Cylox-Client-Installer.jar](https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-Installer.jar).
-2. Open MJ Launcher and select **Execute A .jar**.
-3. Choose the downloaded installer.
-4. Select the Cylox version from the release list.
-5. Set the Minecraft game directory. It must be the actual game directory used by this launcher.
-6. Press **Install Selected Version** and wait for the completion message.
-7. Select the Forge 1.8.9 profile in MJ Launcher.
+1. Open MJ Launcher / MojoLauncher and confirm the Minecraft game directory used by the instance.
+2. Make sure Minecraft Java 1.8.9 is available in that directory. Launching vanilla 1.8.9 once is recommended so the launcher has downloaded its base files.
+3. Download **Cylox-Client-Vanilla-1.8.9-<version>.zip** from [GitHub Releases](https://github.com/dap144p/Cylox-Clients/releases).
+4. Extract the ZIP into the Minecraft game directory, merging the included **versions/** and **libraries/** folders.
+5. Return to the version selector and choose **Cylox-1.8.9**.
+6. Launch. On first start, the launcher may download LaunchWrapper and ASM dependencies.
 
-The installer fetches versioned client JARs from the public GitHub Releases API and downloads the official Forge 1.8.9 installer. The first published version is 0.1.0-alpha. New versions appear in the selector after a versioned GitHub Release is published.
+Do not rename the version folder or JSON file. They must remain:
 
-### Runtime compatibility note
+\`\`\`text
+versions/Cylox-1.8.9/Cylox-1.8.9.json
+\`\`\`
 
-The installer is a Java 8 JAR with a Swing/AWT interface. MJ Launcher's **Execute A .jar** feature is designed to run compatible Java installers, but actual support for this custom installer, Swing dialogs, the embedded Forge installer invocation, and Android filesystem permissions must be tested on the target MJ Launcher build. If the installer UI does not open or Forge installation fails, use the manual method below and report the installer log.
+The Cylox runtime library must remain in the included **libraries/dev/cylox/** path.
 
-## Manual installation (other launchers)
+## What is installed
 
-1. Install Minecraft Java 1.8.9.
-2. Install Forge 11.15.1.2318 for that game directory.
-3. Launch the Forge profile once, then close the game.
-4. Put the downloaded Cylox Client mod JAR in the same game directory's `mods` folder.
-5. Select the Forge 1.8.9 profile and launch.
+- A launcher version profile that inherits the official Minecraft 1.8.9 base version.
+- The Cylox Client Core library.
+- LaunchWrapper and ASM are declared as runtime dependencies and are downloaded by the launcher if absent.
 
-Download the [latest Cylox Client mod JAR](https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-Forge-1.8.9-0.1.0-alpha.jar).
+The original Minecraft client JAR is not included in the Cylox package. It is supplied by the user's own vanilla installation.
 
-## Installer behavior
+## Current alpha limitations
 
-- Lists published versioned releases from GitHub.
-- Downloads the selected client mod JAR.
-- Attempts to install official Forge 1.8.9 into the selected game directory.
-- Shows progress and errors in the installer log.
-- Does not delete existing mods or game files.
+This release validates the vanilla bootstrap and class-transformer pipeline. It does not yet contain the custom Bedrock-inspired main menu, PvP modules, performance toggles, HUD editor, or other planned in-game UI/features.
 
-## Current client limitations
+The JAR installer is deferred. This release uses a ZIP that is extracted into the Minecraft game directory.
 
-This is an early alpha foundation. Main menu navigation and module toggles exist, but module toggles are currently UI placeholders. Performance, Render Control, HUD Editor, AFK Tools, Alt Manager, and AutoProtocol are planned and are not yet implemented.
+## Troubleshooting
+
+- **Cylox-1.8.9 is not listed:** check that the version profile JSON exists inside the launcher's actual game directory.
+- **Missing parent version:** install or launch vanilla Minecraft 1.8.9 once, then try the Cylox profile again.
+- **Missing library:** ensure the ZIP's libraries folder was merged into the game directory and allow the launcher to download required dependencies.
+- **Launch fails on Android:** save the launcher log and report the error with the MJ Launcher / MojoLauncher version. CI success does not guarantee runtime compatibility on every Android build.

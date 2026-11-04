@@ -1,27 +1,142 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        maven { name = 'forge'; url = 'https://maven.minecraftforge.net' }
-    }
-    dependencies { classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT' }
+plugins {
+    id 'java'
 }
-apply plugin: 'net.minecraftforge.gradle.forge'
-version = '0.1.0-alpha'
+
 group = 'dev.cylox'
-archivesBaseName = 'Cylox-Client-Forge-1.8.9'
-sourceCompatibility = targetCompatibility = 1.8
-compileJava.options.encoding = 'UTF-8'
-minecraft {
-    version = '1.8.9-11.15.1.2318-1.8.9'
-    runDir = 'run'
-    mappings = 'stable_22'
-    makeObfSourceJar = false
-}
-processResources {
-    inputs.property 'version', project.version
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand version: project.version
+version = findProperty('cyloxVersion') ?: '0.2.0-alpha'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'minecraftLibraries'
+        url = uri('https://libraries.minecraft.net/')
     }
-    from(sourceSets.main.resources.srcDirs) { exclude 'mcmod.info' }
+}
+
+dependencies {
+    compileOnly 'net.minecraft:launchwrapper:1.12'
+    compileOnly 'org.ow2.asm:asm-all:5.0.3'
+    testImplementation 'net.minecraft:launchwrapper:1.12'
+    testImplementation 'org.ow2.asm:asm-all:5.0.3'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:all']
+}
+
+tasks.named('jar', Jar) {
+    archiveBaseName.set('Cylox-Client-Core')
+    manifest {
+        attributes(
+            'Implementation-Title': 'Cylox Client Core',
+            'Implementation-Version': project.version,
+            'Cylox-Minecraft-Version': '1.8.9'
+        )
+    }
+}
+
+test {
+    useJUnit()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+    }
+}
+
+tasks.register('buildClientPackage') {
+    group = 'distribution'
+    description = 'Builds the vanilla 1.8.9 version-folder package for Cylox Client.'
+    dependsOn tasks.named('jar')
+
+    doLast {
+        def clientVersion = project.version.toString()
+        def coreJar = tasks.named('jar', Jar).get().archiveFile.get().asFile
+        def packageDir = file("$buildDir/cylox-package")
+        def distributionDir = file("$buildDir/distributions")
+        def zipFile = new File(distributionDir, "Cylox-Client-Vanilla-1.8.9-${clientVersion}.zip")
+        def libraryPath = "dev/cylox/cylox-client-core/${clientVersion}/cylox-client-core-${clientVersion}.jar"
+        def libraryFile = new File(packageDir, "libraries/${libraryPath}")
+
+        delete packageDir, zipFile
+        libraryFile.parentFile.mkdirs()
+        distributionDir.mkdirs()
+        copy {
+            from coreJar
+            into libraryFile.parentFile
+            rename { libraryFile.name }
+        }
+
+        def sha1 = java.security.MessageDigest.getInstance('SHA-1')
+            .digest(coreJar.bytes)
+            .collect { String.format('%02x', it & 0xff) }
+            .join()
+        def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC'))
+
+        def versionJson = '''{
+  "id": "Cylox-1.8.9",
+  "time": "@@TIMESTAMP@@",
+  "releaseTime": "@@TIMESTAMP@@",
+  "type": "release",
+  "mainClass": "net.minecraft.launchwrapper.Launch",
+  "minimumLauncherVersion": 18,
+  "inheritsFrom": "1.8.9",
+  "jar": "1.8.9",
+  "minecraftArguments": "--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type} --tweakClass dev.cylox.launch.CyloxTweaker",
+  "libraries": [
+    {
+      "name": "net.minecraft:launchwrapper:1.12",
+      "url": "https://libraries.minecraft.net/"
+    },
+    {
+      "name": "org.ow2.asm:asm-all:5.0.3"
+    },
+    {
+      "name": "dev.cylox:cylox-client-core:@@VERSION@@",
+      "downloads": {
+        "artifact": {
+          "path": "dev/cylox/cylox-client-core/@@VERSION@@/cylox-client-core-@@VERSION@@.jar",
+          "sha1": "@@CORE_SHA1@@",
+          "size": @@CORE_SIZE@@,
+          "url": "https://github.com/dap144p/Cylox-Clients/releases/download/v@@VERSION@@/Cylox-Client-Core-@@VERSION@@.jar"
+        }
+      }
+    }
+  ]
+}'''
+            .replace('@@TIMESTAMP@@', timestamp)
+            .replace('@@VERSION@@', clientVersion)
+            .replace('@@CORE_SHA1@@', sha1)
+            .replace('@@CORE_SIZE@@', coreJar.length().toString())
+
+        def versionDir = new File(packageDir, 'versions/Cylox-1.8.9')
+        versionDir.mkdirs()
+        new File(versionDir, 'Cylox-1.8.9.json').setText(versionJson + System.lineSeparator(), 'UTF-8')
+
+        def instructions = """CYLOX CLIENT — VANILLA 1.8.9
+Version: ${clientVersion}
+Developer: dapdev
+
+INSTALL
+1. Make sure Minecraft Java 1.8.9 is available in your launcher.
+2. Extract this ZIP into the launcher's Minecraft game directory.
+3. Keep the included versions/ and libraries/ folders in place.
+4. Select the Cylox-1.8.9 profile and launch.
+
+This package does not contain Minecraft's original client JAR.
+The launcher uses the user's own vanilla 1.8.9 installation.
+Forge and Fabric are not required.
+
+This alpha provides the vanilla bootstrap foundation. Custom in-game UI
+and gameplay modules are still under development.
+"""
+        new File(packageDir, 'INSTALL-CYLOX.txt').setText(instructions, 'UTF-8')
+
+        ant.zip(destfile: zipFile.absolutePath, basedir: packageDir.absolutePath)
+        logger.lifecycle("Cylox package created: ${zipFile}")
+        logger.lifecycle("Core SHA-1: ${sha1}")
+    }
 }
