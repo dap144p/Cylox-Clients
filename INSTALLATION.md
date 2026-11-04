@@ -1,17 +1,20 @@
 # Cylox Client v0.1.0-alpha — Installation & Usage
 
+**Developer / Owner:** dapdev
+
 ## 1. What is this?
 Cylox Client is a **client-side mod** for Minecraft Java Edition 1.8.9 using Minecraft Forge. It changes the main menu to a Cylox-themed interface and provides an early module/settings screen.
 
 It does not replace Minecraft, does not install a server plugin, and does not make a 1.8.9 client natively run newer Minecraft versions.
 
 ## 2. Download
-- Repository: https://github.com/dap144p/Cylox-Clients
-- Source code: https://github.com/dap144p/Cylox-Clients
-- Build history and downloadable workflow artifacts: https://github.com/dap144p/Cylox-Clients/actions
+- **Latest JAR (direct download):** https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-latest-Forge-1.8.9.jar
+- Latest release page: https://github.com/dap144p/Cylox-Clients/releases/tag/latest
+- Repository/source code: https://github.com/dap144p/Cylox-Clients
+- Build history and versioned workflow artifacts: https://github.com/dap144p/Cylox-Clients/actions
 - Forge 1.8.9 files: https://files.minecraftforge.net/net/minecraftforge/forge/index_1.8.9.html
 
-The GitHub Actions artifact is a ZIP containing the built JAR. Download the artifact from a successful workflow run, then extract the JAR.
+The direct JAR link always targets the rolling `latest` release. A successful GitHub Actions build updates that release automatically.
 
 ## 3. Requirements
 - Minecraft Java Edition **1.8.9**.
@@ -22,7 +25,7 @@ The GitHub Actions artifact is a ZIP containing the built JAR. Download the arti
 This build does not bundle Minecraft, Forge, Java, ViaForge, or any other third-party mod.
 
 ## 4. Where to install the JAR
-Install the JAR into the **mods folder of the Minecraft 1.8.9 Forge instance** you want to use.
+Install the downloaded JAR into the **mods folder of the Minecraft 1.8.9 Forge instance** you want to use.
 
 Typical locations:
 - Windows: `%AppData%\\.minecraft\\mods\\`
@@ -63,11 +66,13 @@ The current module toggles are UI scaffolding only. Turning a module ON does not
 ## 8. Troubleshooting
 - **Cylox menu does not appear:** confirm the game is actually running Minecraft 1.8.9 with Forge 11.15.1.2318 and that the JAR is in that instance's `mods` folder.
 - **Game crashes on startup:** temporarily remove other recently added mods and inspect the Forge crash report/log. Check that the selected instance is 1.8.9, not another version.
-- **No JAR in Actions:** open the latest successful workflow run and download the artifact named `Cylox-Client-Forge-1.8.9`. Failed runs do not publish a valid artifact.
+- **No JAR at the latest link:** check the [latest release page](https://github.com/dap144p/Cylox-Clients/releases/tag/latest) or [Actions build history](https://github.com/dap144p/Cylox-Clients/actions). The release is updated only after a successful build.
 - **Android launcher:** use the instance-specific game directory. Do not assume the desktop `.minecraft/mods` path exists on Android.
 
 ## 9. Project links
 - Source repository: https://github.com/dap144p/Cylox-Clients
+- Latest JAR: https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-latest-Forge-1.8.9.jar
+- Latest release page: https://github.com/dap144p/Cylox-Clients/releases/tag/latest
 - GitHub Actions builds: https://github.com/dap144p/Cylox-Clients/actions
 - Forge 1.8.9: https://files.minecraftforge.net/net/minecraftforge/forge/index_1.8.9.html
 - Minecraft Forge documentation: https://docs.minecraftforge.net/
