@@ -2,10 +2,22 @@
 
 Cylox Client is a client-side Minecraft Forge 1.8.9 project focused on a compact Bedrock-inspired interface with PvP, AFK, and alt-client workflows. Its visual identity uses black as the base with green, blue, and orange accents.
 
+**Developer / Owner:** dapdev  
+**Minecraft:** Java Edition 1.8.9  
+**Loader:** Minecraft Forge 11.15.1.2318  
+**Current version:** 0.1.0-alpha
+
+## Download
+
+[**⬇ Download latest Cylox Client JAR**](https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-latest-Forge-1.8.9.jar)
+
+This direct-download link is kept stable. Every successful build on `main` updates the `latest` GitHub Release and replaces its JAR with the newest build.
+
 ## Quick links
 - [Installation & usage guide](INSTALLATION.md)
 - [Source repository](https://github.com/dap144p/Cylox-Clients)
-- [GitHub Actions builds and artifacts](https://github.com/dap144p/Cylox-Clients/actions)
+- [GitHub Actions build history](https://github.com/dap144p/Cylox-Clients/actions)
+- [Latest release page](https://github.com/dap144p/Cylox-Clients/releases/tag/latest)
 - [Forge 1.8.9 download](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.8.9.html)
 
 ## v0.1 foundation
@@ -24,7 +36,7 @@ This is a legacy ForgeGradle 2.1 project. Build with JDK 8 and Gradle 2.14.1:
 gradle setupDecompWorkspace build --no-daemon
 ```
 
-GitHub Actions runs the same build on pushes to `main`/ `master` and manual dispatch. The JAR is uploaded as the `Cylox-Client-Forge-1.8.9` workflow artifact.
+GitHub Actions builds the client on relevant pushes to `main`/ `master` and on manual dispatch. Each successful build uploads a versioned workflow artifact and updates the rolling `latest` release JAR.
 
 ## Compatibility and status
 - Target: Minecraft 1.8.9 + Forge 11.15.1.2318.
