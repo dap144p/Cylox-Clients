@@ -1,39 +1,93 @@
-name: Build Cylox Client
+name: Build Cylox Client — Vanilla 1.8.9
 
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-ui-core:
+  build:
+    name: Compile, verify and package
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Set up Gradle 8.10.2
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
 
-      - name: Build and test UI core
-        run: gradle --no-daemon clean build
+      - name: Download official Minecraft 1.8.9 for bytecode verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/verify
+          curl --fail --location --retry 3 \
+            https://launcher.mojang.com/v1/objects/3870888a6c3d349d3771a3e9d16c9bf5e076b908/client.jar \
+            --output build/verify/vanilla-1.8.9.jar
+          echo "3870888a6c3d349d3771a3e9d16c9bf5e076b908  build/verify/vanilla-1.8.9.jar" | sha1sum --check
 
-      - name: Upload UI core JAR
+      - name: Test, build and verify vanilla bytecode hooks
+        run: gradle --no-daemon clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=build/verify/vanilla-1.8.9.jar
+
+      - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
-          name: cylox-ui-core-0.3.0
-          path: build/libs/Cylox-UI-Core-0.3.0.jar
+          name: Cylox-Client-Vanilla-1.8.9
+          path: |
+            build/libs/Cylox-Client-1.8.9-0.4.0.jar
+            build/libs/Cylox-UI-Core-0.4.0.jar
+            build/distributions/Cylox-Client-Vanilla-1.8.9-0.4.0.zip
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish versioned and latest releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n "s/^version = '\\(.*\\)'/\\1/p" build.gradle | head -n1)"
+          TAG="v${VERSION}"
+          JAR="build/libs/Cylox-Client-1.8.9-${VERSION}.jar"
+          ZIP="build/distributions/Cylox-Client-Vanilla-1.8.9-${VERSION}.zip"
+          test -s "$JAR"
+          test -s "$ZIP"
+
+          NOTES="$(cat <<EOF
+          Cylox Client ${VERSION} — Vanilla Minecraft Java 1.8.9.
+
+          - Vanilla base; no Forge or Fabric required.
+          - Uses LaunchWrapper 1.12 and a lightweight LWJGL/OpenGL Click GUI.
+          - Installs as a version profile inheriting the launcher's existing 1.8.9 installation.
+          - Does not redistribute Minecraft, its assets, natives, or game libraries.
+          - Developer: dapdev.
+
+          Current sample modules are UI previews only. Runtime testing in MJ Launcher is still required.
+          EOF
+          )"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "Cylox Client ${VERSION} — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release upload "$TAG" "$JAR" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$JAR" "$ZIP" --title "Cylox Client ${VERSION} — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+          fi
+
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release upload latest "$JAR" "$ZIP" --clobber
+          else
+            gh release create latest "$JAR" "$ZIP" --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+          fi
