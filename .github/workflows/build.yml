@@ -87,6 +87,15 @@ jobs:
 
           if gh release view latest >/dev/null 2>&1; then
             gh release edit latest --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            while IFS= read -r asset; do
+              case "$asset" in
+                "${JAR##*/}"|"${ZIP##*/}")
+                  ;;
+                *)
+                  gh release delete-asset latest "$asset" --yes || true
+                  ;;
+              esac
+            done < <(gh release view latest --json assets --jq '.assets[].name')
             gh release upload latest "$JAR" "$ZIP" --clobber
           else
             gh release create latest "$JAR" "$ZIP" --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
