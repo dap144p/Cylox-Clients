@@ -1,0 +1,27 @@
+name: Build Cylox Client
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+      - name: Set up Gradle 2.14.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '2.14.1'
+      - name: Build Forge 1.8.9 client
+        run: gradle setupDecompWorkspace build --no-daemon
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cylox-Client-Forge-1.8.9
+          path: build/libs/*.jar
+          if-no-files-found: error
