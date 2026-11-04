@@ -86,6 +86,7 @@ tasks.register('generateClientVersion') {
             releaseTime: '2026-11-05T00:00:00+07:00',
             type: 'release',
             inheritsFrom: '1.8.9',
+            jar: '1.8.9',
             mainClass: 'net.minecraft.launchwrapper.Launch',
             minimumLauncherVersion: 14,
             minecraftArguments: '--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type} --tweakClass dev.cylox.client.minecraft189.CyloxTweaker',
