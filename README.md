@@ -1,49 +1,50 @@
-# Cylox Client — 1.8.9
+# Cylox Client — Vanilla 1.8.9
 
-Custom vanilla-based Minecraft 1.8.9 client project. The target game does **not** use Forge or Fabric.
+**Developer:** dapdev  
+**Version:** 0.4.0  
+**Loader:** Vanilla Minecraft + LaunchWrapper 1.12 (no Forge/Fabric)
 
-## Current snapshot: UI + runtime hook source 0.3.0
+## Current build
 
-- Hybrid Click GUI with categories, module list, settings, search, keybind editor, and GUI preferences.
-- Vanilla GuiScreen wrapper and Minecraft GUI/font renderer adapter.
-- LaunchWrapper ITweaker entry point.
-- ASM transformer that injects the Right Shift key poll into the client tick.
-- Right Shift opens/closes the Click GUI.
-- Java 8 source compatibility.
+- Three-column Click GUI with categories, search, module toggles, settings, and keybind editor.
+- Right Shift opens/closes the overlay; Escape closes it.
+- The game-side overlay uses LWJGL/OpenGL and does not require MCP class names or a modified Minecraft JAR.
+- A bytecode verifier scans the official obfuscated 1.8.9 client and confirms the tick/render injection points.
+- The install ZIP contains the custom version JSON and the small Cylox library. It does not redistribute Minecraft, assets, natives, or the game's libraries.
 
-**The sample modules remain UI previews only.** Their toggles change local UI state; they do not implement gameplay features.
+**Important:** the included sample modules are interface previews. Their toggles change local UI state only; gameplay modules are not implemented yet. Testing inside MJ Launcher on a physical device is still required.
 
 ## Download
 
-- [Download source ZIP](https://github.com/dap144p/Cylox-Clients/archive/refs/heads/main.zip)
-- [Open repository](https://github.com/dap144p/Cylox-Clients)
+- [Cylox Client latest release](https://github.com/dap144p/Cylox-Clients/releases/tag/latest)
+- [Latest source ZIP](https://github.com/dap144p/Cylox-Clients/archive/refs/heads/main.zip)
+- [GitHub repository](https://github.com/dap144p/Cylox-Clients)
 
-There is still no installable Minecraft client JAR in this snapshot. The adapter is compiled against MCP-named Minecraft classes and requires verified reobfuscation for the normal vanilla 1.8.9 runtime. Runtime integration has not yet been tested inside MJ Launcher.
+## Install — version folder method
 
-## Build the UI core
+1. Install vanilla Minecraft Java **1.8.9** once in your launcher.
+2. Extract the Cylox ZIP into the **root of the Minecraft game directory** (the folder that already contains `versions` and `libraries`). Merge folders when prompted.
+3. Select **Cylox-1.8.9** in the launcher's version list.
+4. Launch. The profile reuses the installed vanilla 1.8.9 client JAR and only downloads missing declared libraries.
 
-Requirements: JDK 8 or newer and Gradle 7.x.
+Do not extract the ZIP inside `versions`; it already contains the correct `versions/` and `libraries/` paths.
 
-    gradle clean build
+## Build
+
+Requirements: JDK 8+ and Gradle 8.10.2.
+
+    gradle clean buildClientPackage
 
 Output:
 
-    build/libs/Cylox-UI-Core-0.3.0.jar
+    build/distributions/Cylox-Client-Vanilla-1.8.9-0.4.0.zip
 
-This is the standalone UI-core library, not a Minecraft client.
+Verify injection targets against the official client JAR:
 
-## Build the 1.8.9 adapter source
+    gradle verifyVanilla189Hooks -Pvanilla189Jar=/path/to/1.8.9.jar
 
-Provide an MCP-named/deobfuscated 1.8.9 client JAR at libs/minecraft-1.8.9-mcp.jar, or pass its path:
-
-    gradle minecraft189AdapterJar -Pmc189Jar=/absolute/path/to/mcp-1.8.9-client.jar
-
-The adapter task also needs the small LaunchWrapper/ASM/LWJGL compile dependencies. They are compile-time inputs and are not bundled into the adapter output.
-
-## Runtime details
-
-See [src/minecraft189/README.md](src/minecraft189/README.md) for the LaunchWrapper profile requirements and the remaining reobfuscation/test work.
+The build does not require a decompiled or MCP Minecraft JAR.
 
 ## Attribution
 
-Cylox Client — Developer: **dapdev**.
+Cylox Client — **dapdev**.
