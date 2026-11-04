@@ -32,14 +32,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p build/verify
+          VANILLA_JAR="$RUNNER_TEMP/vanilla-1.8.9.jar"
           curl --fail --location --retry 3 \
             https://launcher.mojang.com/v1/objects/3870888a6c3d349d3771a3e9d16c9bf5e076b908/client.jar \
-            --output build/verify/vanilla-1.8.9.jar
-          echo "3870888a6c3d349d3771a3e9d16c9bf5e076b908  build/verify/vanilla-1.8.9.jar" | sha1sum --check
+            --output "$VANILLA_JAR"
+          echo "3870888a6c3d349d3771a3e9d16c9bf5e076b908  $VANILLA_JAR" | sha1sum --check
 
       - name: Test, build and verify vanilla bytecode hooks
-        run: gradle --no-daemon clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=build/verify/vanilla-1.8.9.jar
+        run: gradle --no-daemon clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar="$RUNNER_TEMP/vanilla-1.8.9.jar"
 
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
