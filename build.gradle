@@ -26,10 +26,12 @@ sourceSets {
     }
     verify {
         java.srcDir 'src/verify/java'
-        compileClasspath += sourceSets.main.output + sourceSets.minecraft189.output
-            + configurations.minecraft189CompileClasspath
-        runtimeClasspath += sourceSets.main.output + sourceSets.minecraft189.output
-            + configurations.minecraft189CompileClasspath
+        compileClasspath += sourceSets.main.output
+        compileClasspath += sourceSets.minecraft189.output
+        compileClasspath += configurations.minecraft189CompileClasspath
+        runtimeClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.minecraft189.output
+        runtimeClasspath += configurations.minecraft189CompileClasspath
     }
 }
 
@@ -85,7 +87,7 @@ tasks.register('generateClientVersion') {
             type: 'release',
             inheritsFrom: '1.8.9',
             mainClass: 'net.minecraft.launchwrapper.Launch',
-            minimumLauncherVersion: 21,
+            minimumLauncherVersion: 14,
             minecraftArguments: '--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type} --tweakClass dev.cylox.client.minecraft189.CyloxTweaker',
             libraries: [
                 [name: 'net.minecraft:launchwrapper:1.12', url: 'https://libraries.minecraft.net/'],
