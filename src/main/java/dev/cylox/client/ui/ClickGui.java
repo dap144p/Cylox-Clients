@@ -250,7 +250,7 @@ public final class ClickGui {
             }
             rowY += rowHeight;
         }
-        if (selectedModule != null) handleSettingClick(mouseX, mouseY);
+        if (guiSettingsSelected || selectedModule != null) handleSettingClick(mouseX, mouseY);
     }
 
     private void handleSettingClick(int mouseX, int mouseY) {
