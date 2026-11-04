@@ -82,15 +82,12 @@ public final class CyloxInstaller {
         new Thread(() -> {
             try {
                 String json = readUrl(API);
-                Matcher blocks = Pattern.compile("\\{[^{}]*\\}", Pattern.DOTALL).matcher(json);
-                while (blocks.find()) {
-                    String block = blocks.group();
+                for (String block : objects(json)) {
                     String tag = field(block, "tag_name"), name = field(block, "name");
                     if (tag == null || tag.equals("latest")) continue;
-                    Matcher assets = Pattern.compile("\\{[^{}]*\\}", Pattern.DOTALL).matcher(section(block, "assets"));
                     String url = null;
-                    while (assets.find()) {
-                        String asset = assets.group(), file = field(asset, "name");
+                    for (String asset : objects(section(block, "assets"))) {
+                        String file = field(asset, "name");
                         if (file != null && file.startsWith("Cylox-Client-Forge-1.8.9-") && file.endsWith(".jar")) url = field(asset, "browser_download_url");
                     }
                     if (url != null) releases.add(new Release(name == null ? tag : name, tag, url));
@@ -102,6 +99,24 @@ public final class CyloxInstaller {
                 });
             } catch (Exception ex) { log("Release check failed: " + ex.getMessage()); log("Check your internet connection or GitHub Releases."); }
         }, "cylox-release-check").start();
+    }
+    private static List<String> objects(String json) {
+        List<String> out = new ArrayList<String>();
+        boolean quoted = false, escaped = false;
+        int depth = 0, start = -1;
+        for (int i = 0; i < json.length(); i++) {
+            char ch = json.charAt(i);
+            if (quoted) {
+                if (escaped) escaped = false;
+                else if (ch == '\\\\') escaped = true;
+                else if (ch == '"') quoted = false;
+                continue;
+            }
+            if (ch == '"') quoted = true;
+            else if (ch == '{') { if (depth++ == 0) start = i; }
+            else if (ch == '}' && depth > 0 && --depth == 0 && start >= 0) out.add(json.substring(start, i + 1));
+        }
+        return out;
     }
     private static String section(String s, String key) { int i=s.indexOf("\"" + key + "\""); if(i<0)return ""; int a=s.indexOf('[',i), b=s.indexOf(']',a); return a<0||b<0?"":s.substring(a+1,b); }
     private static String field(String s, String key) {
