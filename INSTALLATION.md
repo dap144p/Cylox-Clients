@@ -1,81 +1,44 @@
-# Cylox Client v0.1.0-alpha — Installation & Usage
+# Cylox Client — Installation & Usage
 
-**Developer / Owner:** dapdev
+**Developer:** dapdev  
+**Client:** Cylox Client 0.1.0-alpha  
+**Minecraft:** Java Edition 1.8.9  
+**Forge:** 11.15.1.2318
 
-## 1. What is this?
-Cylox Client is a **client-side mod** for Minecraft Java Edition 1.8.9 using Minecraft Forge. It changes the main menu to a Cylox-themed interface and provides an early module/settings screen.
+## MJ Launcher / MojoLauncher installer
 
-It does not replace Minecraft, does not install a server plugin, and does not make a 1.8.9 client natively run newer Minecraft versions.
+1. Download [Cylox-Client-Installer.jar](https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-Installer.jar).
+2. Open MJ Launcher and select **Execute A .jar**.
+3. Choose the downloaded installer.
+4. Select the Cylox version from the release list.
+5. Set the Minecraft game directory. It must be the actual game directory used by this launcher.
+6. Press **Install Selected Version** and wait for the completion message.
+7. Select the Forge 1.8.9 profile in MJ Launcher.
 
-## 2. Download
-- **Latest JAR (direct download):** https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-latest-Forge-1.8.9.jar
-- Latest release page: https://github.com/dap144p/Cylox-Clients/releases/tag/latest
-- Repository/source code: https://github.com/dap144p/Cylox-Clients
-- Build history and versioned workflow artifacts: https://github.com/dap144p/Cylox-Clients/actions
-- Forge 1.8.9 files: https://files.minecraftforge.net/net/minecraftforge/forge/index_1.8.9.html
+The installer fetches versioned client JARs from the public GitHub Releases API and downloads the official Forge 1.8.9 installer. The first published version is 0.1.0-alpha. New versions appear in the selector after a versioned GitHub Release is published.
 
-The direct JAR link always targets the rolling `latest` release. A successful GitHub Actions build updates that release automatically.
+### Runtime compatibility note
 
-## 3. Requirements
-- Minecraft Java Edition **1.8.9**.
-- Forge **11.15.1.2318** for Minecraft 1.8.9.
-- Java 8 runtime is recommended for this legacy Minecraft/Forge setup.
-- A launcher that supports Forge 1.8.9 and custom mods.
+The installer is a Java 8 JAR with a Swing/AWT interface. MJ Launcher's **Execute A .jar** feature is designed to run compatible Java installers, but actual support for this custom installer, Swing dialogs, the embedded Forge installer invocation, and Android filesystem permissions must be tested on the target MJ Launcher build. If the installer UI does not open or Forge installation fails, use the manual method below and report the installer log.
 
-This build does not bundle Minecraft, Forge, Java, ViaForge, or any other third-party mod.
+## Manual installation (other launchers)
 
-## 4. Where to install the JAR
-Install the downloaded JAR into the **mods folder of the Minecraft 1.8.9 Forge instance** you want to use.
+1. Install Minecraft Java 1.8.9.
+2. Install Forge 11.15.1.2318 for that game directory.
+3. Launch the Forge profile once, then close the game.
+4. Put the downloaded Cylox Client mod JAR in the same game directory's `mods` folder.
+5. Select the Forge 1.8.9 profile and launch.
 
-Typical locations:
-- Windows: `%AppData%\\.minecraft\\mods\\`
-- Linux: `~/.minecraft/mods/`
-- macOS: `~/Library/Application Support/minecraft/mods/`
-- Android launchers: open the selected 1.8.9 Forge instance's game directory, then its `mods` folder. The exact path depends on the launcher and instance configuration.
+Download the [latest Cylox Client mod JAR](https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-Forge-1.8.9-0.1.0-alpha.jar).
 
-If the `mods` folder does not exist, create it. Do not put the JAR in the resourcepacks, shaderpacks, versions, or config folder.
+## Installer behavior
 
-## 5. How to open Cylox
-1. Select the Minecraft 1.8.9 Forge profile/instance.
-2. Start the game.
-3. At the main menu, the Cylox main menu should appear.
-4. Select **Singleplayer** or **Multiplayer** to open those screens.
-5. Select **Modules** to view the current module list.
-6. Select **Settings** to open the current settings placeholder.
-7. Select **Vanilla Menu** to return to the normal Minecraft main menu.
+- Lists published versioned releases from GitHub.
+- Downloads the selected client mod JAR.
+- Attempts to install official Forge 1.8.9 into the selected game directory.
+- Shows progress and errors in the installer log.
+- Does not delete existing mods or game files.
 
-## 6. What works in v0.1.0-alpha
-- Forge 1.8.9 mod entry point and client-only metadata.
-- Cylox-themed main menu with black base and green, blue, and orange accents.
-- Navigation to Singleplayer, Multiplayer, Modules, Settings, and Vanilla Menu.
-- Basic module list and ON/OFF state toggles in the current GUI.
+## Current client limitations
 
-## 7. What is not implemented yet
-The following are planned, not functional features in this alpha:
-- AutoProtocol detection and protocol translation.
-- ViaForge bridge/integration.
-- Performance optimizations.
-- Render Control effects.
-- HUD editor and custom HUD elements.
-- AFK utilities.
-- Alt/account manager.
-- Persistent module settings across restarts.
-
-The current module toggles are UI scaffolding only. Turning a module ON does not activate its advertised feature yet. AutoProtocol requires a separately compatible ViaForge integration; this JAR does not include ViaForge.
-
-## 8. Troubleshooting
-- **Cylox menu does not appear:** confirm the game is actually running Minecraft 1.8.9 with Forge 11.15.1.2318 and that the JAR is in that instance's `mods` folder.
-- **Game crashes on startup:** temporarily remove other recently added mods and inspect the Forge crash report/log. Check that the selected instance is 1.8.9, not another version.
-- **No JAR at the latest link:** check the [latest release page](https://github.com/dap144p/Cylox-Clients/releases/tag/latest) or [Actions build history](https://github.com/dap144p/Cylox-Clients/actions). The release is updated only after a successful build.
-- **Android launcher:** use the instance-specific game directory. Do not assume the desktop `.minecraft/mods` path exists on Android.
-
-## 9. Project links
-- Source repository: https://github.com/dap144p/Cylox-Clients
-- Latest JAR: https://github.com/dap144p/Cylox-Clients/releases/download/latest/Cylox-Client-latest-Forge-1.8.9.jar
-- Latest release page: https://github.com/dap144p/Cylox-Clients/releases/tag/latest
-- GitHub Actions builds: https://github.com/dap144p/Cylox-Clients/actions
-- Forge 1.8.9: https://files.minecraftforge.net/net/minecraftforge/forge/index_1.8.9.html
-- Minecraft Forge documentation: https://docs.minecraftforge.net/
-
-## 10. Disclaimer
-This is an early alpha build. A successful compile confirms that the source compiled, but it does not prove compatibility with every modpack, launcher, server, or device. Back up the instance before testing. Use server features in accordance with each server's rules.
+This is an early alpha foundation. Main menu navigation and module toggles exist, but module toggles are currently UI placeholders. Performance, Render Control, HUD Editor, AFK Tools, Alt Manager, and AutoProtocol are planned and are not yet implemented.
