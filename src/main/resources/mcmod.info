@@ -6,8 +6,8 @@
     "version": "${version}",
     "mcversion": "1.8.9",
     "url": "https://github.com/dap144p/Cylox-Clients",
-    "authorList": ["Cylox"],
-    "credits": "",
+    "authorList": ["dapdev"],
+    "credits": "Developed by dapdev",
     "logoFile": "",
     "screenshots": [],
     "dependencies": []
