@@ -3,12 +3,13 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = '0.2.0'
+version = '0.3.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
+    maven { url 'https://libraries.minecraft.net/' }
     mavenCentral()
 }
 
@@ -22,6 +23,11 @@ sourceSets {
 dependencies {
     testImplementation 'junit:junit:4.13.2'
     minecraft189CompileOnly files(findProperty('mc189Jar') ?: 'libs/minecraft-1.8.9-mcp.jar')
+    minecraft189CompileOnly('net.minecraft:launchwrapper:1.12') {
+        transitive = false
+    }
+    minecraft189CompileOnly 'org.ow2.asm:asm-debug-all:5.0.3'
+    minecraft189CompileOnly 'org.lwjgl.lwjgl:lwjgl:2.9.1'
 }
 
 compileJava {
@@ -37,6 +43,14 @@ tasks.register('minecraft189AdapterJar', Jar) {
     archiveBaseName = 'Cylox-1.8.9-GameAdapter'
     from sourceSets.main.output
     from sourceSets.minecraft189.output
+    manifest {
+        attributes(
+            'Implementation-Title': 'Cylox Client 1.8.9 Game Adapter',
+            'Implementation-Version': project.version,
+            'Client-Developer': 'dapdev',
+            'Cylox-Tweaker-Class': 'dev.cylox.client.minecraft189.CyloxTweaker'
+        )
+    }
 }
 
 jar {
