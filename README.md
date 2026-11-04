@@ -10,6 +10,7 @@ This snapshot establishes the first in-game UI layer:
 - Search field, module toggles, keybind editing, and draggable window.
 - Boolean, number, and mode setting controls.
 - HUD category and lightweight renderer/input interfaces.
+- Global GUI settings for window scale, panel opacity, and compact rows.
 - Java 8 source compatibility.
 
 The sample modules are **UI previews only**. Their toggles change local UI state; they do not implement gameplay features yet.
