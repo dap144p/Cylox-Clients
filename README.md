@@ -1,53 +1,46 @@
 # Cylox Client — 1.8.9
 
-Custom vanilla-based Minecraft 1.8.9 client project. The project is intended to use its own client core and does **not** depend on Forge or Fabric.
+Custom vanilla-based Minecraft 1.8.9 client project. The target runtime does **not** use Forge or Fabric.
 
-## Current snapshot: UI Core 0.1.0
+## Current snapshot: UI Core 0.2.0
 
-This snapshot establishes the first in-game UI layer:
+This snapshot adds the first Minecraft 1.8.9 screen adapter source alongside the reusable UI core:
 
-- Hybrid Click GUI layout: category sidebar, module list, and selected-module settings panel.
-- Search field, module toggles, keybind editing, and draggable window.
+- Hybrid Click GUI: category sidebar, module list, and selected-module settings panel.
+- Search field, module toggles, keybind editing, draggable window, and GUI preferences.
 - Boolean, number, and mode setting controls.
-- HUD category and lightweight renderer/input interfaces.
-- Global GUI settings for window scale, panel opacity, and compact rows.
+- Vanilla GuiScreen wrapper and FontRenderer/Gui rendering adapter in the optional minecraft189 source set.
+- Mouse, drag, release, and keyboard events forwarded from the Minecraft screen.
 - Java 8 source compatibility.
 
-The sample modules are **UI previews only**. Their toggles change local UI state; they do not implement gameplay features yet.
+**The sample modules are still UI previews only.** Their toggles change local UI state; they do not implement gameplay features.
 
 ## Download
 
 - [Download source ZIP](https://github.com/dap144p/Cylox-Clients/archive/refs/heads/main.zip)
 - [Open repository](https://github.com/dap144p/Cylox-Clients)
 
-There is no installable Minecraft client JAR in this snapshot. The UI core still needs to be connected to the 1.8.9 runtime/render hooks before it can be installed as a client version. A source ZIP is provided here so the current work can be inspected and built.
+There is still no launcher-installable Minecraft client JAR in this snapshot. The adapter source is not yet remapped for the obfuscated vanilla runtime, and no LaunchWrapper/tweaker hotkey has been registered.
 
-## Build
+## Build the UI core
 
 Requirements: JDK 8 or newer and Gradle 7.x.
 
-```bash
-gradle clean build
-```
+    gradle clean build
 
-The library output is created at:
+The core library is created at:
 
-```text
-build/libs/Cylox-UI-Core-0.1.0.jar
-```
+    build/libs/Cylox-UI-Core-0.2.0.jar
 
-This JAR is a UI library, **not** a standalone Minecraft client or launcher installer.
+This is a UI library, not a standalone Minecraft client or launcher installer.
 
-## Integration contract
+## Compile the optional Minecraft 1.8.9 adapter
 
-The game-side adapter should implement `dev.cylox.client.ui.UiRenderer` and forward Minecraft/LWJGL input to `ClickGui`:
+The adapter source set requires an MCP-named/deobfuscated Minecraft 1.8.9 client JAR:
 
-1. Call `ClickGui.draw(...)` during the 2D GUI render pass.
-2. Forward mouse click, drag, and release events.
-3. Forward typed characters and key codes to `ClickGui.keyTyped(...)`.
-4. Open/close the screen through the custom Cylox runtime hook.
+    gradle minecraft189AdapterJar -Pmc189Jar=/absolute/path/to/mcp-1.8.9-client.jar
 
-No Minecraft, Forge, Fabric, or OptiFine classes are referenced by this UI-core module.
+This dependency is compile-time only and is not bundled into the output. Details and the remaining runtime limitation are documented in [src/minecraft189/README.md](src/minecraft189/README.md).
 
 ## Attribution
 

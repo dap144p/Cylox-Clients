@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = '0.1.0'
+version = '0.2.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -12,12 +12,31 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    minecraft189 {
+        java.srcDir 'src/minecraft189/java'
+        compileClasspath += sourceSets.main.output
+    }
+}
+
 dependencies {
     testImplementation 'junit:junit:4.13.2'
+    minecraft189CompileOnly files(findProperty('mc189Jar') ?: 'libs/minecraft-1.8.9-mcp.jar')
 }
 
 compileJava {
     options.encoding = 'UTF-8'
+}
+
+tasks.named('compileMinecraft189Java') {
+    options.encoding = 'UTF-8'
+}
+
+tasks.register('minecraft189AdapterJar', Jar) {
+    dependsOn tasks.named('minecraft189Classes')
+    archiveBaseName = 'Cylox-1.8.9-GameAdapter'
+    from sourceSets.main.output
+    from sourceSets.minecraft189.output
 }
 
 jar {
