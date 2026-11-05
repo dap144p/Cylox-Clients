@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = '0.8.0'
+version = '0.9.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -20,6 +20,7 @@ sourceSets {
             include '**/CyloxTweaker.java'
             include '**/CyloxClientTransformer.java'
             include '**/CyloxKeyHook.java'
+            include '**/CyloxMovementHook.java'
             include '**/CyloxOverlayRenderer.java'
         }
         compileClasspath += sourceSets.main.output
