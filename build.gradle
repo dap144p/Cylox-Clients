@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = '0.10.0'
+version = '0.11.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -13,7 +13,55 @@ repositories {
     mavenCentral()
 }
 
+// Pin the Java-8-compatible ViaMCP dependency set to an immutable upstream source commit.
+def viaSourceCommit = 'd22b90b20560eca4bdc553d3a0f50a60f5773aec'
+def viaLibraryDirectory = layout.buildDirectory.dir('via-libs')
+def viaLibraries = [
+    [file: layout.buildDirectory.file('via-libs/ViaVersion-5.12.1-downgraded.jar').get().asFile,
+     url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaVersion-5.12.1-downgraded.jar"],
+    [file: layout.buildDirectory.file('via-libs/ViaBackwards-5.12.1-downgraded.jar').get().asFile,
+     url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaBackwards-5.12.1-downgraded.jar"],
+    [file: layout.buildDirectory.file('via-libs/ViaRewind-4.2.0-downgraded.jar').get().asFile,
+     url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaRewind-4.2.0-downgraded.jar"]
+]
+def viaLibraryFiles = files(viaLibraries.collect { it.file })
+
+tasks.register('downloadViaLibraries') {
+    outputs.files(viaLibraryFiles)
+    doLast {
+        viaLibraries.each { artifact ->
+            File destination = artifact.file
+            if (destination.isFile() && destination.length() > 0L) return
+            if (!destination.parentFile.isDirectory()
+                && !destination.parentFile.mkdirs()
+                && !destination.parentFile.isDirectory()) {
+                throw new GradleException("Could not create Via library directory: ${destination.parentFile}")
+            }
+            File temporary = new File(destination.parentFile, destination.name + '.part')
+            try {
+                new URL(artifact.url).withInputStream { input ->
+                    temporary.withOutputStream { output -> output << input }
+                }
+                if (!temporary.isFile() || temporary.length() < 1024L) {
+                    throw new GradleException("Downloaded Via library is empty or incomplete: ${artifact.url}")
+                }
+                if (destination.exists() && !destination.delete()) {
+                    throw new GradleException("Could not replace Via library: ${destination}")
+                }
+                if (!temporary.renameTo(destination)) {
+                    throw new GradleException("Could not finalize Via library: ${destination}")
+                }
+            } finally {
+                if (temporary.exists()) temporary.delete()
+            }
+        }
+    }
+}
+
 sourceSets {
+    main {
+        compileClasspath += viaLibraryFiles
+    }
     minecraft189 {
         java {
             srcDir 'src/minecraft189/java'
@@ -22,8 +70,10 @@ sourceSets {
             include '**/CyloxKeyHook.java'
             include '**/CyloxMovementHook.java'
             include '**/CyloxOverlayRenderer.java'
+            include '**/CyloxProtocolBridge.java'
         }
         compileClasspath += sourceSets.main.output
+        compileClasspath += viaLibraryFiles
     }
     verify {
         java.srcDir 'src/verify/java'
@@ -38,18 +88,23 @@ sourceSets {
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
+    compileOnly 'io.netty:netty-all:4.0.23.Final'
+    compileOnly 'org.apache.logging.log4j:log4j-api:2.0-beta9'
     minecraft189CompileOnly('net.minecraft:launchwrapper:1.12') {
         transitive = false
     }
     minecraft189CompileOnly 'org.ow2.asm:asm-debug-all:5.0.3'
     minecraft189CompileOnly 'org.lwjgl.lwjgl:lwjgl:2.9.1'
+    minecraft189CompileOnly 'io.netty:netty-all:4.0.23.Final'
 }
 
 tasks.named('compileJava') {
+    dependsOn tasks.named('downloadViaLibraries')
     options.encoding = 'UTF-8'
 }
 
 tasks.named('compileMinecraft189Java') {
+    dependsOn tasks.named('downloadViaLibraries')
     options.encoding = 'UTF-8'
 }
 
@@ -70,12 +125,13 @@ tasks.register('minecraft189AdapterJar', Jar) {
             'Client-Developer': 'dapdev',
             'Cylox-Tweaker-Class': 'dev.cylox.client.minecraft189.CyloxTweaker',
             'Minecraft-Version': '1.8.9',
-            'Client-Architecture': 'Vanilla + LaunchWrapper'
+            'Client-Architecture': 'Vanilla + LaunchWrapper + ViaVersion'
         )
     }
 }
 
 tasks.register('generateClientVersion') {
+    dependsOn tasks.named('downloadViaLibraries')
     def outputFile = layout.buildDirectory.file('generated/cylox/Cylox-1.8.9.json')
     outputs.file(outputFile)
     doLast {
@@ -94,6 +150,18 @@ tasks.register('generateClientVersion') {
             libraries: [
                 [name: 'net.minecraft:launchwrapper:1.12', url: 'https://libraries.minecraft.net/'],
                 [name: 'org.ow2.asm:asm-debug-all:5.0.3', url: 'https://repo1.maven.org/maven2/'],
+                [name: 'dev.cylox.via:viaversion:5.12.1', downloads: [artifact: [
+                    path: 'dev/cylox/via/viaversion/5.12.1/ViaVersion-5.12.1.jar',
+                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/Cylox-ViaVersion-5.12.1.jar"
+                ]]],
+                [name: 'dev.cylox.via:viabackwards:5.12.1', downloads: [artifact: [
+                    path: 'dev/cylox/via/viabackwards/5.12.1/ViaBackwards-5.12.1.jar',
+                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/Cylox-ViaBackwards-5.12.1.jar"
+                ]]],
+                [name: 'dev.cylox.via:viarewind:4.2.0', downloads: [artifact: [
+                    path: 'dev/cylox/via/viarewind/4.2.0/ViaRewind-4.2.0.jar',
+                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/Cylox-ViaRewind-4.2.0.jar"
+                ]]],
                 [name: "dev.cylox:client:${project.version}", downloads: [artifact: [
                     path: "dev/cylox/client/${project.version}/${artifactName}",
                     url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/${artifactName}"
@@ -121,6 +189,20 @@ tasks.register('buildClientPackage', Zip) {
     from(tasks.named('minecraft189AdapterJar').flatMap { it.archiveFile }) {
         into "libraries/dev/cylox/client/${project.version}"
     }
+    from(viaLibraries[0].file) {
+        into 'libraries/dev/cylox/via/viaversion/5.12.1'
+        rename { 'ViaVersion-5.12.1.jar' }
+    }
+    from(viaLibraries[1].file) {
+        into 'libraries/dev/cylox/via/viabackwards/5.12.1'
+        rename { 'ViaBackwards-5.12.1.jar' }
+    }
+    from(viaLibraries[2].file) {
+        into 'libraries/dev/cylox/via/viarewind/4.2.0'
+        rename { 'ViaRewind-4.2.0.jar' }
+    }
+    from('LICENSE') { into 'licenses' }
+    from('THIRD_PARTY_NOTICES.md') { into 'licenses' }
     from('INSTALLATION.md') {
         rename { 'CYLOX-INSTALL.txt' }
     }
