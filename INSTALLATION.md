@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.0.0
+Version: 1.0.1
 
 INSTALL
 1. Install Minecraft Java 1.8.9 once in MJ Launcher.
@@ -9,6 +9,16 @@ INSTALL
 4. Extract the ZIP into that directory and merge the folders.
 5. Refresh the launcher's version list.
 6. Select Cylox-1.8.9. Keep the launcher's normal Java and renderer settings.
+7. Open Multiplayer and use the "Via: [version]" button in the upper-left to choose the destination server's protocol.
+8. Connect after choosing the target version.
+
+PROTOCOL
+- ViaVersion, ViaBackwards and ViaRewind are embedded inside the single Cylox client JAR.
+- No separate Via JARs need to be downloaded or installed.
+- Default target is native 1.8.9 (protocol 47).
+- Protocol selection is manual and is saved in cylox/protocol.properties.
+- Cylox does not ping servers to select a protocol automatically.
+- Select the same protocol version used by the server. A mismatch may be rejected or may have compatibility issues.
 
 BACKGROUND
 - Automatically skips vanilla world/UI rendering while the LWJGL display is inactive or hidden.
@@ -17,15 +27,9 @@ BACKGROUND
 - There is no anti-AFK, auto-clicker or movement automation.
 - The game process must remain alive. Android or the launcher may pause/terminate it; the client JAR cannot override those policies.
 
-PROTOCOL
-- Native Minecraft 1.8.x uses protocol 47.
-- Auto status-ping translation is provided for the tested 1.9–1.13.2 protocol catalogue.
-- Unknown protocol IDs fall back to native 1.8.x and may be rejected by newer servers.
-- Keep the three Via libraries included in the ZIP. Do not install duplicate versions.
-
 IMPORTANT
 - Do not extract the ZIP inside versions/.
-- The package does not include Minecraft itself, game assets, Java runtime, renderer binaries or native libraries.
-- The small Cylox JAR is only a LaunchWrapper adapter.
-- Real MJ Launcher/Android background testing is still required.
+- The package does not include Minecraft itself, game assets, Java runtime, renderer binaries, native libraries or base Minecraft libraries.
+- The single Cylox JAR contains the Cylox adapter and the bundled Via protocol stack.
+- Real MJ Launcher/Android testing is still required.
 - GPL-3.0-or-later; see the licenses folder in the ZIP.

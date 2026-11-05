@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.0.0'
+version = '1.0.1'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -106,19 +106,28 @@ tasks.named('compileTestJava') {
 }
 
 tasks.register('minecraft189AdapterJar', Jar) {
-    dependsOn tasks.named('minecraft189Classes')
+    dependsOn tasks.named('minecraft189Classes'), tasks.named('downloadViaLibraries')
     archiveBaseName = 'Cylox-Client-1.8.9'
     archiveVersion = project.version
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from sourceSets.main.output
     from sourceSets.minecraft189.output
+    from({ viaLibraryFiles.collect { zipTree(it) } }) {
+        exclude 'META-INF/MANIFEST.MF'
+        exclude 'META-INF/INDEX.LIST'
+        exclude 'META-INF/*.SF'
+        exclude 'META-INF/*.RSA'
+        exclude 'META-INF/*.DSA'
+    }
     manifest {
         attributes(
-            'Implementation-Title': 'Cylox Background Client 1.8.9',
+            'Implementation-Title': 'Cylox Lightweight Background Client 1.8.9',
             'Implementation-Version': project.version,
             'Client-Developer': 'dapdev',
             'TweakClass': 'dev.cylox.client.minecraft189.CyloxTweaker',
             'Minecraft-Version': '1.8.9',
-            'Client-Architecture': 'Vanilla + LaunchWrapper + Background Hooks'
+            'Client-Architecture': 'Vanilla + Embedded Via + Background Hooks',
+            'Protocol-Selection': 'Manual UI'
         )
     }
 }
@@ -143,18 +152,6 @@ tasks.register('generateClientVersion') {
             libraries: [
                 [name: 'net.minecraft:launchwrapper:1.12', url: 'https://libraries.minecraft.net/'],
                 [name: 'org.ow2.asm:asm-debug-all:5.0.3', url: 'https://repo.maven.apache.org/maven2/'],
-                [name: 'dev.cylox.via:viaversion:5.12.1', downloads: [artifact: [
-                    path: 'dev/cylox/via/viaversion/5.12.1/ViaVersion-5.12.1.jar',
-                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/Cylox-ViaVersion-5.12.1.jar"
-                ]]],
-                [name: 'dev.cylox.via:viabackwards:5.12.1', downloads: [artifact: [
-                    path: 'dev/cylox/via/viabackwards/5.12.1/ViaBackwards-5.12.1.jar',
-                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/Cylox-ViaBackwards-5.12.1.jar"
-                ]]],
-                [name: 'dev.cylox.via:viarewind:4.2.0', downloads: [artifact: [
-                    path: 'dev/cylox/via/viarewind/4.2.0/ViaRewind-4.2.0.jar',
-                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/Cylox-ViaRewind-4.2.0.jar"
-                ]]],
                 [name: "dev.cylox:client:${project.version}", downloads: [artifact: [
                     path: "dev/cylox/client/${project.version}/${clientName}",
                     url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/${clientName}"
@@ -168,7 +165,7 @@ tasks.register('generateClientVersion') {
 }
 
 tasks.register('buildClientPackage', Zip) {
-    dependsOn tasks.named('minecraft189AdapterJar'), tasks.named('generateClientVersion'), tasks.named('downloadViaLibraries')
+    dependsOn tasks.named('minecraft189AdapterJar'), tasks.named('generateClientVersion')
     archiveBaseName = 'Cylox-Background-Client-1.8.9'
     archiveVersion = project.version
     destinationDirectory = layout.buildDirectory.dir('distributions')
@@ -178,18 +175,6 @@ tasks.register('buildClientPackage', Zip) {
     from(tasks.named('minecraft189AdapterJar').flatMap { it.archiveFile }) {
         into 'versions/Cylox-1.8.9'
         rename { 'Cylox-1.8.9.jar' }
-    }
-    from(viaLibraries[0].file) {
-        into 'libraries/dev/cylox/via/viaversion/5.12.1'
-        rename { 'ViaVersion-5.12.1.jar' }
-    }
-    from(viaLibraries[1].file) {
-        into 'libraries/dev/cylox/via/viabackwards/5.12.1'
-        rename { 'ViaBackwards-5.12.1.jar' }
-    }
-    from(viaLibraries[2].file) {
-        into 'libraries/dev/cylox/via/viarewind/4.2.0'
-        rename { 'ViaRewind-4.2.0.jar' }
     }
     from('LICENSE') { into 'licenses' }
     from('THIRD_PARTY_NOTICES.md') { into 'licenses' }

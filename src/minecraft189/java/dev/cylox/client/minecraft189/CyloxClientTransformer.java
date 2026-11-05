@@ -17,12 +17,14 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-/** Adds only the background render/frame hooks and the optional Via pipeline hooks. */
+/** Adds the background hooks, embedded Via pipeline hooks and manual protocol selector UI. */
 public final class CyloxClientTransformer implements net.minecraft.launchwrapper.IClassTransformer {
     private static volatile int patchedRenderClasses;
     private static volatile int patchedFrameLimitClasses;
     private static volatile int patchedProtocolConnectClasses;
     private static volatile int patchedCompressionClasses;
+    private static volatile int patchedSelectorButtonClasses;
+    private static volatile int patchedSelectorActionClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -32,12 +34,16 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedFrameLimitClasses = 0;
         patchedProtocolConnectClasses = 0;
         patchedCompressionClasses = 0;
+        patchedSelectorButtonClasses = 0;
+        patchedSelectorActionClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
     public static int getPatchedFrameLimitClassCount() { return patchedFrameLimitClasses; }
     public static int getPatchedProtocolConnectClassCount() { return patchedProtocolConnectClasses; }
     public static int getPatchedCompressionClassCount() { return patchedCompressionClasses; }
+    public static int getPatchedSelectorButtonClassCount() { return patchedSelectorButtonClasses; }
+    public static int getPatchedSelectorActionClassCount() { return patchedSelectorActionClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -51,6 +57,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean frameLimitPatched = false;
             boolean protocolConnectPatched = false;
             boolean compressionPatched = false;
+            boolean selectorButtonPatched = false;
+            boolean selectorActionPatched = false;
 
             for (MethodNode method : node.methods) {
                 if ((method.access & Opcodes.ACC_STATIC) == 0) {
@@ -73,6 +81,26 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     if (!compressionPatched && hasMarkers(method, "decompress", "compress")) {
                         insertBeforeReturns(method, VIA, "onCompressionEnabled", "(Ljava/lang/Object;)V", 0);
                         compressionPatched = true;
+                        changed = true;
+                    }
+
+                    if (!selectorButtonPatched && hasMarkers(method,
+                        "selectServer.edit", "selectServer.delete", "selectServer.select",
+                        "selectServer.direct", "selectServer.add", "selectServer.refresh", "gui.cancel")) {
+                        insertBeforeReturns(method, VIA, "addSelectorButton", "(Ljava/lang/Object;)V", 0);
+                        selectorButtonPatched = true;
+                        changed = true;
+                    }
+
+                    if (!selectorActionPatched && hasMarkers(method,
+                        "selectServer.deleteQuestion", "selectServer.deleteWarning")) {
+                        InsnList hook = new InsnList();
+                        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        hook.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, VIA,
+                            "handleSelectorAction", "(Ljava/lang/Object;Ljava/lang/Object;)V", false));
+                        method.instructions.insert(hook);
+                        selectorActionPatched = true;
                         changed = true;
                     }
                 }
@@ -102,10 +130,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (frameLimitPatched) patchedFrameLimitClasses++;
             if (protocolConnectPatched) patchedProtocolConnectClasses++;
             if (compressionPatched) patchedCompressionClasses++;
+            if (selectorButtonPatched) patchedSelectorButtonClasses++;
+            if (selectorActionPatched) patchedSelectorActionClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolConnectPatched) System.out.println("[Cylox] Via connect hook injected: " + node.name);
             if (compressionPatched) System.out.println("[Cylox] Via compression hook injected: " + node.name);
+            if (selectorButtonPatched) System.out.println("[Cylox] Manual Via selector button injected: " + node.name);
+            if (selectorActionPatched) System.out.println("[Cylox] Manual Via selector action injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -121,7 +153,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         guard.add(new JumpInsnNode(Opcodes.IFNE, foreground));
         guard.add(new InsnNode(Opcodes.RETURN));
         guard.add(foreground);
-        // The new target has the same locals as method entry and an empty operand stack.
         guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
         method.instructions.insert(guard);
     }
