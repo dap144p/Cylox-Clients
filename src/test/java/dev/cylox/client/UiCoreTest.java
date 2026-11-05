@@ -9,12 +9,17 @@ import static org.junit.Assert.*;
 
 public class UiCoreTest {
     @Test
-    public void previewRegistryContainsEveryCategory() {
-        ModuleRegistry registry = ModuleRegistry.createUiPreview();
-        for (Category category : Category.values()) {
-            assertNotNull(registry.getModules(category));
+    public void builtInRegistryContainsOnlyWorkingHudModules() {
+        ModuleRegistry registry = ModuleRegistry.createBuiltIns();
+        assertEquals(4, registry.getModules().size());
+        for (CyloxModule module : registry.getModules()) {
+            assertEquals(Category.HUD, module.getCategory());
         }
-        assertTrue(registry.getModules().size() >= Category.values().length);
+        assertNotNull(registry.getModule("Watermark"));
+        assertNotNull(registry.getModule("FPS"));
+        assertNotNull(registry.getModule("Keystrokes"));
+        assertNotNull(registry.getModule("Crosshair"));
+        assertNull(registry.getModule("KillAura"));
     }
 
     @Test

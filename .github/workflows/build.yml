@@ -72,14 +72,14 @@ jobs:
           Cylox Client ${VERSION} — Standalone Vanilla Minecraft Java 1.8.9.
 
           - Vanilla base; no Forge or Fabric required.
-          - Lightweight LWJGL/OpenGL Click GUI and internal module/settings core.
+          - Lightweight LWJGL/OpenGL Click GUI, Watermark/FPS/Keystrokes HUD and optional custom crosshair.
           - Protocol core includes the protocol catalogue, VarInt codec, handshake encoder and bidirectional translator extension point.
           - Server version detection uses the standard Minecraft status ping and reads the advertised protocol ID.
           - Native gameplay compatibility remains protocol 47 (Minecraft 1.8.x). Detecting newer protocols does not make them playable; translators are still required.
           - Does not redistribute Minecraft, assets, natives, or game libraries.
           - Developer: dapdev.
 
-          Sample gameplay modules are UI previews only. MJ Launcher device smoke testing is still required.
+          Combat and movement modules are not advertised until they have real gameplay implementations. MJ Launcher device smoke testing is still required.
           EOF
           )"
 

@@ -1,23 +1,29 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 0.6.0
+Version: 0.7.0
 
 INSTALL
 1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
-2. Extract this ZIP to the root of the Minecraft game directory (the directory that contains versions and libraries).
-3. Merge the versions and libraries folders.
-4. Select Cylox-1.8.9 in the launcher and start it.
+2. Open the Minecraft game directory configured in that launcher (the directory containing versions and libraries).
+3. Extract this ZIP into that game directory. Merge the versions and libraries folders.
+4. Refresh the launcher's version list.
+5. Select Cylox-1.8.9 and start it.
+
+IN-GAME
+- Right Shift opens/closes the Cylox Click GUI.
+- Escape closes the Click GUI.
+- The HUD category contains Watermark, FPS, Keystrokes, and Crosshair.
+- Watermark, FPS, and Keystrokes are enabled by default. Crosshair is optional.
+- Click a module's toggle to turn it on/off. Select a module to edit its settings.
 
 IMPORTANT
 - Do not extract this ZIP inside the versions folder.
 - This package does not include or redistribute Minecraft, assets, natives, or base game libraries.
-- The version profile inherits the launcher-managed vanilla 1.8.9 installation.
-- Right Shift opens/closes the in-game Click GUI. Escape closes it.
-- Sample gameplay modules are UI previews; they do not perform gameplay actions yet.
-- Native server compatibility in this build is Minecraft 1.8.x (protocol 47).
-- Server status detection can identify the version/protocol advertised by a server, but does not translate gameplay packets.
-- Newer protocol versions require complete bidirectional translators before they can be selected as supported.
-- A launcher must support inherited 1.8.9 versions, LaunchWrapper, and standard library artifacts.
-- MJ Launcher runtime compatibility still requires a device smoke test.
+- The Cylox profile inherits the launcher's vanilla 1.8.9 installation.
+- Native multiplayer compatibility is Minecraft 1.8.x (protocol 47).
+- Server version detection does not translate newer login or gameplay packets.
+- Protocol 1.9+ servers are not supported until a complete bidirectional translator is implemented.
+- The launcher must support inherited 1.8.9 versions, LaunchWrapper, and standard library artifacts.
+- Android/MJ Launcher device smoke testing is still required; this release has not been confirmed on a physical device.
 
 If the profile is not visible, restart the launcher or refresh its version list.
