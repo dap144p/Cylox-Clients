@@ -26,7 +26,7 @@ public final class ClickGui {
     private final NumberSetting uiScale = new NumberSetting("Window Scale", 1.0D, 0.75D, 1.0D, 0.05D);
     private final NumberSetting opacity = new NumberSetting("Panel Opacity", 90.0D, 50.0D, 100.0D, 5.0D);
     private final BooleanSetting compactMode = new BooleanSetting("Compact Rows", false);
-    private Category selectedCategory = Category.COMBAT;
+    private Category selectedCategory = Category.HUD;
     private CyloxModule selectedModule;
     private String search = "";
     private boolean searchFocused;
