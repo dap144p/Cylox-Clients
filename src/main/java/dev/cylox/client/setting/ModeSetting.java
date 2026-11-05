@@ -23,6 +23,17 @@ public final class ModeSetting extends Setting {
         return Arrays.copyOf(modes, modes.length);
     }
 
+    public boolean setValue(String value) {
+        if (value == null) return false;
+        for (int i = 0; i < modes.length; i++) {
+            if (modes[i].equalsIgnoreCase(value)) {
+                selectedIndex = i;
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void cycle() {
         selectedIndex = (selectedIndex + 1) % modes.length;
     }
