@@ -7,12 +7,9 @@ import com.viaversion.viaversion.protocol.ProtocolPipelineImpl;
 import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import de.florianmichael.vialoadingbase.netty.event.CompressionReorderEvent;
 import de.florianmichael.viamcp.MCPVLBPipeline;
-import dev.cylox.client.module.CyloxModule;
 import dev.cylox.client.protocol.CyloxProtocolTargetResolver;
 import dev.cylox.client.protocol.ServerStatus;
 import dev.cylox.client.protocol.ServerStatusClient;
-import dev.cylox.client.runtime.CyloxRuntime;
-import dev.cylox.client.setting.ModeSetting;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -27,7 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 /**
- * Native 1.8.9 client-side protocol bridge powered by ViaVersion + ViaBackwards + ViaRewind.
+ * Optional 1.8.9 client-side protocol bridge powered by ViaVersion + ViaBackwards + ViaRewind.
  * Auto mode checks the server status off the Netty event loop, selects its advertised protocol,
  * installs Via's per-connection handlers, then allows the original vanilla socket connect to run.
  */
@@ -102,20 +99,11 @@ public final class CyloxProtocolBridge {
     }
 
     private static boolean bridgeEnabled() {
-        CyloxModule module = CyloxRuntime.getModules().getModule("ProtocolBridge");
-        return module != null && module.isEnabled();
+        return available;
     }
 
     private static String targetMode() {
-        CyloxModule module = CyloxRuntime.getModules().getModule("ProtocolBridge");
-        if (module == null) return "Native";
-        for (dev.cylox.client.setting.Setting setting : module.getSettings()) {
-            if (setting instanceof ModeSetting
-                && "Target Version".equalsIgnoreCase(setting.getName())) {
-                return ((ModeSetting) setting).getValue();
-            }
-        }
-        return "Native";
+        return "Auto";
     }
 
     private static void setTargetProtocol(int protocolId) {
