@@ -1,12 +1,12 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.0.0  
+**Version:** 1.0.1  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** launcher-provided Java, LWJGL/renderer and Minecraft assets  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
 
-Cylox is a minimal 1.8.9 client adapter whose only gameplay-side purpose is to reduce rendering work while the game window is inactive.
+Cylox is a minimal 1.8.9 client adapter. Its gameplay-side purpose is to reduce rendering work while the game window is inactive. Its protocol compatibility features are embedded in the same Cylox JAR.
 
 ## Background behavior
 
@@ -18,17 +18,21 @@ Cylox is a minimal 1.8.9 client adapter whose only gameplay-side purpose is to r
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
+## Manual Via protocol selector
+
+- ViaVersion, ViaBackwards and ViaRewind are bundled inside **the single Cylox client JAR**.
+- Open the Multiplayer screen and use the **Via: [version]** button in the upper-left corner to cycle through protocol versions supported by the embedded Via stack.
+- The selected target is saved in `cylox/protocol.properties` inside the game directory.
+- Default: native Minecraft **1.8.9** (protocol 47).
+- Protocol selection is **manual**. Cylox does not ping the server to guess its version and does not switch protocol automatically.
+- Set the Via selector to the destination server's protocol before connecting. A wrong selection can cause the server to reject the handshake or can lead to compatibility issues.
+- Via translates packets; it cannot guarantee that every server plugin, custom registry, or version-specific feature will behave identically.
+
 ## Scope
 
-Included: automatic background render suppression and a small 1.8.9 LaunchWrapper adapter.
+Included: manual protocol selector, embedded Via protocol bridge, background render suppression and a small 1.8.9 LaunchWrapper adapter.
 
 Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
-
-## Newer server versions
-
-The optional protocol bridge performs a status ping and uses ViaVersion's client-side pipeline for the tested protocol catalogue **1.9 through 1.13.2**. Native 1.8.x servers use protocol 47 directly. Unknown protocols fall back to native 1.8.x; they are not claimed to be compatible. Custom server plugins and registries can still cause incompatibilities.
-
-The three Via libraries are installed separately from the Cylox client JAR. The adapter JAR itself does not embed them.
 
 ## Download
 
@@ -36,7 +40,7 @@ The three Via libraries are installed separately from the Cylox client JAR. The 
 - [Versioned releases](https://github.com/dap144p/Cylox-Clients/releases)
 - [Repository](https://github.com/dap144p/Cylox-Clients)
 
-Use the ZIP for a version-folder launcher installation. The JAR asset is the Cylox adapter only.
+The complete installation ZIP contains one Cylox version profile and one JAR. There are no separate Via JARs.
 
 ## Install — MJ Launcher / version-folder method
 
@@ -45,13 +49,14 @@ Use the ZIP for a version-folder launcher installation. The JAR asset is the Cyl
 3. Open the same Minecraft game directory used by MJ Launcher (the directory containing `versions/` and `libraries/`).
 4. Extract the ZIP into that directory and merge the folders.
 5. Refresh the version list and select **Cylox-1.8.9**.
-6. Keep the launcher's normal Java runtime and renderer selection.
+6. Keep the launcher's normal Java runtime and renderer settings.
+7. Open Multiplayer and select the target protocol using the **Via** button before connecting.
 
 Do not extract the ZIP inside `versions/`; it already contains the correct folder paths.
 
 ## Build
 
-Requirements: JDK 8+ and Gradle 8.10.2.
+Requirements: JDK 17 and Gradle 8.10.2.
 
 ```bash
 gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path/to/official-1.8.9.jar
@@ -59,10 +64,10 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.0.0.jar`
-- `build/distributions/Cylox-Background-Client-1.8.9-1.0.0.zip`
+- `build/libs/Cylox-Client-1.8.9-1.0.1.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Background-Client-1.8.9-1.0.1.zip` — version-folder installation with the single client JAR.
 
-The CI job verifies the bytecode injection points against Mojang's official 1.8.9 client JAR and enforces a 5 MB maximum for the Cylox adapter JAR. The total install ZIP is larger because it includes the external protocol-translation libraries.
+The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
 ## License
 
