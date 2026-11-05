@@ -4,6 +4,7 @@ import dev.cylox.client.module.Category;
 import dev.cylox.client.module.CyloxModule;
 import dev.cylox.client.module.ModuleRegistry;
 import dev.cylox.client.setting.NumberSetting;
+import dev.cylox.client.setting.ModeSetting;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -13,13 +14,17 @@ public class UiCoreTest {
         ModuleRegistry registry = ModuleRegistry.createBuiltIns();
         assertEquals(4, registry.getModules(Category.HUD).size());
         assertEquals(2, registry.getModules(Category.MOVEMENT).size());
-        assertEquals(6, registry.getModules().size());
+        assertEquals(1, registry.getModules(Category.MISC).size());
+        assertEquals(7, registry.getModules().size());
         assertNotNull(registry.getModule("Watermark"));
         assertNotNull(registry.getModule("FPS"));
         assertNotNull(registry.getModule("Keystrokes"));
         assertNotNull(registry.getModule("Crosshair"));
         assertNotNull(registry.getModule("ToggleSprint"));
         assertNotNull(registry.getModule("ToggleSneak"));
+        assertNotNull(registry.getModule("ProtocolBridge"));
+        assertTrue(registry.getModule("ProtocolBridge").isEnabled());
+        assertEquals("Auto", ((ModeSetting) registry.getModule("ProtocolBridge").getSettings().get(0)).getValue());
         assertFalse(registry.getModule("ToggleSprint").isEnabled());
         assertFalse(registry.getModule("ToggleSneak").isEnabled());
         assertNull(registry.getModule("KillAura"));

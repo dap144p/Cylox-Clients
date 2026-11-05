@@ -2,6 +2,7 @@ package dev.cylox.client.module;
 
 import dev.cylox.client.setting.BooleanSetting;
 import dev.cylox.client.setting.NumberSetting;
+import dev.cylox.client.setting.ModeSetting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,6 +62,10 @@ public final class ModuleRegistry {
             "Holds Minecraft's native sprint key while enabled", Category.MOVEMENT);
         CyloxModule toggleSneak = new CyloxModule("ToggleSneak",
             "Holds Minecraft's native sneak key while enabled", Category.MOVEMENT);
+        CyloxModule protocolBridge = new CyloxModule("ProtocolBridge",
+            "Automatically translates supported 1.9–1.13.2 servers for this 1.8.9 client", Category.MISC)
+            .addSetting(new ModeSetting("Target Version", "Auto", "Native"));
+        protocolBridge.setEnabled(true);
 
         return new ModuleRegistry()
             .register(watermark)
@@ -68,7 +73,8 @@ public final class ModuleRegistry {
             .register(keystrokes)
             .register(crosshair)
             .register(toggleSprint)
-            .register(toggleSneak);
+            .register(toggleSneak)
+            .register(protocolBridge);
     }
 
     /** Kept for source compatibility with early preview builds; now returns real modules. */
