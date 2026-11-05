@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 0.5.0
+Version: 0.6.0
 
 INSTALL
 1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
@@ -15,7 +15,8 @@ IMPORTANT
 - Right Shift opens/closes the in-game Click GUI. Escape closes it.
 - Sample gameplay modules are UI previews; they do not perform gameplay actions yet.
 - Native server compatibility in this build is Minecraft 1.8.x (protocol 47).
-- Newer protocol versions are catalogued but require completed bidirectional translators before they can be selected as supported.
+- Server status detection can identify the version/protocol advertised by a server, but does not translate gameplay packets.
+- Newer protocol versions require complete bidirectional translators before they can be selected as supported.
 - A launcher must support inherited 1.8.9 versions, LaunchWrapper, and standard library artifacts.
 - MJ Launcher runtime compatibility still requires a device smoke test.
 

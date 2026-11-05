@@ -63,4 +63,14 @@ public final class ProtocolCompatibilityEngine {
             "Server protocol " + serverVersion.getProtocolId() + " requires a complete packet translator. "
                 + "This protocol is catalogued, but this build does not yet translate it.");
     }
+
+    /** Creates a plan directly from the result of a Minecraft server status ping. */
+    public synchronized ProtocolConnectionPlan planFor(ServerStatus status) {
+        if (status == null) throw new IllegalArgumentException("Detected server status is required");
+        ProtocolVersion serverVersion = status.getKnownProtocolVersion();
+        if (serverVersion == null) {
+            return ProtocolConnectionPlan.unknown(clientVersion, status.getProtocolId(), status.getVersionName());
+        }
+        return planFor(serverVersion);
+    }
 }

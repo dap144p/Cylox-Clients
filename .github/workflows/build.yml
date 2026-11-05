@@ -73,8 +73,9 @@ jobs:
 
           - Vanilla base; no Forge or Fabric required.
           - Lightweight LWJGL/OpenGL Click GUI and internal module/settings core.
-          - Protocol core foundation includes protocol catalogue, VarInt codec, handshake encoder and translator registry.
-          - Native compatibility is protocol 47 (Minecraft 1.8.x). Newer versions remain unavailable until their translators are implemented and tested.
+          - Protocol core includes the protocol catalogue, VarInt codec, handshake encoder and bidirectional translator extension point.
+          - Server version detection uses the standard Minecraft status ping and reads the advertised protocol ID.
+          - Native gameplay compatibility remains protocol 47 (Minecraft 1.8.x). Detecting newer protocols does not make them playable; translators are still required.
           - Does not redistribute Minecraft, assets, natives, or game libraries.
           - Developer: dapdev.
 

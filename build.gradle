@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'dev.cylox'
-version = '0.5.0'
+version = '0.6.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -132,7 +132,7 @@ tasks.register('verifyVanilla189Hooks', JavaExec) {
     doFirst {
         def vanillaJar = providers.gradleProperty('vanilla189Jar').orNull
         if (vanillaJar == null) {
-            throw new GradleException('Pass -Pvanilla189Jar=/path/to/vanilla-1.8.9.jar')
+            throw new GradleException('Pass -Pvanilla189Jar=/path/to/1.8.9.jar')
         }
         args = [vanillaJar]
     }

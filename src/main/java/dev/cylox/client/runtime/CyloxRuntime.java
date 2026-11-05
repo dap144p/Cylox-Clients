@@ -3,6 +3,7 @@ package dev.cylox.client.runtime;
 import dev.cylox.client.module.ModuleRegistry;
 import dev.cylox.client.protocol.ProtocolCompatibilityEngine;
 import dev.cylox.client.protocol.ProtocolVersion;
+import dev.cylox.client.protocol.ServerStatusClient;
 import dev.cylox.client.ui.ClickGui;
 
 /**
@@ -14,10 +15,12 @@ public final class CyloxRuntime {
     private static final ClickGui CLICK_GUI = new ClickGui(MODULES);
     private static final ProtocolCompatibilityEngine PROTOCOL =
         new ProtocolCompatibilityEngine(ProtocolVersion.V1_8_X);
+    private static final ServerStatusClient SERVER_STATUS = new ServerStatusClient();
 
     private CyloxRuntime() { }
 
     public static ModuleRegistry getModules() { return MODULES; }
     public static ClickGui getClickGui() { return CLICK_GUI; }
     public static ProtocolCompatibilityEngine getProtocolEngine() { return PROTOCOL; }
+    public static ServerStatusClient getServerStatusClient() { return SERVER_STATUS; }
 }
