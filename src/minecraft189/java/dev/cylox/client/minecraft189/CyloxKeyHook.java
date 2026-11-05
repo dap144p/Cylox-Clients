@@ -1,14 +1,17 @@
 package dev.cylox.client.minecraft189;
 
+import dev.cylox.client.module.CyloxModule;
 import dev.cylox.client.runtime.CyloxRuntime;
 import dev.cylox.client.ui.ClickGui;
+import java.util.function.IntPredicate;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 
-/** Polls game input and routes events while the in-game Click GUI is open. */
+/** Polls game input and routes the Click GUI and module keybinds. */
 public final class CyloxKeyHook {
     private static final int TOGGLE_KEY = Keyboard.KEY_RSHIFT;
+
     private static boolean wasToggleDown;
     private static boolean restoreGrabOnClose;
 
@@ -36,11 +39,18 @@ public final class CyloxKeyHook {
                 Mouse.setGrabbed(false);
             } else {
                 restoreMouse();
+                CyloxRuntime.saveSettings();
             }
         }
         wasToggleDown = toggleDown;
+
+        IntPredicate keyState = keyCode -> Keyboard.isKeyDown(keyCode);
+        boolean keybindChanged = CyloxRuntime.getKeybindController().tick(
+            CyloxRuntime.getModules(), keyState, TOGGLE_KEY, !gui.isOpen());
+        if (keybindChanged) CyloxRuntime.saveSettings();
         if (!gui.isOpen()) return;
 
+        boolean settingsChanged = false;
         int height = Display.getHeight();
         while (Mouse.next()) {
             int button = Mouse.getEventButton();
@@ -49,6 +59,7 @@ public final class CyloxKeyHook {
             if (button >= 0) {
                 if (Mouse.getEventButtonState()) gui.mouseClicked(mouseX, mouseY, button);
                 else gui.mouseReleased(mouseX, mouseY, button);
+                settingsChanged = true;
             }
         }
         while (Keyboard.next()) {
@@ -56,12 +67,14 @@ public final class CyloxKeyHook {
                 int keyCode = Keyboard.getEventKey();
                 if (keyCode != TOGGLE_KEY) {
                     gui.keyTyped(Keyboard.getEventCharacter(), keyCode);
+                    settingsChanged = true;
                 }
             }
         }
         if (Mouse.isButtonDown(0)) {
             gui.mouseDragged(Mouse.getX(), height - Mouse.getY() - 1, 0);
         }
+        if (settingsChanged) CyloxRuntime.saveSettings();
         if (!gui.isOpen()) restoreMouse();
     }
 
