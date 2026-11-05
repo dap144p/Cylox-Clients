@@ -73,6 +73,7 @@ jobs:
 
           - Vanilla base; no Forge or Fabric required.
           - Lightweight LWJGL/OpenGL Click GUI and HUD with Watermark/FPS/Keystrokes/custom crosshair.
+          - ToggleSprint uses the native vanilla sprint KeyBinding and preserves physical-key behavior when disabled.
           - Module keybind toggles are edge-triggered; module states, keybinds and settings persist in the game directory.
           - ToggleSprint holds the vanilla sprint keybinding while enabled.
           - Protocol core includes the protocol catalogue, VarInt codec, handshake encoder and bidirectional translator extension point.
@@ -81,7 +82,7 @@ jobs:
           - Does not redistribute Minecraft, assets, natives, or game libraries.
           - Developer: dapdev.
 
-          Other movement and combat modules plus newer-protocol translation are not included in this build. MJ Launcher device smoke testing is still required.
+          Additional movement/combat modules and in-client newer-protocol translation are not included in this build. MJ Launcher device smoke testing is still required.
           EOF
           )"
 
