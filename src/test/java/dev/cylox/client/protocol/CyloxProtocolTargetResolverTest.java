@@ -5,19 +5,20 @@ import static org.junit.Assert.*;
 
 public class CyloxProtocolTargetResolverTest {
     @Test
-    public void autoModeSelectsKnownNewerProtocol() {
-        assertEquals(393, CyloxProtocolTargetResolver.resolve(true, "Auto", 393));
-        assertEquals(404, CyloxProtocolTargetResolver.resolve(true, "Auto", 404));
+    public void manualSelectionIsUsedExactly() {
+        assertEquals(107, CyloxProtocolTargetResolver.resolve(true, 107));
+        assertEquals(404, CyloxProtocolTargetResolver.resolve(true, 404));
+        assertEquals(763, CyloxProtocolTargetResolver.resolve(true, 763));
     }
 
     @Test
-    public void unknownProtocolFallsBackToNative() {
-        assertEquals(47, CyloxProtocolTargetResolver.resolve(true, "Auto", 9999));
+    public void disabledBridgeUsesNativeProtocol() {
+        assertEquals(47, CyloxProtocolTargetResolver.resolve(false, 404));
     }
 
     @Test
-    public void nativeModeDoesNotTranslate() {
-        assertEquals(47, CyloxProtocolTargetResolver.resolve(true, "Native", 404));
-        assertEquals(47, CyloxProtocolTargetResolver.resolve(false, "Auto", 404));
+    public void invalidProtocolUsesNativeProtocol() {
+        assertEquals(47, CyloxProtocolTargetResolver.resolve(true, -1));
+        assertEquals(47, CyloxProtocolTargetResolver.resolve(true, 0));
     }
 }
