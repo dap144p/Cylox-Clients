@@ -12,14 +12,16 @@ public class UiCoreTest {
     public void builtInRegistryContainsWorkingHudAndMovementModules() {
         ModuleRegistry registry = ModuleRegistry.createBuiltIns();
         assertEquals(4, registry.getModules(Category.HUD).size());
-        assertEquals(1, registry.getModules(Category.MOVEMENT).size());
-        assertEquals(5, registry.getModules().size());
+        assertEquals(2, registry.getModules(Category.MOVEMENT).size());
+        assertEquals(6, registry.getModules().size());
         assertNotNull(registry.getModule("Watermark"));
         assertNotNull(registry.getModule("FPS"));
         assertNotNull(registry.getModule("Keystrokes"));
         assertNotNull(registry.getModule("Crosshair"));
         assertNotNull(registry.getModule("ToggleSprint"));
+        assertNotNull(registry.getModule("ToggleSneak"));
         assertFalse(registry.getModule("ToggleSprint").isEnabled());
+        assertFalse(registry.getModule("ToggleSneak").isEnabled());
         assertNull(registry.getModule("KillAura"));
     }
 
