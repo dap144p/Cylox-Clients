@@ -1,13 +1,12 @@
 package dev.cylox.client.module;
 
 import dev.cylox.client.setting.BooleanSetting;
-import dev.cylox.client.setting.ModeSetting;
 import dev.cylox.client.setting.NumberSetting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Holds module metadata and state. Sample entries are UI previews, not gameplay implementations. */
+/** Registry of working client-side HUD modules. No placeholder combat actions are exposed. */
 public final class ModuleRegistry {
     private final List<CyloxModule> modules = new ArrayList<CyloxModule>();
 
@@ -34,29 +33,40 @@ public final class ModuleRegistry {
         return Collections.unmodifiableList(result);
     }
 
-    public static ModuleRegistry createUiPreview() {
+    public CyloxModule getModule(String name) {
+        if (name == null) return null;
+        for (CyloxModule module : modules) {
+            if (module.getName().equalsIgnoreCase(name)) return module;
+        }
+        return null;
+    }
+
+    public static ModuleRegistry createBuiltIns() {
+        CyloxModule watermark = new CyloxModule("Watermark", "Cylox client name and Minecraft version", Category.HUD);
+        watermark.setEnabled(true);
+
+        CyloxModule fps = new CyloxModule("FPS", "Live frames-per-second counter", Category.HUD)
+            .addSetting(new BooleanSetting("Show Background", true));
+        fps.setEnabled(true);
+
+        CyloxModule keystrokes = new CyloxModule("Keystrokes", "Live movement keys and mouse buttons", Category.HUD)
+            .addSetting(new BooleanSetting("Show Mouse Buttons", true));
+        keystrokes.setEnabled(true);
+
+        CyloxModule crosshair = new CyloxModule("Crosshair", "Client-side custom center crosshair", Category.HUD)
+            .addSetting(new NumberSetting("Size", 8.0D, 4.0D, 14.0D, 1.0D))
+            .addSetting(new NumberSetting("Gap", 3.0D, 1.0D, 8.0D, 1.0D));
+
         return new ModuleRegistry()
-            .register(new CyloxModule("KillAura", "Combat module preview", Category.COMBAT)
-                .addSetting(new NumberSetting("Range", 3.0D, 1.0D, 6.0D, 0.1D))
-                .addSetting(new ModeSetting("Target Mode", "Players", "All")))
-            .register(new CyloxModule("AutoClicker", "Combat module preview", Category.COMBAT)
-                .addSetting(new NumberSetting("CPS", 10.0D, 1.0D, 20.0D, 1.0D))
-                .addSetting(new BooleanSetting("Randomize", false)))
-            .register(new CyloxModule("Sprint", "Movement module preview", Category.MOVEMENT)
-                .addSetting(new ModeSetting("Mode", "Legit", "Omni")))
-            .register(new CyloxModule("Speed", "Movement module preview", Category.MOVEMENT)
-                .addSetting(new NumberSetting("Multiplier", 1.0D, 1.0D, 2.0D, 0.05D)))
-            .register(new CyloxModule("AutoRespawn", "Player module preview", Category.PLAYER)
-                .addSetting(new BooleanSetting("Instant", true)))
-            .register(new CyloxModule("Fullbright", "Render module preview", Category.RENDER)
-                .addSetting(new NumberSetting("Gamma", 1.0D, 1.0D, 10.0D, 0.5D)))
-            .register(new CyloxModule("FastPlace", "World module preview", Category.WORLD)
-                .addSetting(new NumberSetting("Delay", 0.0D, 0.0D, 4.0D, 1.0D)))
-            .register(new CyloxModule("AutoGG", "Misc module preview", Category.MISC)
-                .addSetting(new ModeSetting("Message", "GG", "Good game")))
-            .register(new CyloxModule("FPS", "HUD module preview", Category.HUD)
-                .addSetting(new BooleanSetting("Show Background", false)))
-            .register(new CyloxModule("Keystrokes", "HUD module preview", Category.HUD)
-                .addSetting(new BooleanSetting("Show Mouse Buttons", true)));
+            .register(watermark)
+            .register(fps)
+            .register(keystrokes)
+            .register(crosshair);
+    }
+
+    /** Kept for source compatibility with early preview builds; now returns real HUD modules. */
+    @Deprecated
+    public static ModuleRegistry createUiPreview() {
+        return createBuiltIns();
     }
 }
