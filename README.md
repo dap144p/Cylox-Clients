@@ -1,85 +1,69 @@
-# Cylox Client — Standalone Vanilla 1.8.9
+# Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 0.11.0  
-**Base:** Minecraft Java 1.8.9 (protocol 47)  
-**Runtime:** Vanilla + LaunchWrapper 1.12; no Forge/Fabric requirement.
+**Version:** 1.0.0  
+**Minecraft:** Java 1.8.9 (base protocol 47)  
+**Runtime:** launcher-provided Java, LWJGL/renderer and Minecraft assets  
+**Loader:** LaunchWrapper tweaker only; no Forge or Fabric
 
-## Client features
+Cylox is a minimal 1.8.9 client adapter whose only gameplay-side purpose is to reduce rendering work while the game window is inactive.
 
-Cylox launches the normal Minecraft Java 1.8.9 game and adds a lightweight in-game Click GUI, HUD, movement controls and an optional client-side protocol translator.
+## Background behavior
 
-- Three-column Click GUI with category navigation, module search, toggles, setting controls and keybind editor.
-- Right Shift opens/closes the Click GUI; Escape closes it.
-- Watermark HUD (CYLOX / 1.8.9), live FPS, Keystrokes (W/A/S/D, Space and mouse buttons), and configurable Crosshair.
-- Persistent module states, keybinds and settings in `cylox/settings.properties`.
-- **ToggleSprint** and **ToggleSneak** use Minecraft's native key bindings and preserve physical-key behavior when disabled.
-- Lightweight LWJGL/OpenGL drawing; no Forge or Fabric runtime dependency.
+- Detects whether the LWJGL display is active and visible.
+- Skips the vanilla `EntityRenderer` frame when the display is inactive/hidden.
+- Caps the main display loop at **5 FPS** in the background.
+- Returns to normal rendering and the launcher's selected frame limit when the display becomes active again.
+- Does not pause the Minecraft network stack deliberately and does not automate player actions.
 
-## Protocol compatibility
+This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
-Cylox uses ViaVersion's client-side Netty pipeline through the ViaMCP 1.8.x platform implementation.
+## Scope
 
-| Server version family | Protocol | v0.11.0 mode |
-|---|---:|---|
-| Minecraft 1.8.x | 47 | Native vanilla connection |
-| Minecraft 1.9–1.12.2 | 107–340 | Auto translation |
-| Minecraft 1.13–1.13.2 | 393–404 | Auto translation |
+Included: automatic background render suppression and a small 1.8.9 LaunchWrapper adapter.
 
-The **ProtocolBridge** module is enabled by default and starts in **Auto** mode. Before opening a game connection, Cylox performs a Minecraft status ping off the Netty event loop, reads the server's advertised protocol ID, and selects that ViaVersion target. It then creates a translator connection for that socket. Each game connection receives its own Via user/pipeline.
+Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
 
-If the status ping fails or the protocol is not in Cylox's tested catalogue, Cylox falls back to native protocol 47. Such a fallback does not make an incompatible newer server playable; the server can still reject the native connection. Use **Native** in the module settings to disable protocol auto-detection completely.
+## Newer server versions
 
-The included Java-8-compatible libraries are ViaVersion 5.12.1, ViaBackwards 5.12.1 and ViaRewind 4.2.0. The version ZIP contains the libraries and the version metadata also declares them for launchers that fetch libraries individually. Do not remove them from the game directory. Do not install duplicate ViaVersion/ViaBackwards/ViaRewind copies alongside this bundle.
+The optional protocol bridge performs a status ping and uses ViaVersion's client-side pipeline for the tested protocol catalogue **1.9 through 1.13.2**. Native 1.8.x servers use protocol 47 directly. Unknown protocols fall back to native 1.8.x; they are not claimed to be compatible. Custom server plugins and registries can still cause incompatibilities.
 
-Protocol support depends on upstream mappings and server behavior; plugins, custom registries, server-side modifications and unsupported protocol extensions can still prevent joining or cause gameplay limitations. CI verifies compilation, packet-pipeline injection points and vanilla bytecode mappings, but it is not a live multiplayer test.
+The three Via libraries are installed separately from the Cylox client JAR. The adapter JAR itself does not embed them.
 
 ## Download
 
-- [Cylox Client v0.11.0 release](https://github.com/dap144p/Cylox-Clients/releases/tag/v0.11.0)
 - [Latest release](https://github.com/dap144p/Cylox-Clients/releases/tag/latest)
-- [GitHub repository](https://github.com/dap144p/Cylox-Clients)
+- [Versioned releases](https://github.com/dap144p/Cylox-Clients/releases)
+- [Repository](https://github.com/dap144p/Cylox-Clients)
 
-Use the **ZIP** for MJ Launcher and other version-folder launchers. The standalone JAR is the client adapter only; its Via dependencies are supplied separately in the release and in the ZIP.
+Use the ZIP for a version-folder launcher installation. The JAR asset is the Cylox adapter only.
 
-## Install — version folder method
+## Install — MJ Launcher / version-folder method
 
-1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
-2. Open the Minecraft game directory configured in that launcher (the directory containing `versions/` and `libraries/`).
-3. Extract the Cylox ZIP into that game directory. Merge the `versions` and `libraries` folders when prompted.
-4. Refresh the launcher's version list.
-5. Select `Cylox-1.8.9` and start it.
+1. Install Minecraft Java **1.8.9** once in MJ Launcher.
+2. Download the complete **Background Client ZIP** from Releases.
+3. Open the same Minecraft game directory used by MJ Launcher (the directory containing `versions/` and `libraries/`).
+4. Extract the ZIP into that directory and merge the folders.
+5. Refresh the version list and select **Cylox-1.8.9**.
+6. Keep the launcher's normal Java runtime and renderer selection.
 
-Do not extract the ZIP inside `versions/`; it already contains the correct paths.
+Do not extract the ZIP inside `versions/`; it already contains the correct folder paths.
 
-## In-game settings
-
-- Right Shift: open or close the Cylox Click GUI.
-- Escape: close the Click GUI.
-- **Movement:** ToggleSprint and ToggleSneak.
-- **Misc → ProtocolBridge:** keep the module enabled and set **Target Version** to **Auto** for status-ping detection, or **Native** to force protocol 47.
-- HUD: Watermark, FPS, Keystrokes and Crosshair.
-- Select a module to edit its settings or assign a keybind. Press the assigned key while the Click GUI is closed to toggle it.
-- Settings are saved automatically in `<game directory>/cylox/settings.properties`.
-
-## Build and verification
+## Build
 
 Requirements: JDK 8+ and Gradle 8.10.2.
 
-    gradle clean test buildClientPackage
+```bash
+gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path/to/official-1.8.9.jar
+```
 
-Output:
+Outputs:
 
-    build/distributions/Cylox-Client-Vanilla-1.8.9-0.11.0.zip
+- `build/libs/Cylox-Client-1.8.9-1.0.0.jar`
+- `build/distributions/Cylox-Background-Client-1.8.9-1.0.0.zip`
 
-Verify the tick/render/network/compression hooks and movement mappings against Mojang's official 1.8.9 JAR:
+The CI job verifies the bytecode injection points against Mojang's official 1.8.9 client JAR and enforces a 5 MB maximum for the Cylox adapter JAR. The total install ZIP is larger because it includes the external protocol-translation libraries.
 
-    gradle verifyVanilla189Hooks -Pvanilla189Jar=/path/to/1.8.9.jar
+## License
 
-The build downloads pinned Java-8-compatible Via libraries from the ViaMCP snapshot declared in `build.gradle`. The build does not require a decompiled or MCP Minecraft JAR.
-
-## Licensing and attribution
-
-The integrated ViaMCP platform and the combined Cylox distribution are released under **GPL-3.0-or-later**. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for exact upstream source revisions and attribution.
-
-Cylox Client — **dapdev**.
+GPL-3.0-or-later. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

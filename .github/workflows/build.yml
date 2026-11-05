@@ -1,4 +1,4 @@
-name: Build Cylox Client — Vanilla 1.8.9
+name: Build Cylox Background Client — 1.8.9
 
 on:
   push:
@@ -9,10 +9,11 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   build:
-    name: Compile, test, verify and package
+    name: Test, verify and package
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -30,7 +31,7 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Download official Minecraft 1.8.9 for bytecode verification
+      - name: Download official Minecraft 1.8.9 for hook verification
         shell: bash
         run: |
           set -euo pipefail
@@ -40,17 +41,26 @@ jobs:
             --output "$VANILLA_JAR"
           echo "3870888a6c3d349d3771a3e9d16c9bf5e076b908  $VANILLA_JAR" | sha1sum --check
 
-      - name: Test, download Java 8 Via libraries, build and verify vanilla hooks
+      - name: Run tests, compile, package and verify vanilla hooks
         run: gradle --no-daemon clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar="$RUNNER_TEMP/vanilla-1.8.9.jar"
+
+      - name: Enforce small client JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR="$(find build/libs -maxdepth 1 -name 'Cylox-Client-1.8.9-*.jar' -print -quit)"
+          test -n "$JAR"
+          SIZE="$(stat -c%s "$JAR")"
+          echo "Cylox client JAR size: $SIZE bytes"
+          test "$SIZE" -lt 5000000
 
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
-          name: Cylox-Client-Vanilla-1.8.9
+          name: Cylox-Background-Client-1.8.9
           path: |
             build/libs/Cylox-Client-1.8.9-*.jar
-            build/libs/Cylox-UI-Core-*.jar
-            build/distributions/Cylox-Client-Vanilla-1.8.9-*.zip
+            build/distributions/Cylox-Background-Client-1.8.9-*.zip
             build/via-libs/*.jar
           if-no-files-found: error
           retention-days: 30
@@ -65,52 +75,43 @@ jobs:
           VERSION="$(sed -n "s/^version = '\\(.*\\)'/\\1/p" build.gradle | head -n1)"
           TAG="v${VERSION}"
           JAR="build/libs/Cylox-Client-1.8.9-${VERSION}.jar"
-          ZIP="build/distributions/Cylox-Client-Vanilla-1.8.9-${VERSION}.zip"
+          ZIP="build/distributions/Cylox-Background-Client-1.8.9-${VERSION}.zip"
           VIA_VERSION="build/via-libs/Cylox-ViaVersion-5.12.1.jar"
           VIA_BACKWARDS="build/via-libs/Cylox-ViaBackwards-5.12.1.jar"
           VIA_REWIND="build/via-libs/Cylox-ViaRewind-4.2.0.jar"
           test -s "$JAR"
           test -s "$ZIP"
-          test -s "$VIA_VERSION"
-          test -s "$VIA_BACKWARDS"
-          test -s "$VIA_REWIND"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — Standalone Vanilla Minecraft Java 1.8.9.
+          Cylox Client ${VERSION} — lightweight Minecraft Java 1.8.9 background client.
 
-          - Vanilla base; no Forge or Fabric required.
-          - HUD: Watermark, FPS, Keystrokes and configurable Crosshair.
-          - Movement: ToggleSprint and ToggleSneak use native 1.8.9 key bindings.
-          - ProtocolBridge defaults to Auto: it checks the server status protocol before connecting and uses the ViaVersion client-side Netty pipeline for catalogued 1.9–1.13.2 targets.
-          - Native mode retains direct protocol 47. Unknown or failed status detections safely fall back to protocol 47.
-          - ViaVersion 5.12.1, ViaBackwards 5.12.1 and ViaRewind 4.2.0 Java-8-compatible libraries are included in the ZIP and attached separately for launchers.
-          - Third-party source attribution and GPL-3.0 license are included in the repository and ZIP.
-          - Developer: dapdev.
+          - Automatically skips the vanilla renderer while the LWJGL display is inactive or hidden.
+          - Limits the background frame loop to 5 FPS; foreground rendering returns to the launcher's selected renderer and normal frame limit.
+          - Keeps the normal Minecraft networking/tick loop alive while the launcher process remains active.
+          - No anti-AFK, auto-clicker, movement automation, HUD, Click GUI, Forge or Fabric.
+          - Optional client-side protocol translation is provided by separate ViaVersion/ViaBackwards/ViaRewind libraries; tested catalogue in README.
+          - Client adapter JAR is a standalone small file; Minecraft, Java, renderer, assets and base libraries are not bundled.
+          - Developer: dapdev. License: GPL-3.0-or-later.
 
-          CI checks unit tests, compilation, packaging, and hook/mapping discovery against the official Mojang 1.8.9 JAR. A physical MJ Launcher/Android gameplay smoke test is still outstanding.
+          Android may pause or terminate a background process. The JAR cannot override Android or launcher lifecycle policy; a live MJ Launcher smoke test is still required.
           EOF
           )"
 
-          ASSETS=("$JAR" "$ZIP" "$VIA_VERSION" "$VIA_BACKWARDS" "$VIA_REWIND")
+          ASSETS=("$JAR" "$ZIP")
+          for DEP in "$VIA_VERSION" "$VIA_BACKWARDS" "$VIA_REWIND"; do
+            if test -s "$DEP"; then ASSETS+=("$DEP"); fi
+          done
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "Cylox Client ${VERSION} — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release edit "$TAG" --title "Cylox Background Client ${VERSION} — 1.8.9" --notes "$NOTES"
             gh release upload "$TAG" "${ASSETS[@]}" --clobber
           else
-            gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Client ${VERSION} — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Background Client ${VERSION} — 1.8.9" --notes "$NOTES"
           fi
 
           if gh release view latest >/dev/null 2>&1; then
-            gh release edit latest --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
-            while IFS= read -r asset; do
-              case "$asset" in
-                "${JAR##*/}"|"${ZIP##*/}"|"${VIA_VERSION##*/}"|"${VIA_BACKWARDS##*/}"|"${VIA_REWIND##*/}")
-                  ;;
-                *)
-                  gh release delete-asset latest "$asset" --yes || true
-                  ;;
-              esac
-            done < <(gh release view latest --json assets --jq '.assets[].name')
+            gh release edit latest --title "Cylox Background Client latest — 1.8.9" --notes "$NOTES"
             gh release upload latest "${ASSETS[@]}" --clobber
           else
-            gh release create latest "${ASSETS[@]}" --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release create latest "${ASSETS[@]}" --title "Cylox Background Client latest — 1.8.9" --notes "$NOTES"
           fi

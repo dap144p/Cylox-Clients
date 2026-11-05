@@ -1,36 +1,31 @@
-CYLOX CLIENT 1.8.9 — INSTALLATION
+CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 0.11.0
+Version: 1.0.0
 
 INSTALL
-1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
-2. Open the Minecraft game directory configured in that launcher (the directory containing versions and libraries).
-3. Extract the complete Cylox ZIP into that game directory. Merge both versions and libraries folders.
-4. Refresh the launcher's version list.
-5. Select Cylox-1.8.9 and start it.
+1. Install Minecraft Java 1.8.9 once in MJ Launcher.
+2. Download the complete Background Client ZIP from GitHub Releases.
+3. Open the game directory configured in MJ Launcher (the directory containing versions and libraries).
+4. Extract the ZIP into that directory and merge the folders.
+5. Refresh the launcher's version list.
+6. Select Cylox-1.8.9. Keep the launcher's normal Java and renderer settings.
 
-PROTOCOL BRIDGE
-- The ProtocolBridge module is enabled by default; Target Version defaults to Auto.
-- Auto mode pings the server status before connecting and uses ViaVersion/ViaBackwards to translate catalogued Minecraft 1.9–1.13.2 server protocols for the 1.8.9 client.
-- To use only vanilla 1.8.x networking, open the Click GUI with Right Shift, choose Misc → ProtocolBridge, and select Native.
-- Failed/unknown status detection falls back to native protocol 47. A newer server may reject that native connection.
-- The ZIP includes the ViaVersion 5.12.1, ViaBackwards 5.12.1 and ViaRewind 4.2.0 libraries. Keep all three; do not install duplicate copies.
+BACKGROUND
+- Automatically skips vanilla world/UI rendering while the LWJGL display is inactive or hidden.
+- The main display loop is capped at 5 FPS while inactive.
+- Rendering and the launcher's normal frame limit resume when the display becomes active.
+- There is no anti-AFK, auto-clicker or movement automation.
+- The game process must remain alive. Android or the launcher may pause/terminate it; the client JAR cannot override those policies.
 
-IN-GAME
-- Right Shift opens/closes the Cylox Click GUI; Escape closes it.
-- HUD: Watermark, FPS, Keystrokes and Crosshair.
-- Movement: ToggleSprint and ToggleSneak. Disable either to restore physical-key behavior.
-- Misc: ProtocolBridge, with Auto or Native target mode.
-- Module states, keybinds and setting values are saved to cylox/settings.properties inside the game directory.
+PROTOCOL
+- Native Minecraft 1.8.x uses protocol 47.
+- Auto status-ping translation is provided for the tested 1.9–1.13.2 protocol catalogue.
+- Unknown protocol IDs fall back to native 1.8.x and may be rejected by newer servers.
+- Keep the three Via libraries included in the ZIP. Do not install duplicate versions.
 
 IMPORTANT
-- Do not extract this ZIP inside the versions folder.
-- This package does not include or redistribute Minecraft, assets, natives, or base game libraries.
-- The Cylox profile inherits the launcher's vanilla 1.8.9 installation and adds LaunchWrapper plus the Cylox adapter.
-- The standalone JAR is not the complete MJ Launcher installation; use the ZIP so the translator libraries and version metadata are present.
-- Protocol translation depends on upstream mappings and server behavior. Server plugins, custom registries and unsupported protocol extensions may still cause incompatibilities.
-- The launcher must support inherited 1.8.9 versions, LaunchWrapper, and standard library artifacts.
-- CI checks do not replace an actual multiplayer test on MJ Launcher/Android. Physical device smoke testing is still outstanding.
-- This distribution includes GPL-3.0-or-later code; see LICENSE and THIRD_PARTY_NOTICES.md.
-
-If the profile is not visible, restart the launcher or refresh its version list.
+- Do not extract the ZIP inside versions/.
+- The package does not include Minecraft itself, game assets, Java runtime, renderer binaries or native libraries.
+- The small Cylox JAR is only a LaunchWrapper adapter.
+- Real MJ Launcher/Android background testing is still required.
+- GPL-3.0-or-later; see the licenses folder in the ZIP.
