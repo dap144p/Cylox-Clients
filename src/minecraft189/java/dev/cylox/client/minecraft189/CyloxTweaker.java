@@ -1,5 +1,6 @@
 package dev.cylox.client.minecraft189;
 
+import dev.cylox.client.runtime.CyloxRuntime;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,18 +15,21 @@ import net.minecraft.launchwrapper.LaunchClassLoader;
  */
 public final class CyloxTweaker implements ITweaker {
     private List<String> launchArguments = Collections.emptyList();
+    private File gameDirectory;
 
     @Override
     public void acceptOptions(List<String> args, File gameDir, File assetsDir, String profile) {
         launchArguments = args == null
             ? Collections.<String>emptyList()
             : new ArrayList<String>(args);
+        gameDirectory = gameDir;
     }
 
     @Override
     public void injectIntoClassLoader(LaunchClassLoader classLoader) {
         classLoader.addClassLoaderExclusion("dev.cylox.client.");
         classLoader.addTransformerExclusion("dev.cylox.client.");
+        CyloxRuntime.initialize(gameDirectory);
         classLoader.registerTransformer("dev.cylox.client.minecraft189.CyloxClientTransformer");
     }
 
