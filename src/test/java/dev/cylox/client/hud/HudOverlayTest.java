@@ -32,12 +32,15 @@ public class HudOverlayTest {
         HudOverlay hud = new HudOverlay(registry);
         RecordingRenderer renderer = new RecordingRenderer();
 
-        hud.draw(renderer, 854, 480);
-        int defaultFills = renderer.fills;
+        registry.getModule("Watermark").setEnabled(false);
+        registry.getModule("FPS").setEnabled(false);
+        registry.getModule("Keystrokes").setEnabled(false);
+        assertFalse(registry.getModule("Crosshair").isEnabled());
+
         registry.getModule("Crosshair").setEnabled(true);
         hud.draw(renderer, 854, 480);
 
-        assertEquals(defaultFills + 4, renderer.fills);
+        assertEquals(4, renderer.fills);
     }
 
     private static final class RecordingRenderer implements UiRenderer {
