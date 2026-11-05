@@ -3,6 +3,8 @@ name: Build Cylox Client — Vanilla 1.8.9
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Compile, verify and package
+    name: Compile, test, verify and package
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -46,13 +48,14 @@ jobs:
         with:
           name: Cylox-Client-Vanilla-1.8.9
           path: |
-            build/libs/Cylox-Client-1.8.9-0.4.0.jar
-            build/libs/Cylox-UI-Core-0.4.0.jar
-            build/distributions/Cylox-Client-Vanilla-1.8.9-0.4.0.zip
+            build/libs/Cylox-Client-1.8.9-*.jar
+            build/libs/Cylox-UI-Core-*.jar
+            build/distributions/Cylox-Client-Vanilla-1.8.9-*.zip
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish versioned and latest releases
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -66,15 +69,16 @@ jobs:
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — Vanilla Minecraft Java 1.8.9.
+          Cylox Client ${VERSION} — Standalone Vanilla Minecraft Java 1.8.9.
 
           - Vanilla base; no Forge or Fabric required.
-          - Uses LaunchWrapper 1.12 and a lightweight LWJGL/OpenGL Click GUI.
-          - Installs as a version profile inheriting the launcher's existing 1.8.9 installation.
-          - Does not redistribute Minecraft, its assets, natives, or game libraries.
+          - Lightweight LWJGL/OpenGL Click GUI and internal module/settings core.
+          - Protocol core foundation includes protocol catalogue, VarInt codec, handshake encoder and translator registry.
+          - Native compatibility is protocol 47 (Minecraft 1.8.x). Newer versions remain unavailable until their translators are implemented and tested.
+          - Does not redistribute Minecraft, assets, natives, or game libraries.
           - Developer: dapdev.
 
-          Current sample modules are UI previews only. Runtime testing in MJ Launcher is still required.
+          Sample gameplay modules are UI previews only. MJ Launcher device smoke testing is still required.
           EOF
           )"
 
