@@ -1,6 +1,5 @@
 package dev.cylox.client.minecraft189;
 
-import dev.cylox.client.module.CyloxModule;
 import dev.cylox.client.runtime.CyloxRuntime;
 import dev.cylox.client.ui.ClickGui;
 import java.util.function.IntPredicate;
@@ -48,6 +47,7 @@ public final class CyloxKeyHook {
         boolean keybindChanged = CyloxRuntime.getKeybindController().tick(
             CyloxRuntime.getModules(), keyState, TOGGLE_KEY, !gui.isOpen());
         if (keybindChanged) CyloxRuntime.saveSettings();
+        CyloxMovementHook.apply(ignored);
         if (!gui.isOpen()) return;
 
         boolean settingsChanged = false;
