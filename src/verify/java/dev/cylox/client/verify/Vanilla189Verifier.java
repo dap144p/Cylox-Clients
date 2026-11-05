@@ -14,7 +14,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
-/** Verifies vanilla tick/render hooks and the obfuscated 1.8.9 ToggleSprint mappings. */
+/** Verifies vanilla tick/render hooks and the exact obfuscated 1.8.9 movement mappings. */
 public final class Vanilla189Verifier {
     private Vanilla189Verifier() {}
 
@@ -49,21 +49,22 @@ public final class Vanilla189Verifier {
             throw new IllegalStateException("Expected exactly one Minecraft tick hook and one render hook.");
         }
 
-        verifyToggleSprintMappings(movementClasses);
+        verifyMovementMappings(movementClasses);
     }
 
-    private static void verifyToggleSprintMappings(Map<String, byte[]> classes) throws Exception {
+    private static void verifyMovementMappings(Map<String, byte[]> classes) throws Exception {
         ClassNode minecraft = readClass(classes, "ave");
         ClassNode gameSettings = readClass(classes, "avh");
         ClassNode keyBinding = readClass(classes, "avb");
 
         requireField(minecraft, "t", "Lavh;", false); // Minecraft.gameSettings
         requireField(minecraft, "h", "Lbew;", false); // Minecraft.thePlayer
-        requireField(gameSettings, "ae", "Lavb;", false); // GameSettings.keyBindSprint
+        requireField(gameSettings, "ad", "Lavb;", false); // GameSettings.keyBindSprint
+        requireField(gameSettings, "ac", "Lavb;", false); // GameSettings.keyBindSneak
         requireMethod(keyBinding, "i", "()I", false); // KeyBinding.getKeyCode
         requireMethod(keyBinding, "a", "(IZ)V", true); // KeyBinding.setKeyBindState
 
-        System.out.println("[Cylox] Verified vanilla ToggleSprint mappings: ave -> avh/avb");
+        System.out.println("[Cylox] Verified vanilla movement mappings: ToggleSprint=ad, ToggleSneak=ac");
     }
 
     private static ClassNode readClass(Map<String, byte[]> classes, String name) {
@@ -91,7 +92,7 @@ public final class Vanilla189Verifier {
                 return;
             }
         }
-        throw new IllegalStateException("Missing mapped method " + node.name + "." + name + descriptor);
+        throw new IllegalStateException("Missing mapped method " + node.name + "." + descriptor);
     }
 
     private static byte[] readAll(InputStream input) throws Exception {
