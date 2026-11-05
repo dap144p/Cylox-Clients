@@ -51,8 +51,8 @@ public final class CyloxOverlayRenderer implements UiRenderer {
 
     /** Called from the end of EntityRenderer.updateCameraAndRender. */
     public static void render(Object ignored) {
+        CyloxRuntime.getHud().onFrame();
         ClickGui gui = CyloxRuntime.getClickGui();
-        if (!gui.isOpen()) return;
         int width = Display.getWidth();
         int height = Display.getHeight();
         if (width <= 0 || height <= 0) return;
@@ -72,9 +72,13 @@ public final class CyloxOverlayRenderer implements UiRenderer {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         try {
-            int mouseX = Mouse.getX();
-            int mouseY = height - Mouse.getY() - 1;
-            gui.draw(INSTANCE, width, height, mouseX, mouseY);
+            if (gui.isOpen()) {
+                int mouseX = Mouse.getX();
+                int mouseY = height - Mouse.getY() - 1;
+                gui.draw(INSTANCE, width, height, mouseX, mouseY);
+            } else {
+                CyloxRuntime.getHud().draw(INSTANCE, width, height);
+            }
         } catch (Throwable error) {
             System.err.println("[Cylox] Overlay render failed: " + error.getClass().getSimpleName());
             gui.setOpen(false);
