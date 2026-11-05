@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 0.8.0
+Version: 0.9.0
 
 INSTALL
 1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
@@ -13,10 +13,12 @@ IN-GAME
 - Right Shift opens/closes the Cylox Click GUI.
 - Escape closes the Click GUI.
 - The HUD category contains Watermark, FPS, Keystrokes, and Crosshair.
-- Watermark, FPS, and Keystrokes are enabled by default. Crosshair is optional.
+- The Movement category contains ToggleSprint.
+- Enable ToggleSprint to hold Minecraft's native sprint binding while you are in-game.
+- Disable ToggleSprint to restore normal physical sprint-key behavior.
 - Select a module to edit settings or assign its keybind.
 - Press an assigned key while the Click GUI is closed to toggle that module.
-- Enabled states, keybinds and setting values are saved to cylox/settings.properties inside the game directory.
+- Module states, keybinds and setting values are saved to cylox/settings.properties inside the game directory.
 
 IMPORTANT
 - Do not extract this ZIP inside the versions folder.
