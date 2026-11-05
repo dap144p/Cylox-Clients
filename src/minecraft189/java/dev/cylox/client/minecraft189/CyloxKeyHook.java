@@ -6,7 +6,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 
-/** Polls and routes input while the in-game Click GUI is open. */
+/** Polls game input and routes events while the in-game Click GUI is open. */
 public final class CyloxKeyHook {
     private static final int TOGGLE_KEY = Keyboard.KEY_RSHIFT;
     private static boolean wasToggleDown;
@@ -16,6 +16,16 @@ public final class CyloxKeyHook {
 
     /** Injected at the start of the vanilla client tick. */
     public static void onClientTick(Object ignored) {
+        CyloxRuntime.getHud().setInput(
+            Keyboard.isKeyDown(Keyboard.KEY_W),
+            Keyboard.isKeyDown(Keyboard.KEY_A),
+            Keyboard.isKeyDown(Keyboard.KEY_S),
+            Keyboard.isKeyDown(Keyboard.KEY_D),
+            Keyboard.isKeyDown(Keyboard.KEY_SPACE),
+            Mouse.isButtonDown(0),
+            Mouse.isButtonDown(1)
+        );
+
         ClickGui gui = CyloxRuntime.getClickGui();
         boolean toggleDown = Keyboard.isKeyDown(TOGGLE_KEY);
         if (toggleDown && !wasToggleDown) {
