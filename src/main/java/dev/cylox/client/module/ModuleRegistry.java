@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Registry of working client-side HUD modules. No placeholder combat actions are exposed. */
+/** Registry of implemented client-side modules. Unimplemented combat actions are not exposed. */
 public final class ModuleRegistry {
     private final List<CyloxModule> modules = new ArrayList<CyloxModule>();
 
@@ -59,16 +59,19 @@ public final class ModuleRegistry {
 
         CyloxModule toggleSprint = new CyloxModule("ToggleSprint",
             "Holds Minecraft's native sprint key while enabled", Category.MOVEMENT);
+        CyloxModule toggleSneak = new CyloxModule("ToggleSneak",
+            "Holds Minecraft's native sneak key while enabled", Category.MOVEMENT);
 
         return new ModuleRegistry()
             .register(watermark)
             .register(fps)
             .register(keystrokes)
             .register(crosshair)
-            .register(toggleSprint);
+            .register(toggleSprint)
+            .register(toggleSneak);
     }
 
-    /** Kept for source compatibility with early preview builds; now returns real HUD modules. */
+    /** Kept for source compatibility with early preview builds; now returns real modules. */
     @Deprecated
     public static ModuleRegistry createUiPreview() {
         return createBuiltIns();
