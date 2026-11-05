@@ -44,9 +44,13 @@ public final class Vanilla189Verifier {
 
         int tick = CyloxClientTransformer.getPatchedTickClassCount();
         int render = CyloxClientTransformer.getPatchedRenderClassCount();
-        System.out.println("[Cylox] Scanned " + scanned + " vanilla classes; tick hooks=" + tick + ", render hooks=" + render);
-        if (tick != 1 || render != 1) {
-            throw new IllegalStateException("Expected exactly one Minecraft tick hook and one render hook.");
+        int protocolConnect = CyloxClientTransformer.getPatchedProtocolConnectClassCount();
+        int compression = CyloxClientTransformer.getPatchedCompressionClassCount();
+        System.out.println("[Cylox] Scanned " + scanned + " vanilla classes; tick=" + tick
+            + ", render=" + render + ", protocol-connect=" + protocolConnect
+            + ", compression=" + compression);
+        if (tick != 1 || render != 1 || protocolConnect != 1 || compression != 1) {
+            throw new IllegalStateException("Expected exactly one tick, render, protocol-connect and compression hook.");
         }
 
         verifyMovementMappings(movementClasses);
