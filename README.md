@@ -1,9 +1,9 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.0.1  
+**Version:** 1.0.2  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
-**Runtime:** launcher-provided Java, LWJGL/renderer and Minecraft assets  
+**Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
 
 Cylox is a minimal 1.8.9 client adapter. Its gameplay-side purpose is to reduce rendering work while the game window is inactive. Its protocol compatibility features are embedded in the same Cylox JAR.
@@ -40,15 +40,15 @@ Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, HUD, Click GU
 - [Versioned releases](https://github.com/dap144p/Cylox-Clients/releases)
 - [Repository](https://github.com/dap144p/Cylox-Clients)
 
-The complete installation ZIP contains one Cylox version profile and one JAR. There are no separate Via JARs.
+The complete installation ZIP contains one standalone Cylox version profile and one Cylox JAR. The profile includes official 1.8.9 library and asset metadata, so a compatible launcher can resolve missing Minecraft dependencies without requiring a separately installed vanilla profile. There are no separate Via JARs.
 
 ## Install — MJ Launcher / version-folder method
 
-1. Install Minecraft Java **1.8.9** once in MJ Launcher.
-2. Download the complete **Background Client ZIP** from Releases.
-3. Open the same Minecraft game directory used by MJ Launcher (the directory containing `versions/` and `libraries/`).
-4. Extract the ZIP into that directory and merge the folders.
-5. Refresh the version list and select **Cylox-1.8.9**.
+1. Download the complete **Background Client ZIP** from Releases.
+2. Open the Minecraft game directory used by MJ Launcher (the directory containing `versions/` and `libraries/`).
+3. Extract the ZIP into that directory and merge the folders.
+4. Refresh the version list and select **Cylox-1.8.9**.
+5. Launch it. The standalone profile declares the vanilla 1.8.9 client JAR, libraries and asset index as dependencies; MJ Launcher should download missing files. You do not need to install a separate vanilla 1.8.9 profile first.
 6. Keep the launcher's normal Java runtime and renderer settings.
 7. Open Multiplayer and select the target protocol using the **Via** button before connecting.
 

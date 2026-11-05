@@ -1,14 +1,14 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.0.1
+Version: 1.0.2
 
 INSTALL
-1. Install Minecraft Java 1.8.9 once in MJ Launcher.
-2. Download the complete Background Client ZIP from GitHub Releases.
-3. Open the game directory configured in MJ Launcher (the directory containing versions and libraries).
-4. Extract the ZIP into that directory and merge the folders.
-5. Refresh the launcher's version list.
-6. Select Cylox-1.8.9. Keep the launcher's normal Java and renderer settings.
+1. Download the complete Background Client ZIP from GitHub Releases.
+2. Open the game directory configured in MJ Launcher (the directory containing versions and libraries).
+3. Extract the ZIP into that directory and merge the folders.
+4. Refresh the launcher's version list.
+5. Select Cylox-1.8.9 and launch it. Its standalone profile declares the vanilla 1.8.9 client JAR, game libraries and asset index as dependencies, allowing MJ Launcher to download missing files. A separate vanilla 1.8.9 profile should not be required.
+6. Keep the launcher's normal Java and renderer settings.
 7. Open Multiplayer and use the "Via: [version]" button in the upper-left to choose the destination server's protocol.
 8. Connect after choosing the target version.
 

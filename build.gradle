@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.0.1'
+version = '1.0.2'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -139,25 +139,50 @@ tasks.register('generateClientVersion') {
     doLast {
         def releaseTag = "v${project.version}"
         def clientName = "Cylox-Client-1.8.9-${project.version}.jar"
+        def vanillaMetadata = new groovy.json.JsonSlurper().parse(file('src/main/resources/vanilla-1.8.9.json'))
+        def minecraftDownload = vanillaMetadata.downloads?.client
+        if (vanillaMetadata.id != '1.8.9' || minecraftDownload == null || vanillaMetadata.assetIndex == null) {
+            throw new GradleException('Bundled vanilla 1.8.9 metadata is incomplete')
+        }
+        def minecraftArtifact = [
+            path: 'com/mojang/minecraft/1.8.9/minecraft-1.8.9-client.jar',
+            sha1: minecraftDownload.sha1,
+            size: minecraftDownload.size,
+            url: minecraftDownload.url
+        ]
+        def libraries = [
+            [name: 'com.mojang:minecraft:1.8.9:client', downloads: [artifact: minecraftArtifact]]
+        ] + (vanillaMetadata.libraries ?: []) + [
+            [name: 'net.minecraft:launchwrapper:1.12', url: 'https://libraries.minecraft.net/'],
+            [name: 'org.ow2.asm:asm-debug-all:5.0.3', url: 'https://repo.maven.apache.org/maven2/'],
+            [name: "dev.cylox:client:${project.version}", downloads: [artifact: [
+                path: "dev/cylox/client/${project.version}/${clientName}",
+                url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/${clientName}"
+            ]]]
+        ]
         def versionData = [
             id: 'Cylox-1.8.9',
-            time: '2026-11-05T00:00:00+07:00',
-            releaseTime: '2026-11-05T00:00:00+07:00',
+            name: 'Cylox Client 1.8.9',
+            time: vanillaMetadata.time,
+            releaseTime: vanillaMetadata.releaseTime,
             type: 'release',
-            inheritsFrom: '1.8.9',
-            jar: '1.8.9',
+            assets: vanillaMetadata.assets,
+            assetIndex: vanillaMetadata.assetIndex,
+            logging: vanillaMetadata.logging,
             mainClass: 'net.minecraft.launchwrapper.Launch',
             minimumLauncherVersion: 14,
-            minecraftArguments: '--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type} --tweakClass dev.cylox.client.minecraft189.CyloxTweaker',
-            libraries: [
-                [name: 'net.minecraft:launchwrapper:1.12', url: 'https://libraries.minecraft.net/'],
-                [name: 'org.ow2.asm:asm-debug-all:5.0.3', url: 'https://repo.maven.apache.org/maven2/'],
-                [name: "dev.cylox:client:${project.version}", downloads: [artifact: [
-                    path: "dev/cylox/client/${project.version}/${clientName}",
-                    url: "https://github.com/dap144p/Cylox-Clients/releases/download/${releaseTag}/${clientName}"
-                ]]]
-            ]
+            minecraftArguments: '--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${asset_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userProperties ${user_properties} --userType ${user_type} --tweakClass dev.cylox.client.minecraft189.CyloxTweaker',
+            libraries: libraries
         ]
+        if (versionData.containsKey('inheritsFrom') || versionData.containsKey('jar')) {
+            throw new GradleException('Cylox version profile must not depend on a pre-installed parent version')
+        }
+        if (!libraries.any { it.name == 'com.mojang:minecraft:1.8.9:client' }) {
+            throw new GradleException('Vanilla Minecraft 1.8.9 client artifact is missing from the classpath')
+        }
+        if (!libraries.any { it.name == "dev.cylox:client:${project.version}" }) {
+            throw new GradleException('Cylox client artifact is missing from the classpath')
+        }
         def output = outputFile.get().asFile
         output.parentFile.mkdirs()
         output.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(versionData)) + '\n'
