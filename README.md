@@ -65,7 +65,7 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 Outputs:
 
 - `build/libs/Cylox-Client-1.8.9-1.0.1.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Background-Client-1.8.9-1.0.1.zip` — version-folder installation with the single client JAR.
+- `build/distributions/Cylox-Background-Client-1.8.9-1.0.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 

@@ -44,6 +44,41 @@ jobs:
       - name: Run tests, compile, package and verify vanilla hooks
         run: gradle --no-daemon clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar="$RUNNER_TEMP/vanilla-1.8.9.jar"
 
+      - name: Verify standalone MJ Launcher profile and ZIP layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import zipfile
+
+          version = "1.0.2"
+          profile_path = pathlib.Path("build/generated/cylox/Cylox-1.8.9.json")
+          profile = json.loads(profile_path.read_text(encoding="utf-8"))
+          assert "inheritsFrom" not in profile, "profile must not require a parent version"
+          assert "jar" not in profile, "profile must not alias a missing parent JAR"
+          assert profile.get("assets") == "1.8" and profile.get("assetIndex"), "missing official assets metadata"
+          assert "${assets_index_name}" in profile.get("minecraftArguments", ""), "wrong legacy asset-index placeholder"
+          libraries = {item.get("name"): item for item in profile.get("libraries", [])}
+          minecraft = libraries.get("com.mojang:minecraft:1.8.9:client")
+          assert minecraft, "missing vanilla Minecraft client library"
+          artifact = minecraft.get("downloads", {}).get("artifact", {})
+          assert artifact.get("sha1") == "3870888a6c3d349d3771a3e9d16c9bf5e076b908", "unexpected vanilla client SHA-1"
+          assert artifact.get("path") == "com/mojang/minecraft/1.8.9/minecraft-1.8.9-client.jar"
+          cylox = libraries.get(f"dev.cylox:client:{version}")
+          assert cylox, "missing Cylox library entry"
+          expected_cylox_path = f"dev/cylox/client/{version}/Cylox-Client-1.8.9-{version}.jar"
+          assert cylox.get("downloads", {}).get("artifact", {}).get("path") == expected_cylox_path
+
+          package_path = pathlib.Path(f"build/distributions/Cylox-Background-Client-1.8.9-{version}.zip")
+          with zipfile.ZipFile(package_path) as archive:
+              names = set(archive.namelist())
+          assert "versions/Cylox-1.8.9/Cylox-1.8.9.json" in names
+          assert f"libraries/{expected_cylox_path}" in names, "Cylox JAR is not in its declared library path"
+          print("[Cylox] Standalone version metadata and dependency paths verified.")
+          PY
+
       - name: Enforce single embedded client JAR
         shell: bash
         run: |
@@ -66,8 +101,8 @@ jobs:
         with:
           name: Cylox-Background-Client-1.8.9
           path: |
-            build/libs/Cylox-Client-1.8.9-1.0.1.jar
-            build/distributions/Cylox-Background-Client-1.8.9-1.0.1.zip
+            build/libs/Cylox-Client-1.8.9-*.jar
+            build/distributions/Cylox-Background-Client-1.8.9-*.zip
           if-no-files-found: error
           retention-days: 30
 
