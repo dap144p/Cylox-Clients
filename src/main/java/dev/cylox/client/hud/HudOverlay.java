@@ -108,8 +108,8 @@ public final class HudOverlay {
     }
 
     private void drawCrosshair(UiRenderer renderer, int screenWidth, int screenHeight) {
-        float size = numberSetting("Crosshair", "Size", 8.0D);
-        float gap = numberSetting("Crosshair", "Gap", 3.0D);
+        float size = (float) numberSetting("Crosshair", "Size", 8.0D);
+        float gap = (float) numberSetting("Crosshair", "Gap", 3.0D);
         float centerX = screenWidth / 2.0F;
         float centerY = screenHeight / 2.0F;
         renderer.fill(centerX - 1.0F, centerY - gap - size, 2.0F, size, 0xEFFFFFFF);
