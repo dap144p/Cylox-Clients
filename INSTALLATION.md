@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 0.7.0
+Version: 0.8.0
 
 INSTALL
 1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
@@ -14,15 +14,17 @@ IN-GAME
 - Escape closes the Click GUI.
 - The HUD category contains Watermark, FPS, Keystrokes, and Crosshair.
 - Watermark, FPS, and Keystrokes are enabled by default. Crosshair is optional.
-- Click a module's toggle to turn it on/off. Select a module to edit its settings.
+- Select a module to edit settings or assign its keybind.
+- Press an assigned key while the Click GUI is closed to toggle that module.
+- Enabled states, keybinds and setting values are saved to cylox/settings.properties inside the game directory.
 
 IMPORTANT
 - Do not extract this ZIP inside the versions folder.
 - This package does not include or redistribute Minecraft, assets, natives, or base game libraries.
 - The Cylox profile inherits the launcher's vanilla 1.8.9 installation.
 - Native multiplayer compatibility is Minecraft 1.8.x (protocol 47).
-- Server version detection does not translate newer login or gameplay packets.
-- Protocol 1.9+ servers are not supported until a complete bidirectional translator is implemented.
+- Server status detection does not translate newer login or gameplay packets.
+- Protocol 1.9+ servers are not supported by the built-in connection in this version.
 - The launcher must support inherited 1.8.9 versions, LaunchWrapper, and standard library artifacts.
 - Android/MJ Launcher device smoke testing is still required; this release has not been confirmed on a physical device.
 
