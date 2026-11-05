@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 0.9.0
+Version: 0.9.1
 
 INSTALL
 1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
@@ -27,6 +27,7 @@ IMPORTANT
 - Native multiplayer compatibility is Minecraft 1.8.x (protocol 47).
 - Server status detection does not translate newer login or gameplay packets.
 - Protocol 1.9+ servers are not supported by the built-in connection in this version.
+- ViaProxy has a separate JVM heap requirement and is not bundled or tested as a launcher-integrated bridge.
 - The launcher must support inherited 1.8.9 versions, LaunchWrapper, and standard library artifacts.
 - Android/MJ Launcher device smoke testing is still required; this release has not been confirmed on a physical device.
 
