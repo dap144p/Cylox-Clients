@@ -17,11 +17,11 @@ repositories {
 def viaSourceCommit = 'd22b90b20560eca4bdc553d3a0f50a60f5773aec'
 def viaLibraryDirectory = layout.buildDirectory.dir('via-libs')
 def viaLibraries = [
-    [file: layout.buildDirectory.file('via-libs/ViaVersion-5.12.1-downgraded.jar').get().asFile,
+    [file: layout.buildDirectory.file('via-libs/Cylox-ViaVersion-5.12.1.jar').get().asFile,
      url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaVersion-5.12.1-downgraded.jar"],
-    [file: layout.buildDirectory.file('via-libs/ViaBackwards-5.12.1-downgraded.jar').get().asFile,
+    [file: layout.buildDirectory.file('via-libs/Cylox-ViaBackwards-5.12.1.jar').get().asFile,
      url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaBackwards-5.12.1-downgraded.jar"],
-    [file: layout.buildDirectory.file('via-libs/ViaRewind-4.2.0-downgraded.jar').get().asFile,
+    [file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.0.jar').get().asFile,
      url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaRewind-4.2.0-downgraded.jar"]
 ]
 def viaLibraryFiles = files(viaLibraries.collect { it.file })
