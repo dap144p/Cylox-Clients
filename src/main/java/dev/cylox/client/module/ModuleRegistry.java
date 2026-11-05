@@ -57,11 +57,15 @@ public final class ModuleRegistry {
             .addSetting(new NumberSetting("Size", 8.0D, 4.0D, 14.0D, 1.0D))
             .addSetting(new NumberSetting("Gap", 3.0D, 1.0D, 8.0D, 1.0D));
 
+        CyloxModule toggleSprint = new CyloxModule("ToggleSprint",
+            "Holds Minecraft's native sprint key while enabled", Category.MOVEMENT);
+
         return new ModuleRegistry()
             .register(watermark)
             .register(fps)
             .register(keystrokes)
-            .register(crosshair);
+            .register(crosshair)
+            .register(toggleSprint);
     }
 
     /** Kept for source compatibility with early preview builds; now returns real HUD modules. */
