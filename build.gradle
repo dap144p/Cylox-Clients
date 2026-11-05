@@ -55,6 +55,7 @@ tasks.register('downloadViaLibraries') {
 }
 
 sourceSets {
+    main { compileClasspath += viaLibraryFiles }
     minecraft189 {
         java {
             srcDir 'src/minecraft189/java'
@@ -79,6 +80,9 @@ sourceSets {
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
+    compileOnly viaLibraryFiles
+    compileOnly 'io.netty:netty-all:4.0.23.Final'
+    compileOnly 'org.apache.logging.log4j:log4j-api:2.0-beta9'
     minecraft189CompileOnly('net.minecraft:launchwrapper:1.12') {
         transitive = false
     }
@@ -93,6 +97,7 @@ tasks.named('compileMinecraft189Java') {
 }
 
 tasks.named('compileJava') {
+    dependsOn tasks.named('downloadViaLibraries')
     options.encoding = 'UTF-8'
 }
 

@@ -18,7 +18,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /** Adds only the background render/frame hooks and the optional Via pipeline hooks. */
-public final class CyloxClientTransformer implements net.minecraft.launchwrapper.IClassTransformer {
+public final class CyloxClientTransformer implements org.objectweb.asm.ClassVisitor {
     private static volatile int patchedRenderClasses;
     private static volatile int patchedFrameLimitClasses;
     private static volatile int patchedProtocolConnectClasses;
