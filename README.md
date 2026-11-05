@@ -1,7 +1,7 @@
 # Cylox Client — Standalone Vanilla 1.8.9
 
 **Developer:** dapdev  
-**Version:** 0.5.0  
+**Version:** 0.6.0  
 **Base:** Minecraft Java 1.8.9 (protocol 47)  
 **Runtime:** Vanilla + LaunchWrapper 1.12; no Forge/Fabric requirement.
 
@@ -10,21 +10,22 @@
 - Custom three-column Click GUI with categories, module search, module toggles, settings, and keybind editor.
 - Right Shift opens/closes the overlay; Escape closes it.
 - Lightweight LWJGL/OpenGL overlay; no compile-time Minecraft or mod-loader dependency in the adapter.
-- Protocol core foundation: protocol catalogue, VarInt codec, handshake packet encoder, compatibility planner, and translator extension point.
-- The runtime currently supports native protocol 47 (the Minecraft 1.8.x family).
-- Protocols 1.9 through 1.13.2 are catalogued for future adapters. They are not yet connectable until a complete bidirectional packet translator is implemented and tested.
+- Protocol core: protocol catalogue, VarInt codec, handshake packet encoder, compatibility planner, and bidirectional translator extension point.
+- Server status detection: performs the standard Minecraft status handshake and reads the server-reported version name and protocol ID.
+- Unknown protocol IDs are preserved and reported as unknown; Cylox does not guess a version or claim unsupported protocols work.
+- Native client networking is protocol 47 (Minecraft 1.8.x). Newer protocols remain unavailable until a complete bidirectional translator is implemented and tested.
 - Included sample gameplay modules remain interface previews; their toggles currently change local UI state only.
-- The install ZIP contains the Cylox client library and version profile. It does not redistribute Minecraft, assets, natives, or game libraries.
+- The install ZIP contains the Cylox client library and version profile. It does not redistribute Minecraft, assets, natives, or the game's libraries.
 
 ## Protocol compatibility status
 
-| Server version family | Protocol | v0.5.0 status |
+| Server version family | Protocol | v0.6.0 status |
 |---|---:|---|
 | Minecraft 1.8.x | 47 | Native protocol compatibility |
-| Minecraft 1.9–1.12.2 | 107–340 | Catalogued; translator not implemented |
-| Minecraft 1.13–1.13.2 | 393–404 | Catalogued; translator not implemented |
+| Minecraft 1.9–1.12.2 | 107–340 | Automatically detectable; translator not implemented |
+| Minecraft 1.13–1.13.2 | 393–404 | Automatically detectable; translator not implemented |
 
-Changing only the handshake protocol number is not a protocol translator. Newer versions change packet IDs, packet layouts, registries, chunks, items, and other gameplay data. Cylox reports these targets as unavailable rather than pretending that a connection will work. A target becomes supported only after its translator handles both directions and passes protocol/runtime tests.
+Server detection is informational and happens through the standard status ping. It does not change the login protocol. A different server protocol requires a complete packet translator in both directions; changing only the handshake protocol number is not sufficient.
 
 ## Download
 
@@ -49,7 +50,7 @@ Requirements: JDK 8+ and Gradle 8.10.2.
 
 Output:
 
-    build/distributions/Cylox-Client-Vanilla-1.8.9-0.5.0.zip
+    build/distributions/Cylox-Client-Vanilla-1.8.9-0.6.0.zip
 
 Verify injection targets against the official client JAR:
 
