@@ -33,8 +33,7 @@ public final class Vanilla189Verifier {
                     bytes = output.toByteArray();
                 }
                 String internalName = entry.getName().substring(0, entry.getName().length() - 6);
-                CyloxClientTransformer transformer = new CyloxClientTransformer();
-                transformer.transform(internalName, internalName, bytes);
+                new CyloxClientTransformer().transform(internalName, internalName, bytes);
                 scanned++;
             }
         }
@@ -43,6 +42,8 @@ public final class Vanilla189Verifier {
         require("background frame limiter", CyloxClientTransformer.getPatchedFrameLimitClassCount());
         require("Via connect hook", CyloxClientTransformer.getPatchedProtocolConnectClassCount());
         require("Via compression hook", CyloxClientTransformer.getPatchedCompressionClassCount());
+        require("Multiplayer selector button", CyloxClientTransformer.getPatchedSelectorButtonClassCount());
+        require("Multiplayer selector action", CyloxClientTransformer.getPatchedSelectorActionClassCount());
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
 
