@@ -1,31 +1,35 @@
 # Cylox Client — Standalone Vanilla 1.8.9
 
 **Developer:** dapdev  
-**Version:** 0.6.0  
+**Version:** 0.7.0  
 **Base:** Minecraft Java 1.8.9 (protocol 47)  
 **Runtime:** Vanilla + LaunchWrapper 1.12; no Forge/Fabric requirement.
 
-## Current build
+## What is playable in v0.7.0
 
-- Custom three-column Click GUI with categories, module search, module toggles, settings, and keybind editor.
-- Right Shift opens/closes the overlay; Escape closes it.
-- Lightweight LWJGL/OpenGL overlay; no compile-time Minecraft or mod-loader dependency in the adapter.
-- Protocol core: protocol catalogue, VarInt codec, handshake packet encoder, compatibility planner, and bidirectional translator extension point.
-- Server status detection: performs the standard Minecraft status handshake and reads the server-reported version name and protocol ID.
-- Unknown protocol IDs are preserved and reported as unknown; Cylox does not guess a version or claim unsupported protocols work.
-- Native client networking is protocol 47 (Minecraft 1.8.x). Newer protocols remain unavailable until a complete bidirectional translator is implemented and tested.
-- Included sample gameplay modules remain interface previews; their toggles currently change local UI state only.
-- The install ZIP contains the Cylox client library and version profile. It does not redistribute Minecraft, assets, natives, or the game's libraries.
+Cylox launches the normal Minecraft Java 1.8.9 game and adds its own lightweight in-game Click GUI and client HUD. The game itself remains vanilla; Cylox does not replace Minecraft's world, renderer, or networking stack.
 
-## Protocol compatibility status
+Working client features:
+- Three-column Click GUI with category navigation, module search, module toggles, settings controls, and keybind editor.
+- Right Shift opens/closes the Click GUI; Escape closes it.
+- Watermark HUD (CYLOX / 1.8.9).
+- Live FPS counter updated from render frames.
+- Keystrokes HUD for W/A/S/D, Space, and left/right mouse buttons.
+- Optional custom center crosshair with adjustable size and gap.
+- Lightweight LWJGL/OpenGL drawing; no compile-time Minecraft or mod-loader dependency in the active adapter.
+- HUD features are local/client-side and can be toggled in the HUD category.
 
-| Server version family | Protocol | v0.6.0 status |
+The Click GUI opens on the HUD category. Other module categories are intentionally empty in this build; Cylox no longer lists combat/movement entries that were only non-functional UI previews.
+
+## Protocol compatibility
+
+| Server version family | Protocol | v0.7.0 status |
 |---|---:|---|
-| Minecraft 1.8.x | 47 | Native protocol compatibility |
-| Minecraft 1.9–1.12.2 | 107–340 | Automatically detectable; translator not implemented |
-| Minecraft 1.13–1.13.2 | 393–404 | Automatically detectable; translator not implemented |
+| Minecraft 1.8.x | 47 | Native vanilla compatibility |
+| Minecraft 1.9–1.12.2 | 107–340 | Version detection only; not playable through Cylox yet |
+| Minecraft 1.13–1.13.2 | 393–404 | Version detection only; not playable through Cylox yet |
 
-Server detection is informational and happens through the standard status ping. It does not change the login protocol. A different server protocol requires a complete packet translator in both directions; changing only the handshake protocol number is not sufficient.
+Cylox can send a standard status ping and read the server-advertised version/protocol. This does not translate login or gameplay packets. Connecting 1.8.9 to a newer-protocol server requires a complete bidirectional translator, which is not included yet.
 
 ## Download
 
@@ -36,11 +40,13 @@ Server detection is informational and happens through the standard status ping. 
 ## Install — version folder method
 
 1. Install vanilla Minecraft Java 1.8.9 once in your launcher.
-2. Extract the Cylox ZIP into the root of the Minecraft game directory (the folder that already contains versions and libraries). Merge folders when prompted.
-3. Select Cylox-1.8.9 in the launcher's version list.
-4. Launch. The profile reuses the installed vanilla 1.8.9 client JAR and downloads only declared missing libraries.
+2. Extract the Cylox ZIP into the Minecraft game directory (the directory that contains versions/ and libraries/). Merge folders when prompted.
+3. Refresh the launcher's version list and select Cylox-1.8.9.
+4. Launch. The profile inherits the launcher's vanilla 1.8.9 client and adds Cylox through LaunchWrapper.
 
-Do not extract the ZIP inside versions; it already contains the correct versions/ and libraries/ paths.
+Do not extract the ZIP inside versions/; it already contains the correct versions/ and libraries/ paths.
+
+The ZIP does not redistribute Minecraft, assets, natives, or the base game's libraries. Use a launcher that supports inherited 1.8.9 versions, LaunchWrapper, and standard library artifacts. MJ Launcher device/runtime smoke testing is still required.
 
 ## Build
 
@@ -50,7 +56,7 @@ Requirements: JDK 8+ and Gradle 8.10.2.
 
 Output:
 
-    build/distributions/Cylox-Client-Vanilla-1.8.9-0.6.0.zip
+    build/distributions/Cylox-Client-Vanilla-1.8.9-0.7.0.zip
 
 Verify injection targets against the official client JAR:
 
