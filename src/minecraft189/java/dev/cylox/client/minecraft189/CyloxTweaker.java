@@ -30,6 +30,7 @@ public final class CyloxTweaker implements ITweaker {
         classLoader.addClassLoaderExclusion("dev.cylox.client.");
         classLoader.addTransformerExclusion("dev.cylox.client.");
         CyloxRuntime.initialize(gameDirectory);
+        CyloxProtocolBridge.initialize(gameDirectory);
         classLoader.registerTransformer("dev.cylox.client.minecraft189.CyloxClientTransformer");
     }
 
