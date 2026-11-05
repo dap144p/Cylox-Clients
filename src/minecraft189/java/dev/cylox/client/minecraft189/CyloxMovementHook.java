@@ -10,9 +10,9 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 /**
- * Applies ToggleSprint by holding Minecraft's own sprint KeyBinding.
- * Uses both vanilla 1.8.9 notch names and MCP/SRG names; it does not alter player
- * coordinates, velocity, packets, or server state directly.
+ * Applies native ToggleSprint and ToggleSneak key bindings.
+ * It keeps Minecraft's physical-key behavior and does not alter coordinates,
+ * velocity, movement packets, or server-side state directly.
  */
 public final class CyloxMovementHook {
     private static Access access;
@@ -20,6 +20,7 @@ public final class CyloxMovementHook {
 
     private CyloxMovementHook() { }
 
+    /** Called once near the start of the vanilla 1.8.9 client tick. */
     public static void apply(Object minecraft) {
         if (minecraft == null) return;
         try {
@@ -32,22 +33,29 @@ public final class CyloxMovementHook {
             Object player = resolved.playerField.get(minecraft);
             Object gameSettings = resolved.gameSettingsField.get(minecraft);
             if (gameSettings == null) return;
-            Object sprintBinding = resolved.sprintBindingField.get(gameSettings);
-            if (sprintBinding == null) return;
 
-            int keyCode = ((Number) resolved.getKeyCode.invoke(sprintBinding)).intValue();
-            boolean physicalDown = isPhysicalKeyDown(keyCode);
-            CyloxModule module = CyloxRuntime.getModules().getModule("ToggleSprint");
-            boolean enabled = module != null && module.isEnabled();
-            boolean pressed = SprintKeyState.shouldPress(enabled, player != null, physicalDown);
-            resolved.setKeyBindState.invoke(null, keyCode, pressed);
+            applyBinding(gameSettings, player, resolved.sprintBindingField, "ToggleSprint");
+            applyBinding(gameSettings, player, resolved.sneakBindingField, "ToggleSneak");
         } catch (Throwable error) {
             if (!warned) {
                 warned = true;
-                System.err.println("[Cylox] ToggleSprint unavailable: "
+                System.err.println("[Cylox] Movement key hooks unavailable: "
                     + error.getClass().getSimpleName() + ": " + error.getMessage());
             }
         }
+    }
+
+    private static void applyBinding(Object gameSettings, Object player, Field bindingField,
+                                     String moduleName) throws Exception {
+        Object binding = bindingField.get(gameSettings);
+        if (binding == null) return;
+
+        int keyCode = ((Number) access.getKeyCode.invoke(binding)).intValue();
+        boolean physicalDown = isPhysicalKeyDown(keyCode);
+        CyloxModule module = CyloxRuntime.getModules().getModule(moduleName);
+        boolean enabled = module != null && module.isEnabled();
+        boolean pressed = SprintKeyState.shouldPress(enabled, player != null, physicalDown);
+        access.setKeyBindState.invoke(null, keyCode, pressed);
     }
 
     private static boolean isPhysicalKeyDown(int keyCode) {
@@ -62,29 +70,33 @@ public final class CyloxMovementHook {
     }
 
     private static Access resolve(Class<?> minecraftClass) throws Exception {
+        ClassLoader loader = minecraftClass.getClassLoader();
+        Class<?> keyBinding = loadFirst(loader, "avb", "net.minecraft.client.settings.KeyBinding");
+        Class<?> settingsType = loadFirst(loader, "avh", "net.minecraft.client.settings.GameSettings");
+
         Field gameSettings = findField(minecraftClass, "t", "field_71474_y", "gameSettings");
         Field player = findField(minecraftClass, "h", "field_71439_g", "thePlayer");
-        Object settingsClass = null;
-        ClassLoader loader = minecraftClass.getClassLoader();
-        Class<?> keyBinding = loadFirst(loader,
-            "avb", "net.minecraft.client.settings.KeyBinding");
-        Class<?> settingsType = loadFirst(loader,
-            "avh", "net.minecraft.client.settings.GameSettings");
-        Field sprintBinding = findField(settingsType, "ae", "field_151444_V", "keyBindSprint");
+
+        // Verified 1.8.9 notch/SRG/MCP names:
+        // ad = field_151444_V = keyBindSprint; ac = field_74311_E = keyBindSneak.
+        Field sprintBinding = findField(settingsType, "ad", "field_151444_V", "keyBindSprint");
+        Field sneakBinding = findField(settingsType, "ac", "field_74311_E", "keyBindSneak");
         Method getKeyCode = findMethod(keyBinding, new Class<?>[0],
             "i", "func_151463_i", "getKeyCode");
         Method setKeyBindState = findMethod(keyBinding,
             new Class<?>[] { int.class, boolean.class },
             "a", "func_74510_a", "setKeyBindState");
+
         if (!Modifier.isStatic(setKeyBindState.getModifiers())) {
             throw new NoSuchMethodException("KeyBinding.setKeyBindState is not static");
         }
         gameSettings.setAccessible(true);
         player.setAccessible(true);
         sprintBinding.setAccessible(true);
+        sneakBinding.setAccessible(true);
         getKeyCode.setAccessible(true);
         setKeyBindState.setAccessible(true);
-        return new Access(minecraftClass, gameSettings, player, sprintBinding,
+        return new Access(minecraftClass, gameSettings, player, sprintBinding, sneakBinding,
             getKeyCode, setKeyBindState);
     }
 
@@ -141,15 +153,18 @@ public final class CyloxMovementHook {
         private final Field gameSettingsField;
         private final Field playerField;
         private final Field sprintBindingField;
+        private final Field sneakBindingField;
         private final Method getKeyCode;
         private final Method setKeyBindState;
 
         private Access(Class<?> minecraftClass, Field gameSettingsField, Field playerField,
-                       Field sprintBindingField, Method getKeyCode, Method setKeyBindState) {
+                       Field sprintBindingField, Field sneakBindingField,
+                       Method getKeyCode, Method setKeyBindState) {
             this.minecraftClass = minecraftClass;
             this.gameSettingsField = gameSettingsField;
             this.playerField = playerField;
             this.sprintBindingField = sprintBindingField;
+            this.sneakBindingField = sneakBindingField;
             this.getKeyCode = getKeyCode;
             this.setKeyBindState = setKeyBindState;
         }
