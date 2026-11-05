@@ -1,7 +1,7 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.0.2  
+**Version:** 1.0.3  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric

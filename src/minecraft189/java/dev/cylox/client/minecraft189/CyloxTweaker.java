@@ -36,6 +36,25 @@ public final class CyloxTweaker implements ITweaker {
 
     @Override
     public String[] getLaunchArguments() {
-        return launchArguments.toArray(new String[launchArguments.size()]);
+        List<String> arguments = new ArrayList<String>(launchArguments);
+        if (!hasOption(arguments, "--version")) {
+            arguments.add("--version");
+            arguments.add("Cylox-1.8.9");
+            System.out.println("[Cylox] Added missing required Minecraft argument: --version Cylox-1.8.9");
+        }
+        int versionIndex = arguments.indexOf("--version");
+        if (versionIndex >= 0 && versionIndex + 1 < arguments.size()) {
+            System.out.println("[Cylox] Minecraft version argument: " + arguments.get(versionIndex + 1));
+        } else {
+            throw new IllegalStateException("[Cylox] Failed to supply required --version argument");
+        }
+        return arguments.toArray(new String[arguments.size()]);
+    }
+
+    private static boolean hasOption(List<String> arguments, String option) {
+        for (String argument : arguments) {
+            if (option.equals(argument)) return true;
+        }
+        return false;
     }
 }

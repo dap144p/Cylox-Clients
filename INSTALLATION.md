@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.0.2
+Version: 1.0.3
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
