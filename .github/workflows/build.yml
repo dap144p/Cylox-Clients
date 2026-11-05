@@ -44,24 +44,29 @@ jobs:
       - name: Run tests, compile, package and verify vanilla hooks
         run: gradle --no-daemon clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar="$RUNNER_TEMP/vanilla-1.8.9.jar"
 
-      - name: Enforce small client JAR
+      - name: Enforce single embedded client JAR
         shell: bash
         run: |
           set -euo pipefail
-          JAR="$(find build/libs -maxdepth 1 -name 'Cylox-Client-1.8.9-*.jar' -print -quit)"
-          test -n "$JAR"
+          JAR="build/libs/Cylox-Client-1.8.9-1.0.1.jar"
+          test -s "$JAR"
           SIZE="$(stat -c%s "$JAR")"
-          echo "Cylox client JAR size: $SIZE bytes"
-          test "$SIZE" -lt 5000000
+          echo "Embedded Cylox client JAR size: $SIZE bytes"
+          test "$SIZE" -lt 20000000
+          if unzip -l "$JAR" | grep -Eq '(^|/)(ViaVersion|ViaBackwards|ViaRewind)-[^/]*\.jar$'; then
+            echo "Unexpected external Via JAR nested inside client archive"
+            exit 1
+          fi
+          unzip -l "$JAR" | grep -q 'com/viaversion/viaversion/api/protocol/version/ProtocolVersion.class'
+          unzip -l "$JAR" | grep -q 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
 
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
           name: Cylox-Background-Client-1.8.9
           path: |
-            build/libs/Cylox-Client-1.8.9-*.jar
-            build/distributions/Cylox-Background-Client-1.8.9-*.zip
-            build/via-libs/*.jar
+            build/libs/Cylox-Client-1.8.9-1.0.1.jar
+            build/distributions/Cylox-Background-Client-1.8.9-1.0.1.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -76,32 +81,26 @@ jobs:
           TAG="v${VERSION}"
           JAR="build/libs/Cylox-Client-1.8.9-${VERSION}.jar"
           ZIP="build/distributions/Cylox-Background-Client-1.8.9-${VERSION}.zip"
-          VIA_VERSION="build/via-libs/Cylox-ViaVersion-5.12.1.jar"
-          VIA_BACKWARDS="build/via-libs/Cylox-ViaBackwards-5.12.1.jar"
-          VIA_REWIND="build/via-libs/Cylox-ViaRewind-4.2.0.jar"
           test -s "$JAR"
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
           Cylox Client ${VERSION} — lightweight Minecraft Java 1.8.9 background client.
 
-          - Automatically skips the vanilla renderer while the LWJGL display is inactive or hidden.
-          - Limits the background frame loop to 5 FPS; foreground rendering returns to the launcher's selected renderer and normal frame limit.
-          - Keeps the normal Minecraft networking/tick loop alive while the launcher process remains active.
+          - The Cylox client and ViaVersion, ViaBackwards and ViaRewind protocol features are bundled into ONE JAR.
+          - Choose the target server protocol manually using the Via selector on the Multiplayer screen; selection is saved in the game directory.
+          - No automatic server-version detection or status-ping protocol selection.
+          - Automatically skips vanilla rendering while the LWJGL display is inactive or hidden.
+          - Limits the background frame loop to 5 FPS; foreground rendering returns to the launcher's normal frame limit.
           - No anti-AFK, auto-clicker, movement automation, HUD, Click GUI, Forge or Fabric.
-          - Optional client-side protocol translation is provided by separate ViaVersion/ViaBackwards/ViaRewind libraries; tested catalogue in README.
-          - Client adapter JAR is a standalone small file; Minecraft, Java, renderer, assets and base libraries are not bundled.
+          - Minecraft, Java runtime, renderer, assets and base game libraries remain supplied by the launcher.
           - Developer: dapdev. License: GPL-3.0-or-later.
 
-          Android may pause or terminate a background process. The JAR cannot override Android or launcher lifecycle policy; a live MJ Launcher smoke test is still required.
+          Android may pause or terminate a background process. A real MJ Launcher/device smoke test is required before treating background connectivity as guaranteed.
           EOF
           )"
 
           ASSETS=("$JAR" "$ZIP")
-          for DEP in "$VIA_VERSION" "$VIA_BACKWARDS" "$VIA_REWIND"; do
-            if test -s "$DEP"; then ASSETS+=("$DEP"); fi
-          done
-
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "Cylox Background Client ${VERSION} — 1.8.9" --notes "$NOTES"
             gh release upload "$TAG" "${ASSETS[@]}" --clobber
