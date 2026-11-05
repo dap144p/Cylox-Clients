@@ -14,7 +14,7 @@ jobs:
   build:
     name: Compile, test, verify and package
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
             --output "$VANILLA_JAR"
           echo "3870888a6c3d349d3771a3e9d16c9bf5e076b908  $VANILLA_JAR" | sha1sum --check
 
-      - name: Test, build and verify vanilla bytecode hooks
+      - name: Test, download Java 8 Via libraries, build and verify vanilla hooks
         run: gradle --no-daemon clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar="$RUNNER_TEMP/vanilla-1.8.9.jar"
 
       - name: Upload build outputs
@@ -51,6 +51,7 @@ jobs:
             build/libs/Cylox-Client-1.8.9-*.jar
             build/libs/Cylox-UI-Core-*.jar
             build/distributions/Cylox-Client-Vanilla-1.8.9-*.zip
+            build/via-libs/*.jar
           if-no-files-found: error
           retention-days: 30
 
@@ -65,46 +66,51 @@ jobs:
           TAG="v${VERSION}"
           JAR="build/libs/Cylox-Client-1.8.9-${VERSION}.jar"
           ZIP="build/distributions/Cylox-Client-Vanilla-1.8.9-${VERSION}.zip"
+          VIA_VERSION="build/via-libs/Cylox-ViaVersion-5.12.1.jar"
+          VIA_BACKWARDS="build/via-libs/Cylox-ViaBackwards-5.12.1.jar"
+          VIA_REWIND="build/via-libs/Cylox-ViaRewind-4.2.0.jar"
           test -s "$JAR"
           test -s "$ZIP"
+          test -s "$VIA_VERSION"
+          test -s "$VIA_BACKWARDS"
+          test -s "$VIA_REWIND"
 
           NOTES="$(cat <<EOF
           Cylox Client ${VERSION} — Standalone Vanilla Minecraft Java 1.8.9.
 
           - Vanilla base; no Forge or Fabric required.
-          - Lightweight LWJGL/OpenGL Click GUI and HUD with Watermark/FPS/Keystrokes/custom crosshair.
-          - ToggleSprint and ToggleSneak use the native vanilla KeyBindings and preserve physical-key behavior when disabled.
-          - Module keybind toggles are edge-triggered; module states, keybinds and settings persist in the game directory.
-          - ToggleSprint and ToggleSneak hold their native vanilla keybindings while enabled.
-          - Protocol core includes the protocol catalogue, VarInt codec, handshake encoder and bidirectional translator extension point.
-          - Server version detection uses the standard Minecraft status ping and reads the advertised protocol ID.
-          - Native gameplay compatibility remains protocol 47 (Minecraft 1.8.x). Detecting newer protocols does not make them playable; translators are still required.
-          - Does not redistribute Minecraft, assets, natives, or game libraries.
+          - HUD: Watermark, FPS, Keystrokes and configurable Crosshair.
+          - Movement: ToggleSprint and ToggleSneak use native 1.8.9 key bindings.
+          - ProtocolBridge defaults to Auto: it checks the server status protocol before connecting and uses the ViaVersion client-side Netty pipeline for catalogued 1.9–1.13.2 targets.
+          - Native mode retains direct protocol 47. Unknown or failed status detections safely fall back to protocol 47.
+          - ViaVersion 5.12.1, ViaBackwards 5.12.1 and ViaRewind 4.2.0 Java-8-compatible libraries are included in the ZIP and attached separately for launchers.
+          - Third-party source attribution and GPL-3.0 license are included in the repository and ZIP.
           - Developer: dapdev.
 
-          In-client newer-protocol translation is not included in this build. MJ Launcher device smoke testing is still required.
+          CI checks unit tests, compilation, packaging, and hook/mapping discovery against the official Mojang 1.8.9 JAR. A physical MJ Launcher/Android gameplay smoke test is still outstanding.
           EOF
           )"
 
+          ASSETS=("$JAR" "$ZIP" "$VIA_VERSION" "$VIA_BACKWARDS" "$VIA_REWIND")
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "Cylox Client ${VERSION} — Vanilla 1.8.9" --notes "$NOTES" --prerelease
-            gh release upload "$TAG" "$JAR" "$ZIP" --clobber
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
           else
-            gh release create "$TAG" "$JAR" "$ZIP" --title "Cylox Client ${VERSION} — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Client ${VERSION} — Vanilla 1.8.9" --notes "$NOTES" --prerelease
           fi
 
           if gh release view latest >/dev/null 2>&1; then
             gh release edit latest --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
             while IFS= read -r asset; do
               case "$asset" in
-                "${JAR##*/}"|"${ZIP##*/}")
+                "${JAR##*/}"|"${ZIP##*/}"|"${VIA_VERSION##*/}"|"${VIA_BACKWARDS##*/}"|"${VIA_REWIND##*/}")
                   ;;
                 *)
                   gh release delete-asset latest "$asset" --yes || true
                   ;;
               esac
             done < <(gh release view latest --json assets --jq '.assets[].name')
-            gh release upload latest "$JAR" "$ZIP" --clobber
+            gh release upload latest "${ASSETS[@]}" --clobber
           else
-            gh release create latest "$JAR" "$ZIP" --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
+            gh release create latest "${ASSETS[@]}" --title "Cylox Client latest — Vanilla 1.8.9" --notes "$NOTES" --prerelease
           fi
