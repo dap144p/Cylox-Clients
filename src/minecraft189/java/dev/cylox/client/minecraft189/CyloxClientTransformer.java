@@ -31,10 +31,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedButtonThemeClasses;
     private static volatile int patchedScreenBackgroundClasses;
     private static volatile int patchedMainMenuClasses;
+    private static volatile int patchedRenderGraphClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
+    private static final String RENDER = "dev/cylox/client/minecraft189/CyloxRenderHooks";
 
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
@@ -48,6 +50,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedButtonThemeClasses = 0;
         patchedScreenBackgroundClasses = 0;
         patchedMainMenuClasses = 0;
+        patchedRenderGraphClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -61,6 +64,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedButtonThemeClassCount() { return patchedButtonThemeClasses; }
     public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
+    public static int getPatchedRenderGraphClassCount() { return patchedRenderGraphClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -81,6 +85,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean buttonThemePatched = false;
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
+            boolean renderGraphPatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -173,6 +178,45 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     }
                 }
 
+                if (!renderGraphPatched && (method.access & Opcodes.ACC_STATIC) == 0
+                    && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
+                    boolean renderInfoListReused = false;
+                    boolean traversalQueueReused = false;
+                    for (AbstractInsnNode instruction = method.instructions.getFirst();
+                         instruction != null; ) {
+                        AbstractInsnNode next = instruction.getNext();
+                        if (instruction instanceof MethodInsnNode) {
+                            MethodInsnNode call = (MethodInsnNode) instruction;
+                            if (!renderInfoListReused
+                                && "com/google/common/collect/Lists".equals(call.owner)
+                                && "newArrayList".equals(call.name)
+                                && "()Ljava/util/ArrayList;".equals(call.desc)) {
+                                InsnList replacement = new InsnList();
+                                replacement.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                                replacement.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER,
+                                    "reuseRenderInfos", "(Ljava/lang/Object;)Ljava/util/ArrayList;", false));
+                                method.instructions.insertBefore(instruction, replacement);
+                                method.instructions.remove(instruction);
+                                renderInfoListReused = true;
+                                changed = true;
+                            } else if (!traversalQueueReused
+                                && "com/google/common/collect/Lists".equals(call.owner)
+                                && "newLinkedList".equals(call.name)
+                                && "()Ljava/util/LinkedList;".equals(call.desc)) {
+                                InsnList replacement = new InsnList();
+                                replacement.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER,
+                                    "reuseTraversalQueue", "()Ljava/util/LinkedList;", false));
+                                method.instructions.insertBefore(instruction, replacement);
+                                method.instructions.remove(instruction);
+                                traversalQueueReused = true;
+                                changed = true;
+                            }
+                        }
+                        instruction = next;
+                    }
+                    renderGraphPatched = renderInfoListReused && traversalQueueReused;
+                }
+
                 if (!frameLimitPatched) {
                     for (AbstractInsnNode instruction = method.instructions.getFirst();
                          instruction != null; instruction = instruction.getNext()) {
@@ -230,6 +274,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) patchedButtonThemeClasses++;
             if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
             if (mainMenuPatched) patchedMainMenuClasses++;
+            if (renderGraphPatched) patchedRenderGraphClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -241,6 +286,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) System.out.println("[Cylox] Cylox button theme injected: " + node.name);
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
+            if (renderGraphPatched) System.out.println("[Cylox] Reused terrain-culling scratch collections: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
