@@ -4,6 +4,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.lwjgl.opengl.GL11;
 
 /** Lightweight immediate-mode UI skin: no textures, shaders, animations or added UI libraries. */
@@ -12,24 +14,131 @@ public final class CyloxUiHooks {
     private static final int MUTED = 0xFF8DA5B5;
     private static final int CYAN = 0xFF36D7E8;
     private static final int ORANGE = 0xFFFFA45B;
+    private static final ConcurrentMap<Class<?>, ButtonAccess> BUTTON_ACCESS =
+        new ConcurrentHashMap<Class<?>, ButtonAccess>();
+    private static final ConcurrentMap<Class<?>, FontOwnerAccess> FONT_OWNER_ACCESS =
+        new ConcurrentHashMap<Class<?>, FontOwnerAccess>();
+    private static final ConcurrentMap<Class<?>, FontMethods> FONT_METHODS =
+        new ConcurrentHashMap<Class<?>, FontMethods>();
+
+    /** Cached reflective fields; button rendering is called for every visible button every frame. */
+    private static final class ButtonAccess {
+        final Field x, y, width, height, visible, enabled, hovered, label;
+        ButtonAccess(Class<?> type) {
+            x = findField(type, "xPosition", "field_146128_h", "h");
+            y = findField(type, "yPosition", "field_146129_i", "i");
+            width = findField(type, "width", "field_146120_f", "f");
+            height = findField(type, "height", "field_146121_g", "g");
+            visible = findField(type, "visible", "field_146125_m", "m");
+            enabled = findField(type, "enabled", "field_146124_l", "l");
+            hovered = findField(type, "hovered", "field_146123_n", "n");
+            Field text = findField(type, "displayString", "field_146126_j", "j");
+            label = text != null ? text : findFirstField(type, String.class);
+        }
+    }
+
+    /** Resolves a screen/Minecraft FontRenderer field once per owner class, not once per frame. */
+    private static final class FontOwnerAccess {
+        final Field renderer;
+        FontOwnerAccess(Class<?> type) {
+            Field found = findField(type, "fontRendererObj", "field_71466_p",
+                "field_146289_q", "p", "q");
+            if (found == null || !isFontRendererClass(found.getType())) {
+                found = null;
+                for (Class<?> current = type; current != null && found == null;
+                     current = current.getSuperclass()) {
+                    for (Field candidate : current.getDeclaredFields()) {
+                        if (Modifier.isStatic(candidate.getModifiers())
+                            || !isFontRendererClass(candidate.getType())) continue;
+                        try { candidate.setAccessible(true); found = candidate; break; }
+                        catch (Throwable ignored) { }
+                    }
+                }
+            }
+            renderer = found;
+        }
+    }
+
+    /** Cached FontRenderer method handles shared by all screens and buttons. */
+    private static final class FontMethods {
+        final Method width, draw, trim;
+        FontMethods(Class<?> type) {
+            width = findFontWidthMethod(type);
+            draw = findFontDrawMethod(type);
+            trim = findFontTrimMethod(type);
+        }
+    }
+
     private CyloxUiHooks() { }
+
+    private static ButtonAccess buttonAccess(Object button) {
+        Class<?> type = button.getClass();
+        ButtonAccess access = BUTTON_ACCESS.get(type);
+        if (access == null) {
+            ButtonAccess created = new ButtonAccess(type);
+            ButtonAccess prior = BUTTON_ACCESS.putIfAbsent(type, created);
+            access = prior == null ? created : prior;
+        }
+        return access;
+    }
+
+    private static FontOwnerAccess fontOwnerAccess(Object owner) {
+        Class<?> type = owner.getClass();
+        FontOwnerAccess access = FONT_OWNER_ACCESS.get(type);
+        if (access == null) {
+            FontOwnerAccess created = new FontOwnerAccess(type);
+            FontOwnerAccess prior = FONT_OWNER_ACCESS.putIfAbsent(type, created);
+            access = prior == null ? created : prior;
+        }
+        return access;
+    }
+
+    private static FontMethods fontMethods(Object font) {
+        Class<?> type = font.getClass();
+        FontMethods methods = FONT_METHODS.get(type);
+        if (methods == null) {
+            FontMethods created = new FontMethods(type);
+            FontMethods prior = FONT_METHODS.putIfAbsent(type, created);
+            methods = prior == null ? created : prior;
+        }
+        return methods;
+    }
+
+    private static int readInt(Field field, Object target, int fallback) {
+        try { return field == null ? fallback : field.getInt(target); }
+        catch (Throwable ignored) { return fallback; }
+    }
+
+    private static boolean readBoolean(Field field, Object target, boolean fallback) {
+        try { return field == null ? fallback : field.getBoolean(target); }
+        catch (Throwable ignored) { return fallback; }
+    }
+
+    private static String readString(Field field, Object target) {
+        try {
+            Object value = field == null ? null : field.get(target);
+            return value instanceof String ? (String) value : "";
+        } catch (Throwable ignored) { return ""; }
+    }
+
 
     /** Replaces vanilla GuiButton drawing while preserving the original button and its actions. */
     public static boolean drawButton(Object button, Object minecraft, int mouseX, int mouseY) {
         if (button == null) return false;
         try {
-            int x = intField(button, 0, "xPosition", "field_146128_h", "h");
-            int y = intField(button, 0, "yPosition", "field_146129_i", "i");
-            int w = intField(button, 0, "width", "field_146120_f", "f");
-            int h = intField(button, 0, "height", "field_146121_g", "g");
+            ButtonAccess access = buttonAccess(button);
+            int x = readInt(access.x, button, 0);
+            int y = readInt(access.y, button, 0);
+            int w = readInt(access.width, button, 0);
+            int h = readInt(access.height, button, 0);
             if (w <= 0 || h <= 0) return false;
-            if (!boolField(button, true, "visible", "field_146125_m", "m")) {
-                setBool(button, false, "hovered", "field_146123_n", "n");
+            if (!readBoolean(access.visible, button, true)) {
+                if (access.hovered != null) access.hovered.setBoolean(button, false);
                 return true;
             }
-            boolean enabled = boolField(button, true, "enabled", "field_146124_l", "l");
+            boolean enabled = readBoolean(access.enabled, button, true);
             boolean hovered = mouseX >= x && mouseY >= y && mouseX < x + w && mouseY < y + h;
-            setBool(button, hovered, "hovered", "field_146123_n", "n");
+            if (access.hovered != null) access.hovered.setBoolean(button, hovered);
 
             int fill = !enabled ? 0x80101A25 : hovered ? 0xB81A3545 : 0x98122333;
             int edge = !enabled ? 0x70273541 : hovered ? 0xD036D7E8 : 0xA024465A;
@@ -45,9 +154,11 @@ public final class CyloxUiHooks {
             rect(x + 2, y + 2, x + 4, y + h - 2, hovered ? 0xE0FFA45B : 0xC036D7E8);
             GL11.glPopAttrib();
 
-            String label = stringField(button, "displayString", "field_146126_j", "j");
+            String label = readString(access.label, button);
             if (label.length() > 0) {
-                centered(font(minecraft), label, x + w / 2, y + (h - 8) / 2, enabled ? WHITE : MUTED);
+                Object renderer = font(minecraft);
+                label = fitText(renderer, label, Math.max(1, w - 8));
+                centered(renderer, label, x + w / 2, y + (h - 8) / 2, enabled ? WHITE : MUTED);
             }
             return true;
         } catch (Throwable ignored) {
@@ -123,56 +234,33 @@ public final class CyloxUiHooks {
         GL11.glEnd();
     }
 
-    private static void centered(Object font, String text, int center, int y, int color) {
-        if (font == null || text == null || text.length() == 0) return;
+    private static void centered(Object renderer, String text, int center, int y, int color) {
+        if (renderer == null || text == null || text.length() == 0) return;
         try {
+            FontMethods methods = fontMethods(renderer);
             int width = text.length() * 6;
-            Method widthMethod = findFontWidthMethod(font);
-            if (widthMethod != null) {
-                Object measured = widthMethod.invoke(font, text);
+            if (methods.width != null) {
+                Object measured = methods.width.invoke(renderer, text);
                 if (measured instanceof Integer) width = ((Integer) measured).intValue();
             }
-            Method drawMethod = findFontDrawMethod(font);
-            if (drawMethod == null) return;
-
-            GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
-            try {
-                GL11.glEnable(GL11.GL_TEXTURE_2D);
-                GL11.glEnable(GL11.GL_BLEND);
-                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-                drawMethod.invoke(font, text, center - width / 2.0F, (float) y, color);
-            } finally {
-                GL11.glPopAttrib();
-            }
+            drawWithFont(renderer, text, center - width / 2.0F, (float) y, color);
         } catch (Throwable ignored) { }
     }
 
     private static Object font(Object owner) {
         if (owner == null) return null;
-        Object direct = objectField(owner, "fontRendererObj", "field_71466_p",
-            "field_146289_q", "p", "q");
-        if (isFontRenderer(direct)) return direct;
-
-        // Mappings differ between launcher-provided, SRG and obfuscated 1.8.9 classes.
-        // Fall back to locating the unique field that has the FontRenderer method shape.
-        for (Class<?> type = owner.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (Modifier.isStatic(field.getModifiers())) continue;
-                try {
-                    field.setAccessible(true);
-                    Object candidate = field.get(owner);
-                    if (isFontRenderer(candidate)) return candidate;
-                } catch (Throwable ignored) { }
-            }
-        }
-        return null;
+        if (isFontRendererClass(owner.getClass())) return owner;
+        try {
+            Field field = fontOwnerAccess(owner).renderer;
+            return field == null ? null : field.get(owner);
+        } catch (Throwable ignored) { return null; }
     }
 
-    private static boolean isFontRenderer(Object candidate) {
+    private static boolean isFontRendererClass(Class<?> candidate) {
         if (candidate == null) return false;
         boolean width = false;
         boolean draw = false;
-        for (Class<?> type = candidate.getClass(); type != null; type = type.getSuperclass()) {
+        for (Class<?> type = candidate; type != null; type = type.getSuperclass()) {
             for (Method method : type.getDeclaredMethods()) {
                 Class<?>[] p = method.getParameterTypes();
                 if (p.length == 1 && p[0] == String.class
@@ -182,6 +270,40 @@ public final class CyloxUiHooks {
             }
         }
         return width && draw;
+    }
+
+    /** Draws a left-aligned Minecraft string using the cached FontRenderer mapping. */
+    public static void drawText(Object owner, String text, float x, float y, int color) {
+        if (text == null || text.length() == 0) return;
+        Object renderer = font(owner);
+        if (renderer != null) drawWithFont(renderer, text, x, y, color);
+    }
+
+    private static void drawWithFont(Object renderer, String text, float x, float y, int color) {
+        if (renderer == null || text == null || text.length() == 0) return;
+        try {
+            Method draw = fontMethods(renderer).draw;
+            if (draw == null) return;
+            GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
+            try {
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                draw.invoke(renderer, text, x, y, color);
+            } finally {
+                GL11.glPopAttrib();
+            }
+        } catch (Throwable ignored) { }
+    }
+
+    private static String fitText(Object renderer, String text, int maxWidth) {
+        if (renderer == null || text == null || text.length() == 0 || maxWidth < 1) return text;
+        try {
+            Method trim = fontMethods(renderer).trim;
+            if (trim == null) return text;
+            Object result = trim.invoke(renderer, text, maxWidth);
+            return result instanceof String ? (String) result : text;
+        } catch (Throwable ignored) { return text; }
     }
 
     private static Method findFontWidthMethod(Object font) {
@@ -206,6 +328,36 @@ public final class CyloxUiHooks {
                     try { method.setAccessible(true); return method; }
                     catch (Throwable ignored) { }
                 }
+            }
+        }
+        return null;
+    }
+
+    private static Method findFontWidthMethod(Class<?> fontType) {
+        return findMethod(fontType, new String[] {"getStringWidth", "func_78256_a", "a"},
+            new Class<?>[] {String.class}, Integer.TYPE);
+    }
+
+    private static Method findFontDrawMethod(Class<?> fontType) {
+        return findMethod(fontType, new String[] {"drawStringWithShadow", "func_175063_a", "drawString", "a"},
+            new Class<?>[] {String.class, Float.TYPE, Float.TYPE, Integer.TYPE}, null);
+    }
+
+    private static Method findFontTrimMethod(Class<?> fontType) {
+        return findMethod(fontType, new String[] {"trimStringToWidth", "func_78269_a", "a"},
+            new Class<?>[] {String.class, Integer.TYPE}, String.class);
+    }
+
+    private static Method findMethod(Class<?> type, String[] names, Class<?>[] parameters,
+                                     Class<?> returnType) {
+        for (String name : names) {
+            for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+                try {
+                    Method method = current.getDeclaredMethod(name, parameters);
+                    if (returnType != null && method.getReturnType() != returnType) continue;
+                    method.setAccessible(true);
+                    return method;
+                } catch (Throwable ignored) { }
             }
         }
         return null;
@@ -277,6 +429,31 @@ public final class CyloxUiHooks {
         Field f = findField(o, n); try { return f == null ? null : f.get(o); }
         catch (Throwable ignored) { return null; }
     }
+    private static Field findField(Class<?> type, String... names) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            for (String name : names) {
+                try {
+                    Field field = current.getDeclaredField(name);
+                    field.setAccessible(true);
+                    return field;
+                } catch (Throwable ignored) { }
+            }
+        }
+        return null;
+    }
+
+    private static Field findFirstField(Class<?> type, Class<?> fieldType) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.getType() == fieldType && !Modifier.isStatic(field.getModifiers())) {
+                    try { field.setAccessible(true); return field; }
+                    catch (Throwable ignored) { }
+                }
+            }
+        }
+        return null;
+    }
+
     private static Field findField(Object o, String... names) {
         if (o == null) return null;
         for (Class<?> c = o.getClass(); c != null; c = c.getSuperclass()) {
