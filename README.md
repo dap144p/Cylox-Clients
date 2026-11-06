@@ -1,7 +1,7 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.0.5  
+**Version:** 1.0.6  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -25,7 +25,7 @@ This is not an Android background service. The launcher must keep the game proce
 - A menu opens above the selector with supported target versions. Choose the exact protocol version required by the destination server; use the page controls for additional versions.
 - The selected target is saved in `cylox/protocol.properties` inside the game directory.
 - Default: native Minecraft **1.8.9** (protocol 47).
-- Cylox checks that a translation route exists from 1.8.9 to the selected target before connecting, and logs the target used by the handshake.
+- Cylox attaches the Via encoder/decoder during vanilla Netty channel initialization, before the first handshake packet is sent. The log reports the target protocol that was attached.
 - Protocol selection is **manual**. Cylox does not ping the server to guess its version and does not switch protocol automatically.
 - Set the Via selector to the destination server's protocol before connecting. A wrong selection can cause the server to reject the handshake or can lead to compatibility issues.
 - Via translates packets; it cannot guarantee that every server plugin, custom registry, or version-specific feature will behave identically.
@@ -66,8 +66,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.0.5.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Background-Client-1.8.9-1.0.5.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.0.6.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Background-Client-1.8.9-1.0.6.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 

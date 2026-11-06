@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.0.5
+Version: 1.0.6
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
@@ -19,7 +19,7 @@ PROTOCOL
 - The menu only lists target versions with a known Via translation route from 1.8.9.
 - Cylox does not ping servers to select a protocol automatically.
 - Choose the same protocol version required by the destination server. A mismatch may be rejected or may have compatibility issues.
-- Cylox logs the selected target when the handshake is processed. If that log does not appear, the Via pipeline did not process the connection.
+- Cylox attaches Via's encoder and decoder during vanilla channel initialization, before the initial handshake is sent. Look for `Via pipeline attached before initial handshake`.
 
 BACKGROUND
 - Automatically skips vanilla world/UI rendering while the LWJGL display is inactive or hidden.

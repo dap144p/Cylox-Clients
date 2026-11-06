@@ -21,7 +21,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 public final class CyloxClientTransformer implements net.minecraft.launchwrapper.IClassTransformer {
     private static volatile int patchedRenderClasses;
     private static volatile int patchedFrameLimitClasses;
-    private static volatile int patchedProtocolConnectClasses;
+    private static volatile int patchedProtocolPipelineClasses;
     private static volatile int patchedCompressionClasses;
     private static volatile int patchedSelectorButtonClasses;
     private static volatile int patchedSelectorActionClasses;
@@ -32,7 +32,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
         patchedFrameLimitClasses = 0;
-        patchedProtocolConnectClasses = 0;
+        patchedProtocolPipelineClasses = 0;
         patchedCompressionClasses = 0;
         patchedSelectorButtonClasses = 0;
         patchedSelectorActionClasses = 0;
@@ -40,7 +40,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
     public static int getPatchedFrameLimitClassCount() { return patchedFrameLimitClasses; }
-    public static int getPatchedProtocolConnectClassCount() { return patchedProtocolConnectClasses; }
+    public static int getPatchedProtocolPipelineClassCount() { return patchedProtocolPipelineClasses; }
     public static int getPatchedCompressionClassCount() { return patchedCompressionClasses; }
     public static int getPatchedSelectorButtonClassCount() { return patchedSelectorButtonClasses; }
     public static int getPatchedSelectorActionClassCount() { return patchedSelectorActionClasses; }
@@ -55,7 +55,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean changed = false;
             boolean renderPatched = false;
             boolean frameLimitPatched = false;
-            boolean protocolConnectPatched = false;
+            boolean protocolPipelinePatched = false;
             boolean compressionPatched = false;
             boolean selectorButtonPatched = false;
             boolean selectorActionPatched = false;
@@ -71,10 +71,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
                     boolean socketInitializer = method.desc.contains("Lio/netty/channel/socket/SocketChannel;")
                         || method.desc.contains("Lio/netty/channel/Channel;");
-                    if (!protocolConnectPatched && socketInitializer
+                    if (!protocolPipelinePatched && socketInitializer
                         && hasMarkers(method, "timeout", "splitter", "decoder", "prepender", "encoder", "packet_handler")) {
                         insertBeforeReturns(method, VIA, "install", "(Ljava/lang/Object;)V", 1);
-                        protocolConnectPatched = true;
+                        protocolPipelinePatched = true;
                         changed = true;
                     }
 
@@ -128,13 +128,13 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             node.accept(writer);
             if (renderPatched) patchedRenderClasses++;
             if (frameLimitPatched) patchedFrameLimitClasses++;
-            if (protocolConnectPatched) patchedProtocolConnectClasses++;
+            if (protocolPipelinePatched) patchedProtocolPipelineClasses++;
             if (compressionPatched) patchedCompressionClasses++;
             if (selectorButtonPatched) patchedSelectorButtonClasses++;
             if (selectorActionPatched) patchedSelectorActionClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
-            if (protocolConnectPatched) System.out.println("[Cylox] Via connect hook injected: " + node.name);
+            if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
             if (compressionPatched) System.out.println("[Cylox] Via compression hook injected: " + node.name);
             if (selectorButtonPatched) System.out.println("[Cylox] Manual Via selector button injected: " + node.name);
             if (selectorActionPatched) System.out.println("[Cylox] Manual Via selector action injected: " + node.name);

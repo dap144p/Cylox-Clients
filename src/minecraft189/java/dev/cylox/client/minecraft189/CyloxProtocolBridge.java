@@ -10,16 +10,12 @@ import de.florianmichael.vialoadingbase.netty.event.CompressionReorderEvent;
 import de.florianmichael.viamcp.MCPVLBPipeline;
 import dev.cylox.client.protocol.CyloxProtocolTargetResolver;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelOutboundHandlerAdapter;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
 import io.netty.channel.socket.SocketChannel;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -472,17 +468,33 @@ public final class CyloxProtocolBridge {
         }
     }
 
-    /** Called by the bytecode hook after vanilla has installed its standard Netty handlers. */
+    /**
+     * Called from the vanilla ChannelInitializer after Minecraft installs its
+     * timeout/decoder/encoder/packet handlers and before the first handshake.
+     */
     public static void install(Object candidate) {
         if (!available || !(candidate instanceof SocketChannel)) return;
         try {
             Channel channel = (Channel) candidate;
-            if (channel.pipeline().get("cylox-protocol-connect") == null) {
-                channel.pipeline().addLast("cylox-protocol-connect", new ProtocolConnectHandler());
-                System.out.println("[Cylox] Via connect hook installed.");
+            int selected = CyloxProtocolTargetResolver.resolve(true, selectedProtocolId);
+            if (selected == NATIVE_PROTOCOL) return;
+
+            setTargetProtocol(selected);
+            attachVia(channel);
+
+            if (channel.pipeline().get("via-decoder") == null
+                || channel.pipeline().get("via-encoder") == null) {
+                throw new IllegalStateException("Via encoder/decoder were not inserted into the vanilla pipeline");
             }
+
+            ProtocolVersion target = ProtocolVersion.getProtocol(selected);
+            System.out.println("[Cylox] Via pipeline attached before initial handshake: "
+                + "1.8.9 (protocol " + NATIVE_PROTOCOL + ") -> "
+                + (target == null ? selected : target.getName())
+                + " (protocol " + selected + ").");
         } catch (Throwable error) {
-            System.err.println("[Cylox] Could not install protocol connect hook: " + error.getMessage());
+            System.err.println("[Cylox] Could not attach Via before initial handshake: "
+                + error.getClass().getSimpleName() + ": " + error.getMessage());
         }
     }
 
@@ -507,34 +519,13 @@ public final class CyloxProtocolBridge {
     }
 
     private static void attachVia(Channel channel) {
-        if (channel.pipeline().get("via-decoder") != null) return;
+        if (channel.pipeline().get("via-decoder") != null
+            && channel.pipeline().get("via-encoder") != null) return;
         UserConnection user = new UserConnectionImpl(channel, true);
         new ProtocolPipelineImpl(user);
+        // This adds Via's encoder and decoder before Minecraft's vanilla handlers.
         channel.pipeline().addLast(new MCPVLBPipeline(user));
     }
+}
 
-    private static final class ProtocolConnectHandler extends ChannelOutboundHandlerAdapter {
-        @Override
-        public void connect(ChannelHandlerContext context, SocketAddress remoteAddress,
-                            SocketAddress localAddress, ChannelPromise promise) throws Exception {
-            if (!available) {
-                context.connect(remoteAddress, localAddress, promise);
-                return;
-            }
-            int selected = CyloxProtocolTargetResolver.resolve(true, selectedProtocolId);
-            try {
-                setTargetProtocol(selected);
-                if (selected != NATIVE_PROTOCOL) {
-                    attachVia(context.channel());
-                    System.out.println("[Cylox] Via active for connection to " + remoteAddress
-                        + ": 1.8.9 -> " + getSelectedProtocolName()
-                        + " (protocol " + selected + ").");
-                }
-                context.connect(remoteAddress, localAddress, promise);
-            } catch (Throwable error) {
-                promise.tryFailure(new IllegalStateException(
-                    "Cylox could not initialize the selected Via protocol", error));
-            }
-        }
-    }
 }
