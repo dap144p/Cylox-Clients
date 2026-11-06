@@ -298,14 +298,27 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     private static boolean isDefaultBackgroundMethod(ClassNode node, MethodNode method) {
         if ((method.access & Opcodes.ACC_STATIC) != 0 || !"()V".equals(method.desc)) return false;
+        int stage = 0;
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null; instruction = instruction.getNext()) {
-            if (instruction instanceof MethodInsnNode) {
+            int opcode = instruction.getOpcode();
+            if (opcode < 0) continue;
+            if (stage == 0 && instruction instanceof VarInsnNode
+                && opcode == Opcodes.ALOAD && ((VarInsnNode) instruction).var == 0) {
+                stage++;
+            } else if (stage == 1 && opcode == Opcodes.ICONST_0) {
+                stage++;
+            } else if (stage == 2 && instruction instanceof MethodInsnNode) {
                 MethodInsnNode call = (MethodInsnNode) instruction;
-                if (node.name.equals(call.owner) && "(I)V".equals(call.desc)) return true;
+                if (!node.name.equals(call.owner) || !"(I)V".equals(call.desc)) return false;
+                stage++;
+            } else if (stage == 3 && opcode == Opcodes.RETURN) {
+                stage++;
+            } else {
+                return false;
             }
         }
-        return false;
+        return stage == 4;
     }
 
     private static void insertButtonTheme(MethodNode method) {
