@@ -1,9 +1,9 @@
-CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
+CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.0
+Version: 1.3.1
 
 INSTALL
-1. Download the complete Background Client ZIP from GitHub Releases.
+1. Download the complete Cylox Client ZIP from GitHub Releases.
 2. Open the game directory configured in MJ Launcher (the directory containing versions and libraries).
 3. Extract the ZIP into that directory and merge the folders.
 4. Refresh the launcher's version list.

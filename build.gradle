@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.3.0'
+version = '1.3.1'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -122,7 +122,7 @@ tasks.register('minecraft189AdapterJar', Jar) {
     }
     manifest {
         attributes(
-            'Implementation-Title': 'Cylox Lightweight Background Client 1.8.9',
+            'Implementation-Title': 'Cylox Client 1.8.9',
             'Implementation-Version': project.version,
             'Client-Developer': 'dapdev',
             'TweakClass': 'dev.cylox.client.minecraft189.CyloxTweaker',
@@ -193,7 +193,7 @@ tasks.register('generateClientVersion') {
 
 tasks.register('buildClientPackage', Zip) {
     dependsOn tasks.named('minecraft189AdapterJar'), tasks.named('generateClientVersion')
-    archiveBaseName = 'Cylox-Background-Client-1.8.9'
+    archiveBaseName = 'Cylox-Client-1.8.9'
     archiveVersion = project.version
     destinationDirectory = layout.buildDirectory.dir('distributions')
     from(layout.buildDirectory.file('generated/cylox/Cylox-1.8.9.json')) {
@@ -219,10 +219,10 @@ tasks.register('verifyVanilla189Hooks', JavaExec) {
 }
 
 jar {
-    archiveBaseName = 'Cylox-Background-Core'
+    archiveBaseName = 'Cylox-Client-Core'
     manifest {
         attributes(
-            'Implementation-Title': 'Cylox Background Core',
+            'Implementation-Title': 'Cylox Client Core',
             'Implementation-Version': project.version,
             'Built-For-Minecraft': '1.8.9',
             'Client-Developer': 'dapdev'

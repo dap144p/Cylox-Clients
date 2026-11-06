@@ -1,4 +1,4 @@
-name: Build Cylox Background Client — 1.8.9
+name: Build Cylox Client — 1.8.9
 
 on:
   push:
@@ -72,7 +72,7 @@ jobs:
           expected_cylox_path = f"dev/cylox/client/{version}/Cylox-Client-1.8.9-{version}.jar"
           assert cylox.get("downloads", {}).get("artifact", {}).get("path") == expected_cylox_path
 
-          package_path = pathlib.Path(f"build/distributions/Cylox-Background-Client-1.8.9-{version}.zip")
+          package_path = pathlib.Path(f"build/distributions/Cylox-Client-1.8.9-{version}.zip")
           with zipfile.ZipFile(package_path) as archive:
               names = set(archive.namelist())
           assert "versions/Cylox-1.8.9/Cylox-1.8.9.json" in names
@@ -122,7 +122,7 @@ jobs:
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — lightweight Minecraft Java 1.8.9 background client.
+          Cylox Client ${VERSION} — lightweight Minecraft Java 1.8.9 client with background render suppression.
 
           - The Cylox client and ViaVersion, ViaBackwards and ViaRewind protocol features are bundled into ONE JAR.
           - The standalone profile declares Minecraft 1.8.9's official client artifact, libraries and asset index as launcher dependencies; a separate vanilla profile is not required when the launcher resolves legacy libraries correctly.
@@ -158,14 +158,14 @@ jobs:
           }
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "Cylox Background Client ${VERSION} — 1.8.9" --notes "$NOTES"
+            gh release edit "$TAG" --title "Cylox Client ${VERSION} — 1.8.9" --notes "$NOTES"
             upload_release_assets "$TAG"
           else
             gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Background Client ${VERSION} — 1.8.9" --notes "$NOTES"
           fi
 
           if gh release view latest >/dev/null 2>&1; then
-            gh release edit latest --title "Cylox Background Client latest — 1.8.9" --notes "$NOTES"
+            gh release edit latest --title "Cylox Client latest — 1.8.9" --notes "$NOTES"
             # Keep only the current version's JAR and launcher package.
             while IFS= read -r asset; do
               keep=0
