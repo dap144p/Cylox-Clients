@@ -46,7 +46,7 @@ public final class CyloxUiHooks {
 
             String label = stringField(button, "displayString", "field_146126_j", "j");
             if (label.length() > 0) {
-                drawCentered(font(minecraft), label, x + w / 2, y + (h - 8) / 2, enabled ? WHITE : MUTED);
+                centered(font(minecraft), label, x + w / 2, y + (h - 8) / 2, enabled ? WHITE : MUTED);
             }
             return true;
         } catch (Throwable ignored) {
