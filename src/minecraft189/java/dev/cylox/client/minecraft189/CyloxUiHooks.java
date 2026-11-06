@@ -31,8 +31,8 @@ public final class CyloxUiHooks {
             boolean hovered = mouseX >= x && mouseY >= y && mouseX < x + w && mouseY < y + h;
             setBool(button, hovered, "hovered", "field_146123_n", "n");
 
-            int fill = !enabled ? 0xFF101A25 : hovered ? 0xFF1A3545 : 0xFF122333;
-            int edge = !enabled ? 0xFF273541 : hovered ? CYAN : 0xFF24465A;
+            int fill = !enabled ? 0x80101A25 : hovered ? 0xB81A3545 : 0x98122333;
+            int edge = !enabled ? 0x70273541 : hovered ? 0xD036D7E8 : 0xA024465A;
             GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_BLEND);
@@ -42,7 +42,7 @@ public final class CyloxUiHooks {
             rect(x, y + h - 1, x + w, y + h, edge);
             rect(x, y, x + 1, y + h, edge);
             rect(x + w - 1, y, x + w, y + h, edge);
-            rect(x + 2, y + 2, x + 4, y + h - 2, hovered ? ORANGE : CYAN);
+            rect(x + 2, y + 2, x + 4, y + h - 2, hovered ? 0xE0FFA45B : 0xC036D7E8);
             GL11.glPopAttrib();
 
             String label = stringField(button, "displayString", "field_146126_j", "j");
@@ -82,9 +82,9 @@ public final class CyloxUiHooks {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        rect(left, top, right, bottom, 0xD80C1B2A);
-        rect(left, top, right, top + 2, CYAN);
-        rect(left, top, left + 2, bottom, 0xFF24465A);
+        rect(left, top, right, bottom, 0x780C1B2A);
+        rect(left, top, right, top + 2, 0xC036D7E8);
+        rect(left, top, left + 2, bottom, 0xA024465A);
         GL11.glPopAttrib();
 
         Object font = font(screen);
@@ -105,10 +105,10 @@ public final class CyloxUiHooks {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        rect(0, 0, w, h, 0xFF08121E);
-        rect(0, 0, w, 2, 0xFF173448);
-        rect(0, 0, 3, h, 0xFF1C6272);
-        rect(0, h - 2, w, h, 0xFF152C3B);
+        rect(0, 0, w, h, 0x7008121E);
+        rect(0, 0, w, 2, 0xA0173448);
+        rect(0, 0, 3, h, 0xA01C6272);
+        rect(0, h - 2, w, h, 0x90152C3B);
         rect(12, 12, 13, h - 12, 0x332FC9DA);
         GL11.glPopAttrib();
     }
