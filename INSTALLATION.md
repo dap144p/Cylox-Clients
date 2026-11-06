@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.0.6
+Version: 1.0.7
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
@@ -9,7 +9,7 @@ INSTALL
 4. Refresh the launcher's version list.
 5. Select Cylox-1.8.9 and launch it. Its standalone profile declares the vanilla 1.8.9 client JAR, game libraries and asset index as dependencies, allowing MJ Launcher to download missing files. A separate vanilla 1.8.9 profile should not be required.
 6. Keep the launcher's normal Java and renderer settings.
-7. Open Multiplayer and tap "Select: [version]" immediately to the right of the standard "Cancel" button. The vanilla Cancel and other Multiplayer buttons keep their original positions.
+7. Open Multiplayer and tap "Select: [version]" beside the standard "Cancel" button. The modern menu groups versions as 1.8x, 1.9x, 1.10x and onward; scroll with the mouse wheel or arrow controls.
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
 
 PROTOCOL
@@ -18,8 +18,8 @@ PROTOCOL
 - Default target is native 1.8.9 (protocol 47).
 - The menu only lists target versions with a known Via translation route from 1.8.9.
 - Cylox does not ping servers to select a protocol automatically.
-- Choose the same protocol version required by the destination server. A mismatch may be rejected or may have compatibility issues.
-- Cylox attaches Via's encoder and decoder during vanilla channel initialization, before the initial handshake is sent. Look for `Via pipeline attached before initial handshake`.
+- Choose a protocol family equal to or newer than the minimum server version. For a server requiring 1.13+, choose 1.13x or newer.
+- Cylox attaches Via's encoder and decoder during vanilla channel initialization, before the initial handshake is sent. Logs show the selected route and the actual protocol ID in the outgoing handshake. For 1.13x, that ID should be 393.
 
 BACKGROUND
 - Automatically skips vanilla world/UI rendering while the LWJGL display is inactive or hidden.

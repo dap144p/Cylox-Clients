@@ -25,6 +25,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedCompressionClasses;
     private static volatile int patchedSelectorButtonClasses;
     private static volatile int patchedSelectorActionClasses;
+    private static volatile int patchedSelectorDrawClasses;
+    private static volatile int patchedSelectorScrollClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -36,6 +38,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedCompressionClasses = 0;
         patchedSelectorButtonClasses = 0;
         patchedSelectorActionClasses = 0;
+        patchedSelectorDrawClasses = 0;
+        patchedSelectorScrollClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -44,6 +48,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedCompressionClassCount() { return patchedCompressionClasses; }
     public static int getPatchedSelectorButtonClassCount() { return patchedSelectorButtonClasses; }
     public static int getPatchedSelectorActionClassCount() { return patchedSelectorActionClasses; }
+    public static int getPatchedSelectorDrawClassCount() { return patchedSelectorDrawClasses; }
+    public static int getPatchedSelectorScrollClassCount() { return patchedSelectorScrollClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -59,6 +65,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean compressionPatched = false;
             boolean selectorButtonPatched = false;
             boolean selectorActionPatched = false;
+            boolean selectorDrawPatched = false;
+            boolean selectorScrollPatched = false;
 
             for (MethodNode method : node.methods) {
                 if ((method.access & Opcodes.ACC_STATIC) == 0) {
@@ -105,6 +113,28 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     }
                 }
 
+                if (!selectorScrollPatched && (method.access & Opcodes.ACC_STATIC) == 0) {
+                    for (AbstractInsnNode instruction = method.instructions.getFirst();
+                         instruction != null; instruction = instruction.getNext()) {
+                        if (instruction instanceof MethodInsnNode) {
+                            MethodInsnNode call = (MethodInsnNode) instruction;
+                            if ("org/lwjgl/input/Mouse".equals(call.owner)
+                                && "getEventDWheel".equals(call.name) && "()I".equals(call.desc)) {
+                                InsnList hook = new InsnList();
+                                hook.add(new InsnNode(Opcodes.DUP));
+                                hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                                hook.add(new InsnNode(Opcodes.SWAP));
+                                hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, VIA,
+                                    "handleSelectorMouseWheel", "(Ljava/lang/Object;I)V", false));
+                                method.instructions.insert(instruction, hook);
+                                selectorScrollPatched = true;
+                                changed = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 if (!frameLimitPatched) {
                     for (AbstractInsnNode instruction = method.instructions.getFirst();
                          instruction != null; instruction = instruction.getNext()) {
@@ -123,6 +153,31 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
+            if (selectorButtonPatched) {
+                for (MethodNode method : node.methods) {
+                    if (!"(IIF)V".equals(method.desc)) continue;
+                    for (AbstractInsnNode instruction = method.instructions.getFirst();
+                         instruction != null; instruction = instruction.getNext()) {
+                        if (instruction instanceof MethodInsnNode) {
+                            MethodInsnNode call = (MethodInsnNode) instruction;
+                            if (node.superName.equals(call.owner) && "(IIF)V".equals(call.desc)) {
+                                InsnList hook = new InsnList();
+                                hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                                hook.add(new VarInsnNode(Opcodes.ILOAD, 1));
+                                hook.add(new VarInsnNode(Opcodes.ILOAD, 2));
+                                hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, VIA,
+                                    "drawSelectorPanel", "(Ljava/lang/Object;II)V", false));
+                                method.instructions.insertBefore(instruction, hook);
+                                selectorDrawPatched = true;
+                                changed = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (selectorDrawPatched) break;
+                }
+            }
+
             if (!changed) return basicClass;
             ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
             node.accept(writer);
@@ -132,12 +187,16 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (compressionPatched) patchedCompressionClasses++;
             if (selectorButtonPatched) patchedSelectorButtonClasses++;
             if (selectorActionPatched) patchedSelectorActionClasses++;
+            if (selectorDrawPatched) patchedSelectorDrawClasses++;
+            if (selectorScrollPatched) patchedSelectorScrollClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
             if (compressionPatched) System.out.println("[Cylox] Via compression hook injected: " + node.name);
             if (selectorButtonPatched) System.out.println("[Cylox] Manual Via selector button injected: " + node.name);
             if (selectorActionPatched) System.out.println("[Cylox] Manual Via selector action injected: " + node.name);
+            if (selectorDrawPatched) System.out.println("[Cylox] Modern protocol selector panel injected: " + node.name);
+            if (selectorScrollPatched) System.out.println("[Cylox] Protocol selector mouse-wheel hook injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "

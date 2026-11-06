@@ -16,6 +16,7 @@
 package de.florianmichael.vialoadingbase.netty.handler;
 
 import com.viaversion.viaversion.api.connection.UserConnection;
+import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import com.viaversion.viaversion.exception.CancelCodecException;
 import com.viaversion.viaversion.exception.CancelEncoderException;
 import com.viaversion.viaversion.util.PipelineUtil;
@@ -29,6 +30,7 @@ import java.util.List;
 @ChannelHandler.Sharable
 public class VLBViaEncodeHandler extends MessageToMessageEncoder<ByteBuf> {
     private final UserConnection user;
+    private boolean handshakeAudited;
 
     public VLBViaEncodeHandler(UserConnection user) {
         this.user = user;
@@ -45,11 +47,49 @@ public class VLBViaEncodeHandler extends MessageToMessageEncoder<ByteBuf> {
         ByteBuf transformedBuf = ctx.alloc().buffer().writeBytes(bytebuf);
         try {
             user.transformOutgoing(transformedBuf, CancelEncoderException::generate);
+            auditInitialHandshake(transformedBuf);
 
             out.add(transformedBuf.retain());
         } finally {
             transformedBuf.release();
         }
+    }
+
+    private void auditInitialHandshake(ByteBuf buffer) {
+        if (handshakeAudited || !user.isClientSide()) return;
+        ProtocolVersion target = user.getProtocolInfo().serverProtocolVersion();
+        if (target == null || !target.isKnown()) return;
+        int[] next = new int[1];
+        int packetId = readVarInt(buffer, buffer.readerIndex(), next);
+        if (packetId != 0 || next[0] < 0) return;
+        int protocolId = readVarInt(buffer, next[0], next);
+        if (protocolId < 0) return;
+        handshakeAudited = true;
+        System.out.println("[Cylox] OUTGOING HANDSHAKE AFTER VIA: protocol="
+            + protocolId + ", target=" + target.getName() + " (" + target.getVersion() + ").");
+        if (protocolId != target.getOriginalVersion()) {
+            System.err.println("[Cylox] HANDSHAKE MISMATCH: outgoing protocol " + protocolId
+                + " does not equal selected target " + target.getOriginalVersion() + ".");
+        } else {
+            System.out.println("[Cylox] HANDSHAKE VERIFIED: selected protocol was written to the outgoing packet.");
+        }
+    }
+
+    private static int readVarInt(ByteBuf buffer, int index, int[] nextIndex) {
+        int value = 0;
+        int position = 0;
+        int cursor = index;
+        while (cursor < buffer.writerIndex() && position < 35) {
+            int current = buffer.getUnsignedByte(cursor++);
+            value |= (current & 0x7F) << position;
+            if ((current & 0x80) == 0) {
+                nextIndex[0] = cursor;
+                return value;
+            }
+            position += 7;
+        }
+        nextIndex[0] = -1;
+        return -1;
     }
 
     @Override

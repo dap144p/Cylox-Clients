@@ -44,6 +44,8 @@ public final class Vanilla189Verifier {
         require("Via compression hook", CyloxClientTransformer.getPatchedCompressionClassCount());
         require("Multiplayer selector button", CyloxClientTransformer.getPatchedSelectorButtonClassCount());
         require("Multiplayer selector action", CyloxClientTransformer.getPatchedSelectorActionClassCount());
+        require("Modern Multiplayer selector panel", CyloxClientTransformer.getPatchedSelectorDrawClassCount());
+        require("Protocol selector mouse-wheel scroll", CyloxClientTransformer.getPatchedSelectorScrollClassCount());
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
 
