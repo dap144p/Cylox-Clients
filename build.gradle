@@ -62,7 +62,6 @@ sourceSets {
             include '**/CyloxTweaker.java'
             include '**/CyloxClientTransformer.java'
             include '**/CyloxBackgroundHooks.java'
-            include '**/CyloxRenderHooks.java'
             include '**/CyloxProtocolBridge.java'
             include '**/CyloxUiHooks.java'
         }
@@ -128,7 +127,7 @@ tasks.register('minecraft189AdapterJar', Jar) {
             'Client-Developer': 'dapdev',
             'TweakClass': 'dev.cylox.client.minecraft189.CyloxTweaker',
             'Minecraft-Version': '1.8.9',
-            'Client-Architecture': 'Vanilla + Embedded Via + Adaptive Chunk Scheduler + Background Hooks + Cylox UI',
+            'Client-Architecture': 'Vanilla + Embedded Via + Time-Budgeted Chunk Scheduling + Background Hooks + Cylox UI',
             'Protocol-Selection': 'Manual UI',
             'Client-UI': 'Cylox Adaptive Translucent UI'
         )
