@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.6
+Version: 1.3.8
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
@@ -15,9 +15,13 @@ INSTALL
 RENDERER AND NETWORK CORE
 - Keeps Minecraft 1.8.9's original chunk scheduler, WorldRenderer, culling, render layers and pooled RegionRenderCacheBuilder buffers.
 - Large chunk buffers continue to grow on demand. Cylox does not reserve multi-megabyte buffers for every layer at startup.
+- ViaVersion 5.12.3-SNAPSHOT and ViaBackwards 5.12.3-SNAPSHOT are bundled from upstream Java 8 compatibility builds #55 and #45. ViaRewind 4.2.0 is bundled from Java 8 compatibility build #39.
+- These replace the older 5.12.1 ViaVersion/ViaBackwards libraries used by v1.3.7. The selector, target protocol and outgoing handshake logic are unchanged.
 - The selected Via target is applied at startup or when the selector changes. New network channels reuse that configured target; they do not reload the global Via manager again.
 - Via encoder/decoder temporary buffers start at the incoming packet size (minimum 256 bytes) to avoid avoidable initial growth; translated packets can still expand if required.
-- This removes redundant work during connection setup, but does not claim a measured FPS increase or a complete fix for the packet exceptions seen in the supplied log.
+- The downloaded libraries are the upstream Java 8 compatibility builds, not the normal Java 17+ artifacts. Upstream still treats Java 8 builds as an unsupported compatibility fallback, so the Java 8 warning may remain in the log.
+- CI checks the downloaded archive contents and confirms ordinary bundled class files are Java 8 bytecode (major version 52 or earlier).
+- This dependency update is intended to improve legacy protocol handling, but it is not yet proof that the exact packet exceptions seen on the test server are fixed. Retest on MJ Launcher before treating the Via issue as resolved.
 - Test actual world loading, frame pacing, memory use and server connection stability on MJ Launcher.
 
 CYLOX UI
