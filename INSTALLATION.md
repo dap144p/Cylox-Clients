@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.5
+Version: 1.3.6
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
@@ -16,6 +16,7 @@ RENDERER AND NETWORK CORE
 - Keeps Minecraft 1.8.9's original chunk scheduler, WorldRenderer, culling, render layers and pooled RegionRenderCacheBuilder buffers.
 - Large chunk buffers continue to grow on demand. Cylox does not reserve multi-megabyte buffers for every layer at startup.
 - The selected Via target is applied at startup or when the selector changes. New network channels reuse that configured target; they do not reload the global Via manager again.
+- Via encoder/decoder temporary buffers start at the incoming packet size (minimum 256 bytes) to avoid avoidable initial growth; translated packets can still expand if required.
 - This removes redundant work during connection setup, but does not claim a measured FPS increase or a complete fix for the packet exceptions seen in the supplied log.
 - Test actual world loading, frame pacing, memory use and server connection stability on MJ Launcher.
 
