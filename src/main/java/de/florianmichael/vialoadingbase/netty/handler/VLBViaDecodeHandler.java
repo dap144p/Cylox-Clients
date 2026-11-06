@@ -45,7 +45,7 @@ public class VLBViaDecodeHandler extends MessageToMessageDecoder<ByteBuf> {
             return;
         }
 
-        ByteBuf transformedBuf = ctx.alloc().buffer().writeBytes(bytebuf);
+        ByteBuf transformedBuf = ctx.alloc().buffer(Math.max(256, bytebuf.readableBytes())).writeBytes(bytebuf);
         try {
             user.transformIncoming(transformedBuf, CancelDecoderException::generate);
 
