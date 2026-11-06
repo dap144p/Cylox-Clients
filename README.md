@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.3.6  
+**Version:** 1.3.7  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -18,9 +18,10 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
-## Vanilla renderer and connection stability (1.3.6)
+## Vanilla renderer and connection stability (1.3.7)
 
 - Keeps Minecraft 1.8.9's original chunk scheduler, `WorldRenderer`, culling, render layers and `RegionRenderCacheBuilder` pool. Cylox does not route near chunks to a delayed queue or change normal graphics settings.
+- Reuses the render-thread `renderInfos` list and terrain traversal queue created by `RenderGlobal.setupTerrain`. The queue preserves the vanilla `LinkedList` call contract but stores FIFO entries in a reusable `ArrayDeque`, avoiding repeated scratch-collection and linked-node allocation when the visible chunk graph is rebuilt. Culling decisions and order are unchanged.
 - Chunk buffers remain pooled and grow on demand for large meshes. Cylox does not preallocate multi-megabyte buffers for every layer at startup, avoiding an unnecessary fixed memory increase on low-memory Android devices.
 - Applies the selected Via target when the game initializes or when the user changes the protocol selector. A new Netty channel reuses that configured target and only attaches its per-channel handlers; it no longer reloads Via's global protocol manager on each connection.
 - Sizes temporary Via packet buffers from the incoming packet length (minimum 256 bytes), avoiding an unnecessary initial capacity expansion for larger packets. The buffer can still grow if protocol translation produces a larger packet.
@@ -50,7 +51,7 @@ This is not an Android background service. The launcher must keep the game proce
 
 ## Scope
 
-Included: Cylox main-menu theme, themed vanilla buttons and menu backgrounds, manual version-family selector, embedded Via protocol translation, outgoing-handshake verification, background render suppression and a 1.8.9 LaunchWrapper adapter that preserves vanilla chunk scheduling.
+Included: Cylox main-menu theme, themed vanilla buttons and menu backgrounds, manual version-family selector, embedded Via protocol translation, outgoing-handshake verification, background render suppression and a 1.8.9 LaunchWrapper adapter that preserves vanilla chunk scheduling and reuses terrain-culling scratch collections.
 
 Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, custom HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
 
@@ -84,8 +85,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.3.6.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.3.5.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.3.7.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.3.7.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
