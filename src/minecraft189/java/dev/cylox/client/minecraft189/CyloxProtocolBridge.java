@@ -33,8 +33,10 @@ public final class CyloxProtocolBridge {
     private static final int SCROLL_UP_ID = 20290;
     private static final int SCROLL_DOWN_ID = 20291;
     private static final int MENU_VISIBLE_ROWS = 5;
+    private static volatile int selectorVisibleRows = MENU_VISIBLE_ROWS;
+    private static volatile List<ProtocolChoice> protocolChoicesCache;
     private static final int PANEL_WIDTH = 360;
-    private static final int PANEL_HEIGHT = 250;
+    private static final int PANEL_HEIGHT = 230;
     private static final int PANEL_ROW_HEIGHT = 24;
     private static final int PANEL_LIST_TOP = 49;
         private static final String[][] BUTTON_INT_FIELDS = new String[][] {
@@ -80,6 +82,7 @@ public final class CyloxProtocolBridge {
                     .build();
             }
             available = ViaLoadingBase.getInstance() != null;
+            protocolChoicesCache = null;
             if (available) {
                 selectedProtocolId = normalizeProtocol(selectedProtocolId);
                 setTargetProtocol(selectedProtocolId);
@@ -166,6 +169,7 @@ public final class CyloxProtocolBridge {
             if (id == SELECTOR_BUTTON_ID) {
                 selectorMenuOpen = !selectorMenuOpen;
                 if (selectorMenuOpen) {
+                    selectorVisibleRows = visibleRowsFor(screenInt(screen, "height", "field_146295_m", "m"));
                     selectorScrollOffset = scrollOffsetForSelected();
                     rebuildSelectorMenu(screen, buttons, button);
                     System.out.println("[Cylox] Protocol family menu opened. Selected: "
@@ -180,7 +184,7 @@ public final class CyloxProtocolBridge {
                 rebuildSelectorMenu(screen, buttons, findButton(buttons, SELECTOR_BUTTON_ID));
                 return;
             }
-            if (id >= OPTION_FIRST_ID && id < OPTION_FIRST_ID + MENU_VISIBLE_ROWS) {
+            if (id >= OPTION_FIRST_ID && id < OPTION_FIRST_ID + selectorVisibleRows) {
                 List<ProtocolChoice> choices = getProtocolChoices();
                 int index = selectorScrollOffset + id - OPTION_FIRST_ID;
                 if (index < 0 || index >= choices.size()) return;
@@ -221,14 +225,15 @@ public final class CyloxProtocolBridge {
         int height = screenInt(screen, "height", "field_146295_m", "m");
         if (width <= 0 || height <= 0) return;
 
-        int panelWidth = Math.min(PANEL_WIDTH, width - 12);
-        int panelHeight = Math.min(PANEL_HEIGHT, height - 12);
+        int panelWidth = Math.min(PANEL_WIDTH, width - 16);
+        int panelHeight = Math.min(PANEL_HEIGHT, height - 16);
         if (panelWidth < 220 || panelHeight < 160) return;
         int panelX = (width - panelWidth) / 2;
         int panelY = (height - panelHeight) / 2;
+        selectorVisibleRows = visibleRowsFor(height);
 
         try {
-            GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT);
+            GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -242,14 +247,14 @@ public final class CyloxProtocolBridge {
             int listTop = panelY + PANEL_LIST_TOP;
             int trackX = panelX + panelWidth - 19;
             int trackTop = listTop + 2;
-            int trackHeight = Math.min(MENU_VISIBLE_ROWS * PANEL_ROW_HEIGHT - 4,
+            int trackHeight = Math.min(selectorVisibleRows * PANEL_ROW_HEIGHT - 4,
                 panelY + panelHeight - 36 - trackTop);
             drawPanelRect(trackX, trackTop, trackX + 5, trackTop + trackHeight,
                 0.18F, 0.23F, 0.28F, 0.48F);
             List<ProtocolChoice> choices = getProtocolChoices();
-            int maxOffset = Math.max(0, choices.size() - MENU_VISIBLE_ROWS);
+            int maxOffset = Math.max(0, choices.size() - selectorVisibleRows);
             int thumbHeight = choices.isEmpty() ? trackHeight
-                : Math.max(18, trackHeight * Math.min(MENU_VISIBLE_ROWS, choices.size()) / choices.size());
+                : Math.max(18, trackHeight * Math.min(selectorVisibleRows, choices.size()) / choices.size());
             int thumbTravel = Math.max(0, trackHeight - thumbHeight);
             int thumbY = trackTop + (maxOffset == 0 ? 0 : thumbTravel * selectorScrollOffset / maxOffset);
             drawPanelRect(trackX - 1, thumbY, trackX + 6, thumbY + thumbHeight,
@@ -257,10 +262,10 @@ public final class CyloxProtocolBridge {
             GL11.glPopAttrib();
 
             drawPanelText(screen, "CYLOX  /  PROTOCOL SELECTOR", panelX + 15, panelY + 10, 0xFFFFFFFF);
-            drawPanelText(screen, "Choose the server version family", panelX + 15, panelY + 25, 0xFF9DB4C2);
+            drawPanelText(screen, "Choose server version", panelX + 15, panelY + 25, 0xFF9DB4C2);
             drawPanelText(screen, "Selected: " + getSelectedProtocolName(),
                 panelX + 15, panelY + panelHeight - 27, 0xFF52D5B8);
-            drawPanelText(screen, "Scroll to browse  |  tap a version to apply",
+            drawPanelText(screen, "Scroll / tap a version to apply",
                 panelX + 15, panelY + panelHeight - 14, 0xFF8296A3);
         } catch (Throwable error) {
             System.err.println("[Cylox] Could not draw protocol selector panel: " + error.getMessage());
@@ -279,40 +284,24 @@ public final class CyloxProtocolBridge {
     }
 
     private static void drawPanelText(Object screen, String text, float x, float y, int color) {
-        Field fontField = findField(screen, "fontRendererObj", "field_146289_q", "q");
-        if (fontField == null) return;
-        try {
-            Object font = fontField.get(screen);
-            if (font == null) return;
-            Method fallback = null;
-            for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
-                for (Method method : type.getDeclaredMethods()) {
-                    Class<?>[] p = method.getParameterTypes();
-                    if (p.length == 4 && p[0] == String.class
-                        && p[1] == Float.TYPE && p[2] == Float.TYPE && p[3] == Integer.TYPE) {
-                        method.setAccessible(true);
-                        if (method.getName().equals("drawStringWithShadow")
-                            || method.getName().equals("func_175063_a")) {
-                            method.invoke(font, text, x, y, color);
-                            return;
-                        }
-                        if (fallback == null) fallback = method;
-                    }
-                }
-            }
-            if (fallback != null) fallback.invoke(font, text, x, y, color);
-        } catch (Throwable ignored) { }
+        CyloxUiHooks.drawText(screen, text, x, y, color);
+    }
+
+    private static int visibleRowsFor(int screenHeight) {
+        int panelHeight = Math.min(PANEL_HEIGHT, Math.max(0, screenHeight - 16));
+        int available = panelHeight - PANEL_LIST_TOP - 58;
+        return Math.max(2, Math.min(MENU_VISIBLE_ROWS, available / PANEL_ROW_HEIGHT));
     }
 
     private static int clampScrollOffset(int requested) {
-        return Math.max(0, Math.min(requested, Math.max(0, getProtocolChoices().size() - MENU_VISIBLE_ROWS)));
+        return Math.max(0, Math.min(requested, Math.max(0, getProtocolChoices().size() - selectorVisibleRows)));
     }
 
     private static int scrollOffsetForSelected() {
         List<ProtocolChoice> choices = getProtocolChoices();
         for (int index = 0; index < choices.size(); index++) {
             if (choices.get(index).version.getVersion() == selectedProtocolId) {
-                return clampScrollOffset(Math.max(0, index - MENU_VISIBLE_ROWS / 2));
+                return clampScrollOffset(Math.max(0, index - selectorVisibleRows / 2));
             }
         }
         return 0;
@@ -323,8 +312,9 @@ public final class CyloxProtocolBridge {
         if (selector == null) return;
         int screenWidth = screenInt(screen, "width", "field_146294_l", "l");
         int screenHeight = screenInt(screen, "height", "field_146295_m", "m");
-        int panelWidth = Math.min(PANEL_WIDTH, Math.max(220, screenWidth - 12));
-        int panelHeight = Math.min(PANEL_HEIGHT, Math.max(160, screenHeight - 12));
+        int panelWidth = Math.min(PANEL_WIDTH, Math.max(220, screenWidth - 16));
+        int panelHeight = Math.min(PANEL_HEIGHT, Math.max(160, screenHeight - 16));
+        selectorVisibleRows = visibleRowsFor(screenHeight);
         int panelX = Math.max(4, (screenWidth - panelWidth) / 2);
         int panelY = Math.max(4, (screenHeight - panelHeight) / 2);
         int rowWidth = panelWidth - 48;
@@ -338,7 +328,7 @@ public final class CyloxProtocolBridge {
         buttons.add(createButton(selector, SCROLL_DOWN_ID, panelX + panelWidth - 32,
             panelY + panelHeight - 33, 22, 20, "v"));
 
-        int end = Math.min(choices.size(), selectorScrollOffset + MENU_VISIBLE_ROWS);
+        int end = Math.min(choices.size(), selectorScrollOffset + selectorVisibleRows);
         for (int index = selectorScrollOffset; index < end; index++) {
             int row = index - selectorScrollOffset;
             ProtocolChoice choice = choices.get(index);
@@ -349,7 +339,7 @@ public final class CyloxProtocolBridge {
         }
         System.out.println("[Cylox] Protocol family menu opened: " + choices.size()
             + " families; scroll " + selectorScrollOffset + "/"
-            + Math.max(0, choices.size() - MENU_VISIBLE_ROWS) + ".");
+            + Math.max(0, choices.size() - selectorVisibleRows) + ".");
     }
 
     private static void removeMenuButtons(List<Object> buttons) {
@@ -485,27 +475,35 @@ public final class CyloxProtocolBridge {
     }
 
     private static List<ProtocolChoice> getProtocolChoices() {
-        Map<String, ProtocolChoice> families = new HashMap<String, ProtocolChoice>();
-        ProtocolVersion nativeVersion = ProtocolVersion.getProtocol(NATIVE_PROTOCOL);
-        for (ProtocolVersion version : getSupportedProtocols()) {
-            if (!hasTranslationRoute(nativeVersion, version)) continue;
-            String label = familyLabel(version.getName());
-            if (label == null) continue;
-            String exactName = label.substring(0, label.length() - 1);
-            boolean exact = exactName.equals(version.getName());
-            ProtocolChoice current = families.get(label);
-            if (current == null || (exact && !current.exactRelease)
-                || (exact == current.exactRelease && version.getVersion() < current.version.getVersion())) {
-                families.put(label, new ProtocolChoice(label, version, exact));
+        List<ProtocolChoice> cached = protocolChoicesCache;
+        if (cached != null) return cached;
+        synchronized (CyloxProtocolBridge.class) {
+            cached = protocolChoicesCache;
+            if (cached != null) return cached;
+            Map<String, ProtocolChoice> families = new HashMap<String, ProtocolChoice>();
+            ProtocolVersion nativeVersion = ProtocolVersion.getProtocol(NATIVE_PROTOCOL);
+            for (ProtocolVersion version : getSupportedProtocols()) {
+                if (!hasTranslationRoute(nativeVersion, version)) continue;
+                String label = familyLabel(version.getName());
+                if (label == null) continue;
+                String exactName = label.substring(0, label.length() - 1);
+                boolean exact = exactName.equals(version.getName());
+                ProtocolChoice current = families.get(label);
+                if (current == null || (exact && !current.exactRelease)
+                    || (exact == current.exactRelease && version.getVersion() < current.version.getVersion())) {
+                    families.put(label, new ProtocolChoice(label, version, exact));
+                }
             }
+            List<ProtocolChoice> result = new ArrayList<ProtocolChoice>(families.values());
+            Collections.sort(result, new Comparator<ProtocolChoice>() {
+                @Override public int compare(ProtocolChoice left, ProtocolChoice right) {
+                    return Integer.compare(left.version.getVersion(), right.version.getVersion());
+                }
+            });
+            cached = Collections.unmodifiableList(result);
+            protocolChoicesCache = cached;
+            return cached;
         }
-        List<ProtocolChoice> result = new ArrayList<ProtocolChoice>(families.values());
-        Collections.sort(result, new Comparator<ProtocolChoice>() {
-            @Override public int compare(ProtocolChoice left, ProtocolChoice right) {
-                return Integer.compare(left.version.getVersion(), right.version.getVersion());
-            }
-        });
-        return result;
     }
 
     private static boolean hasTranslationRoute(ProtocolVersion source, ProtocolVersion target) {
