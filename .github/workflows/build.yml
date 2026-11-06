@@ -134,6 +134,7 @@ jobs:
           - Preserves Minecraft 1.8.9's native near/far chunk-update scheduling; Cylox does not add a custom chunk queue or renderer.
           - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Video Settings and options.txt are unchanged.
           - Applies the selected Via target at startup or selector change; channel initialization reuses it instead of reloading Via's global protocol manager for every connection.
+          - Sizes Via's per-packet transformed buffers from the incoming payload (minimum 256 bytes) to reduce repeated resizing/copies on large packets; buffers can still grow if translation output expands.
           - Automatically skips vanilla rendering while the LWJGL display is inactive or hidden.
           - Completely skips the vanilla EntityRenderer frame while the display is inactive or hidden, reducing world rendering to 0 FPS.
           - Keeps the whole Minecraft main loop at 20 Hz in the background. The loop is not capped at 2 FPS because Display.sync throttles client ticks and packet-task processing as well as rendering.
