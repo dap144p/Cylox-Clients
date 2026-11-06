@@ -2,6 +2,7 @@ package dev.cylox.client.minecraft189;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import org.lwjgl.opengl.GL11;
 
@@ -124,38 +125,141 @@ public final class CyloxUiHooks {
 
     private static void centered(Object font, String text, int center, int y, int color) {
         if (font == null || text == null || text.length() == 0) return;
-        int width = text.length() * 6;
         try {
-            for (Class<?> c = font.getClass(); c != null; c = c.getSuperclass()) {
-                for (Method m : c.getDeclaredMethods()) {
-                    Class<?>[] p = m.getParameterTypes();
-                    if (p.length == 1 && p[0] == String.class && m.getReturnType() == Integer.TYPE) {
-                        m.setAccessible(true); width = ((Integer) m.invoke(font, text)).intValue();
-                        break;
-                    }
-                }
+            int width = text.length() * 6;
+            Method widthMethod = findFontWidthMethod(font);
+            if (widthMethod != null) {
+                Object measured = widthMethod.invoke(font, text);
+                if (measured instanceof Integer) width = ((Integer) measured).intValue();
             }
-            float x = center - width / 2F;
-            for (Class<?> c = font.getClass(); c != null; c = c.getSuperclass()) {
-                for (Method m : c.getDeclaredMethods()) {
-                    Class<?>[] p = m.getParameterTypes();
-                    if (p.length == 4 && p[0] == String.class && p[1] == Float.TYPE
-                        && p[2] == Float.TYPE && p[3] == Integer.TYPE) {
-                        m.setAccessible(true); m.invoke(font, text, x, (float) y, color); return;
-                    }
-                }
+            Method drawMethod = findFontDrawMethod(font);
+            if (drawMethod == null) return;
+
+            GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
+            try {
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                drawMethod.invoke(font, text, center - width / 2.0F, (float) y, color);
+            } finally {
+                GL11.glPopAttrib();
             }
         } catch (Throwable ignored) { }
     }
 
     private static Object font(Object owner) {
-        return objectField(owner, "fontRendererObj", "field_71466_p", "field_146289_q", "p", "q");
+        if (owner == null) return null;
+        Object direct = objectField(owner, "fontRendererObj", "field_71466_p",
+            "field_146289_q", "p", "q");
+        if (isFontRenderer(direct)) return direct;
+
+        // Mappings differ between launcher-provided, SRG and obfuscated 1.8.9 classes.
+        // Fall back to locating the unique field that has the FontRenderer method shape.
+        for (Class<?> type = owner.getClass(); type != null; type = type.getSuperclass()) {
+            for (Field field : type.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers())) continue;
+                try {
+                    field.setAccessible(true);
+                    Object candidate = field.get(owner);
+                    if (isFontRenderer(candidate)) return candidate;
+                } catch (Throwable ignored) { }
+            }
+        }
+        return null;
     }
+
+    private static boolean isFontRenderer(Object candidate) {
+        if (candidate == null) return false;
+        boolean width = false;
+        boolean draw = false;
+        for (Class<?> type = candidate.getClass(); type != null; type = type.getSuperclass()) {
+            for (Method method : type.getDeclaredMethods()) {
+                Class<?>[] p = method.getParameterTypes();
+                if (p.length == 1 && p[0] == String.class
+                    && method.getReturnType() == Integer.TYPE) width = true;
+                if (p.length == 4 && p[0] == String.class && p[1] == Float.TYPE
+                    && p[2] == Float.TYPE && p[3] == Integer.TYPE) draw = true;
+            }
+        }
+        return width && draw;
+    }
+
+    private static Method findFontWidthMethod(Object font) {
+        String[] names = {"getStringWidth", "func_78256_a", "a"};
+        for (String name : names) {
+            for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
+                for (Method method : type.getDeclaredMethods()) {
+                    Class<?>[] p = method.getParameterTypes();
+                    if (name.equals(method.getName()) && p.length == 1
+                        && p[0] == String.class && method.getReturnType() == Integer.TYPE) {
+                        try { method.setAccessible(true); return method; }
+                        catch (Throwable ignored) { }
+                    }
+                }
+            }
+        }
+        for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
+            for (Method method : type.getDeclaredMethods()) {
+                Class<?>[] p = method.getParameterTypes();
+                if (p.length == 1 && p[0] == String.class
+                    && method.getReturnType() == Integer.TYPE) {
+                    try { method.setAccessible(true); return method; }
+                    catch (Throwable ignored) { }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Method findFontDrawMethod(Object font) {
+        String[] names = {"drawStringWithShadow", "func_175063_a", "drawString", "a"};
+        for (String name : names) {
+            for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
+                for (Method method : type.getDeclaredMethods()) {
+                    Class<?>[] p = method.getParameterTypes();
+                    if (name.equals(method.getName()) && p.length == 4
+                        && p[0] == String.class && p[1] == Float.TYPE
+                        && p[2] == Float.TYPE && p[3] == Integer.TYPE) {
+                        try { method.setAccessible(true); return method; }
+                        catch (Throwable ignored) { }
+                    }
+                }
+            }
+        }
+        for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
+            for (Method method : type.getDeclaredMethods()) {
+                Class<?>[] p = method.getParameterTypes();
+                if (p.length == 4 && p[0] == String.class && p[1] == Float.TYPE
+                    && p[2] == Float.TYPE && p[3] == Integer.TYPE) {
+                    try { method.setAccessible(true); return method; }
+                    catch (Throwable ignored) { }
+                }
+            }
+        }
+        return null;
+    }
+
     private static List<?> listField(Object o, String... n) {
         Object v = objectField(o, n); return v instanceof List<?> ? (List<?>) v : null;
     }
     private static String stringField(Object o, String... n) {
-        Object v = objectField(o, n); return v instanceof String ? (String) v : "";
+        Object value = objectField(o, n);
+        if (value instanceof String && ((String) value).length() > 0) return (String) value;
+        if (o != null) {
+            for (Class<?> type = o.getClass(); type != null; type = type.getSuperclass()) {
+                for (Field field : type.getDeclaredFields()) {
+                    if (field.getType() != String.class) continue;
+                    try {
+                        field.setAccessible(true);
+                        Object candidate = field.get(o);
+                        if (candidate instanceof String && ((String) candidate).length() > 0) {
+                            return (String) candidate;
+                        }
+                    } catch (Throwable ignored) { }
+                }
+            }
+        }
+        return "";
     }
     private static int intField(Object o, int d, String... n) {
         Field f = findField(o, n); try { return f == null ? d : f.getInt(o); }
