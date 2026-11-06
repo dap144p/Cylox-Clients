@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.2.0
+Version: 1.2.2
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
@@ -14,6 +14,7 @@ INSTALL
 
 CYLOX UI
 - The main menu uses the custom Cylox dark theme instead of the vanilla panorama.
+- Button labels use the Minecraft FontRenderer with mapping-safe lookup; the protocol selector shows five rows at a time on compact screens.
 - Standard vanilla buttons and menu backgrounds use the same lightweight theme.
 - Original buttons and menu actions are preserved.
 
@@ -28,7 +29,7 @@ PROTOCOL
 
 BACKGROUND
 - Automatically skips vanilla world/UI rendering while the LWJGL display is inactive or hidden.
-- The main display loop is capped at 5 FPS while inactive.
+- World rendering stops while inactive; the main loop remains at 20 Hz so client ticks and packet processing continue.
 - Rendering and the launcher's normal frame limit resume when the display becomes active.
 - There is no anti-AFK, auto-clicker or movement automation.
 - The game process must remain alive. Android or the launcher may pause/terminate it; the client JAR cannot override those policies.
