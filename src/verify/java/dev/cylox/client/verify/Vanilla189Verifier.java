@@ -1,6 +1,9 @@
 package dev.cylox.client.verify;
 
 import dev.cylox.client.minecraft189.CyloxClientTransformer;
+import dev.cylox.client.minecraft189.CyloxRenderHooks;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -49,7 +52,30 @@ public final class Vanilla189Verifier {
         require("Cylox themed vanilla buttons", CyloxClientTransformer.getPatchedButtonThemeClassCount());
         require("Cylox menu background", CyloxClientTransformer.getPatchedScreenBackgroundClassCount());
         require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
+        require("terrain render-graph scratch reuse", CyloxClientTransformer.getPatchedRenderGraphClassCount());
+        verifyScratchCollectionReuse();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
+    }
+
+    private static void verifyScratchCollectionReuse() {
+        Object owner = new Object();
+        ArrayList<Object> firstList = CyloxRenderHooks.reuseRenderInfos(owner);
+        firstList.add(owner);
+        ArrayList<Object> secondList = CyloxRenderHooks.reuseRenderInfos(owner);
+        if (firstList != secondList || !secondList.isEmpty()) {
+            throw new IllegalStateException("Render-info scratch list was not reused and cleared");
+        }
+
+        LinkedList<Object> firstQueue = CyloxRenderHooks.reuseTraversalQueue();
+        firstQueue.add(owner);
+        if (firstQueue.poll() != owner || !firstQueue.isEmpty()) {
+            throw new IllegalStateException("Terrain traversal queue does not preserve FIFO behavior");
+        }
+        LinkedList<Object> secondQueue = CyloxRenderHooks.reuseTraversalQueue();
+        if (firstQueue != secondQueue || !secondQueue.isEmpty()) {
+            throw new IllegalStateException("Terrain traversal queue was not reused and cleared");
+        }
+        System.out.println("[Cylox] Verified reusable render-info list and FIFO terrain queue.");
     }
 
     private static void require(String hook, int count) {
