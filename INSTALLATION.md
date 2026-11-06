@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.2.2
+Version: 1.2.3
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
@@ -13,9 +13,9 @@ INSTALL
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
 
 CYLOX UI
-- The main menu uses the custom Cylox dark theme instead of the vanilla panorama.
+- The main menu uses a translucent Cylox dark theme instead of the vanilla panorama.
 - Button labels use the Minecraft FontRenderer with mapping-safe lookup; the protocol selector shows five rows at a time on compact screens.
-- Standard vanilla buttons and menu backgrounds use the same lightweight theme.
+- Buttons, menus and Protocol Selector use semi-transparent backgrounds so the game world remains visible behind them; text stays opaque for readability.
 - Original buttons and menu actions are preserved.
 
 PROTOCOL
