@@ -32,6 +32,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedScreenBackgroundClasses;
     private static volatile int patchedMainMenuClasses;
     private static volatile int patchedRenderGraphClasses;
+    private static volatile int patchedChunkUploadDeadlineClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -51,6 +52,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedScreenBackgroundClasses = 0;
         patchedMainMenuClasses = 0;
         patchedRenderGraphClasses = 0;
+        patchedChunkUploadDeadlineClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -65,6 +67,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
     public static int getPatchedRenderGraphClassCount() { return patchedRenderGraphClasses; }
+    public static int getPatchedChunkUploadDeadlineClassCount() { return patchedChunkUploadDeadlineClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -86,6 +89,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
             boolean renderGraphPatched = false;
+            boolean chunkUploadDeadlinePatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -217,6 +221,18 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     renderGraphPatched = renderInfoListReused && traversalQueueReused;
                 }
 
+                if (!chunkUploadDeadlinePatched && (method.access & Opcodes.ACC_STATIC) == 0
+                    && "(J)V".equals(method.desc) && hasMethodCallDescriptor(method, "(J)Z")) {
+                    InsnList deadlineHook = new InsnList();
+                    deadlineHook.add(new VarInsnNode(Opcodes.LLOAD, 1));
+                    deadlineHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER,
+                        "extendChunkDeadline", "(J)J", false));
+                    deadlineHook.add(new VarInsnNode(Opcodes.LSTORE, 1));
+                    method.instructions.insert(deadlineHook);
+                    chunkUploadDeadlinePatched = true;
+                    changed = true;
+                }
+
                 if (!frameLimitPatched) {
                     for (AbstractInsnNode instruction = method.instructions.getFirst();
                          instruction != null; instruction = instruction.getNext()) {
@@ -275,6 +291,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
             if (mainMenuPatched) patchedMainMenuClasses++;
             if (renderGraphPatched) patchedRenderGraphClasses++;
+            if (chunkUploadDeadlinePatched) patchedChunkUploadDeadlineClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -287,6 +304,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
             if (renderGraphPatched) System.out.println("[Cylox] Reused terrain-culling scratch collections: " + node.name);
+            if (chunkUploadDeadlinePatched) System.out.println("[Cylox] Adaptive chunk-upload deadline injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -462,6 +480,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 method.instructions.insertBefore(instruction, hook);
             }
         }
+    }
+
+    private static boolean hasMethodCallDescriptor(MethodNode method, String descriptor) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode
+                && descriptor.equals(((MethodInsnNode) instruction).desc)) return true;
+        }
+        return false;
     }
 
     private static boolean hasMarkers(MethodNode method, String... markers) {
