@@ -39,6 +39,7 @@ public final class Vanilla189Verifier {
         }
 
         require("render suppression", CyloxClientTransformer.getPatchedRenderClassCount());
+        require("lightweight graphics settings", CyloxClientTransformer.getPatchedPerformanceSettingsClassCount());
         require("background frame limiter", CyloxClientTransformer.getPatchedFrameLimitClassCount());
         require("Via protocol pipeline", CyloxClientTransformer.getPatchedProtocolPipelineClassCount());
         require("Via compression hook", CyloxClientTransformer.getPatchedCompressionClassCount());

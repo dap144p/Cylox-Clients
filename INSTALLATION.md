@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.1
+Version: 1.3.2
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
@@ -11,6 +11,12 @@ INSTALL
 6. Keep the launcher's normal Java and renderer settings.
 7. Open Multiplayer and tap "Select: [version]" beside the standard "Cancel" button. The modern menu groups versions as 1.8x, 1.9x, 1.10x and onward; scroll with the mouse wheel or arrow controls.
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
+
+PERFORMANCE PROFILE
+- At startup, render distance is capped at 4 chunks (any lower configured value is kept).
+- Fancy Graphics, smooth lighting/AO, clouds and entity shadows are disabled; particles are set to Minimal.
+- World blocks, entities, player, HUD, input, ticks and network remain active. This is still normal Minecraft rendering with lighter visual settings.
+- Cylox applies this profile in memory after reading options.txt; it does not overwrite the options file. Changes made in Video Settings work for the current session and the profile is reapplied on the next launch.
 
 CYLOX UI
 - The main menu uses a translucent Cylox dark theme instead of the vanilla panorama.

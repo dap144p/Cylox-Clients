@@ -1,12 +1,12 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.3.1  
+**Version:** 1.3.2  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
 
-Cylox is a minimal 1.8.9 client adapter. Its gameplay-side purpose is to reduce rendering work while the game window is inactive. Its protocol compatibility features are embedded in the same Cylox JAR.
+Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce rendering work while the game window is inactive. Its protocol compatibility features are embedded in the same Cylox JAR.
 
 ## Background behavior
 
@@ -17,6 +17,13 @@ Cylox is a minimal 1.8.9 client adapter. Its gameplay-side purpose is to reduce 
 - Does not pause the Minecraft network stack deliberately and does not automate player actions.
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
+
+## Lightweight in-game graphics profile
+
+- Applies once after Minecraft loads `options.txt`; Cylox does not overwrite the file with its own defaults.
+- Caps render distance at **4 chunks** (lower user values are preserved), disables Fancy Graphics, smooth lighting/AO, clouds and entity shadows, and sets particles to **Minimal**.
+- Keeps the world, blocks, entities, player model, HUD, input, game ticks and network processing active. This is a normal Minecraft world with lower-cost visual settings, not a 1D/monochrome render or entity-removal mode.
+- Video settings can still be changed during a session. The lightweight preset is applied again at the next launch.
 
 ## Cylox adaptive lightweight UI
 
@@ -76,7 +83,7 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 Outputs:
 
 - `build/libs/Cylox-Client-1.8.9-1.3.0.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.3.1.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/distributions/Cylox-Client-1.8.9-1.3.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 

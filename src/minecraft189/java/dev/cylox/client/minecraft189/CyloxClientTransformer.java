@@ -9,6 +9,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
@@ -31,10 +32,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedButtonThemeClasses;
     private static volatile int patchedScreenBackgroundClasses;
     private static volatile int patchedMainMenuClasses;
+    private static volatile int patchedPerformanceSettingsClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
+    private static final String PERFORMANCE = "dev/cylox/client/minecraft189/CyloxPerformanceHooks";
 
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
@@ -48,6 +51,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedButtonThemeClasses = 0;
         patchedScreenBackgroundClasses = 0;
         patchedMainMenuClasses = 0;
+        patchedPerformanceSettingsClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -61,6 +65,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedButtonThemeClassCount() { return patchedButtonThemeClasses; }
     public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
+    public static int getPatchedPerformanceSettingsClassCount() { return patchedPerformanceSettingsClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -81,6 +86,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean buttonThemePatched = false;
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
+            boolean performanceSettingsPatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -88,6 +94,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 || hasClassMarkers(node, "menu.singleplayer", "menu.multiplayer", "menu.options", "menu.quit");
 
             for (MethodNode method : node.methods) {
+                if (!performanceSettingsPatched && isPerformanceOptionsLoader(method)) {
+                    performanceSettingsPatched = insertPerformanceDefaults(node, method);
+                    if (performanceSettingsPatched) changed = true;
+                }
                 if ((method.access & Opcodes.ACC_STATIC) == 0) {
                     if (!buttonThemePatched && buttonWidgetClass && isButtonDrawMethod(method)) {
                         insertButtonTheme(method);
@@ -230,6 +240,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) patchedButtonThemeClasses++;
             if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
             if (mainMenuPatched) patchedMainMenuClasses++;
+            if (performanceSettingsPatched) patchedPerformanceSettingsClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -241,6 +252,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) System.out.println("[Cylox] Cylox button theme injected: " + node.name);
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
+            if (performanceSettingsPatched) System.out.println("[Cylox] Lightweight graphics preset injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -249,6 +261,76 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         }
     }
 
+
+
+    /** Detects vanilla GameSettings.loadOptions by its serialized option keys. */
+    private static boolean isPerformanceOptionsLoader(MethodNode method) {
+        return (method.access & Opcodes.ACC_STATIC) == 0 && "()V".equals(method.desc)
+            && hasMarkers(method, "renderDistance", "particles", "fancyGraphics",
+                "ao", "renderClouds", "entityShadows");
+    }
+
+    /** Finds the obfuscated field written by the option parser for a known option key. */
+    private static FieldInsnNode findOptionField(ClassNode owner, MethodNode method,
+                                                  String optionKey, String descriptor) {
+        boolean afterKey = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof LdcInsnNode
+                && optionKey.equals(((LdcInsnNode) instruction).cst)) {
+                afterKey = true;
+                continue;
+            }
+            if (afterKey && instruction instanceof FieldInsnNode) {
+                FieldInsnNode field = (FieldInsnNode) instruction;
+                if (field.getOpcode() == Opcodes.PUTFIELD
+                    && owner.name.equals(field.owner) && descriptor.equals(field.desc)) {
+                    return field;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Applies a conservative in-memory graphics preset after vanilla options load.
+     * It never edits options.txt, the world, entities or gameplay/network code.
+     */
+    private static boolean insertPerformanceDefaults(ClassNode owner, MethodNode method) {
+        FieldInsnNode renderDistance = findOptionField(owner, method, "renderDistance", "I");
+        FieldInsnNode fancyGraphics = findOptionField(owner, method, "fancyGraphics", "Z");
+        FieldInsnNode ambientOcclusion = findOptionField(owner, method, "ao", "I");
+        FieldInsnNode clouds = findOptionField(owner, method, "renderClouds", "I");
+        FieldInsnNode particles = findOptionField(owner, method, "particles", "I");
+        FieldInsnNode entityShadows = findOptionField(owner, method, "entityShadows", "Z");
+        if (renderDistance == null || fancyGraphics == null || ambientOcclusion == null
+            || clouds == null || particles == null || entityShadows == null) {
+            System.err.println("[Cylox] Lightweight graphics preset skipped: could not map all GameSettings fields in "
+                + owner.name + "." + method.name + method.desc);
+            return false;
+        }
+
+        boolean inserted = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() != Opcodes.RETURN) continue;
+            InsnList hook = new InsnList();
+            hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            hook.add(new LdcInsnNode(renderDistance.name));
+            hook.add(new LdcInsnNode(fancyGraphics.name));
+            hook.add(new LdcInsnNode(ambientOcclusion.name));
+            hook.add(new LdcInsnNode(clouds.name));
+            hook.add(new LdcInsnNode(particles.name));
+            hook.add(new LdcInsnNode(entityShadows.name));
+            hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, PERFORMANCE,
+                "applyDefaults",
+                "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+                false));
+            method.instructions.insertBefore(instruction, hook);
+            inserted = true;
+        }
+        return inserted;
+    }
 
     private static boolean isMinecraftGuiClass(String name, String transformedName, String simpleName) {
         String expected = "net.minecraft.client.gui." + simpleName;

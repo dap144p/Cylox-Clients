@@ -122,7 +122,7 @@ jobs:
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — lightweight Minecraft Java 1.8.9 client with background render suppression.
+          Cylox Client ${VERSION} — lightweight Minecraft Java 1.8.9 client with background render suppression and a conservative low-cost graphics preset.
 
           - The Cylox client and ViaVersion, ViaBackwards and ViaRewind protocol features are bundled into ONE JAR.
           - The standalone profile declares Minecraft 1.8.9's official client artifact, libraries and asset index as launcher dependencies; a separate vanilla profile is not required when the launcher resolves legacy libraries correctly.
@@ -130,9 +130,11 @@ jobs:
           - No automatic server-version detection or status-ping protocol selection.
           - Uses translucent dark menus, buttons and protocol selector panels to keep the gameplay visible behind the UI, with readable text.
           - Adapts protocol-selector rows to screen height, fits long button labels, caches UI reflection lookups and caches protocol-family discovery.
+          - Applies a lightweight in-memory graphics preset at startup: render distance capped at 4 chunks, fast graphics, smooth lighting off, clouds off, minimal particles and entity shadows off. World, entity, HUD, controls, client ticks and network handling remain enabled.
           - Automatically skips vanilla rendering while the LWJGL display is inactive or hidden.
           - Completely skips the vanilla EntityRenderer frame while the display is inactive or hidden, reducing world rendering to 0 FPS.
           - Keeps the whole Minecraft main loop at 20 Hz in the background. The loop is not capped at 2 FPS because Display.sync throttles client ticks and packet-task processing as well as rendering.
+          - The graphics preset is applied in memory after options load; Cylox does not write its defaults directly to options.txt. Video settings can still be adjusted during the session.
           - No anti-AFK, auto-clicker, movement automation, HUD, Click GUI, Forge or Fabric.
           - Minecraft, Java runtime, renderer, assets and base game libraries are downloaded or supplied by the launcher; they are not merged into the Cylox JAR.
           - Developer: dapdev. License: GPL-3.0-or-later.
