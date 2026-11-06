@@ -44,7 +44,7 @@ public class VLBViaEncodeHandler extends MessageToMessageEncoder<ByteBuf> {
             return;
         }
 
-        ByteBuf transformedBuf = ctx.alloc().buffer().writeBytes(bytebuf);
+        ByteBuf transformedBuf = ctx.alloc().buffer(Math.max(256, bytebuf.readableBytes())).writeBytes(bytebuf);
         try {
             user.transformOutgoing(transformedBuf, CancelEncoderException::generate);
             auditInitialHandshake(transformedBuf);
