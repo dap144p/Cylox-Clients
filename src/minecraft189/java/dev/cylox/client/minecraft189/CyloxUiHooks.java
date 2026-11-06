@@ -20,6 +20,8 @@ public final class CyloxUiHooks {
         new ConcurrentHashMap<Class<?>, FontOwnerAccess>();
     private static final ConcurrentMap<Class<?>, FontMethods> FONT_METHODS =
         new ConcurrentHashMap<Class<?>, FontMethods>();
+    private static final ConcurrentMap<Class<?>, ScreenAccess> SCREEN_ACCESS =
+        new ConcurrentHashMap<Class<?>, ScreenAccess>();
 
     /** Cached reflective fields; button rendering is called for every visible button every frame. */
     private static final class ButtonAccess {
@@ -59,6 +61,17 @@ public final class CyloxUiHooks {
         }
     }
 
+    /** Common GUI fields are resolved once for each screen class. */
+    private static final class ScreenAccess {
+        final Field width, height, buttons, minecraft;
+        ScreenAccess(Class<?> type) {
+            width = findField(type, "width", "field_146294_l", "l");
+            height = findField(type, "height", "field_146295_m", "m");
+            buttons = findField(type, "buttonList", "field_146292_n", "n");
+            minecraft = findField(type, "mc", "field_146297_k", "k");
+        }
+    }
+
     /** Cached FontRenderer method handles shared by all screens and buttons. */
     private static final class FontMethods {
         final Method width, draw, trim;
@@ -91,6 +104,30 @@ public final class CyloxUiHooks {
             access = prior == null ? created : prior;
         }
         return access;
+    }
+
+    private static ScreenAccess screenAccess(Object screen) {
+        Class<?> type = screen.getClass();
+        ScreenAccess access = SCREEN_ACCESS.get(type);
+        if (access == null) {
+            ScreenAccess created = new ScreenAccess(type);
+            ScreenAccess prior = SCREEN_ACCESS.putIfAbsent(type, created);
+            access = prior == null ? created : prior;
+        }
+        return access;
+    }
+
+    public static int screenWidth(Object screen) {
+        return screen == null ? 0 : readInt(screenAccess(screen).width, screen, 0);
+    }
+
+    public static int screenHeight(Object screen) {
+        return screen == null ? 0 : readInt(screenAccess(screen).height, screen, 0);
+    }
+
+    private static Object readObject(Field field, Object target) {
+        try { return field == null ? null : field.get(target); }
+        catch (Throwable ignored) { return null; }
     }
 
     private static FontMethods fontMethods(Object font) {
@@ -146,12 +183,7 @@ public final class CyloxUiHooks {
             GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            rect(x, y, x + w, y + h, fill);
-            rect(x, y, x + w, y + 1, edge);
-            rect(x, y + h - 1, x + w, y + h, edge);
-            rect(x, y, x + 1, y + h, edge);
-            rect(x + w - 1, y, x + w, y + h, edge);
-            rect(x + 2, y + 2, x + 4, y + h - 2, hovered ? 0xE0FFA45B : 0xC036D7E8);
+            drawButtonShape(x, y, w, h, fill, edge, hovered ? 0xE0FFA45B : 0xC036D7E8);
             GL11.glPopAttrib();
 
             String label = readString(access.label, button);
@@ -168,21 +200,24 @@ public final class CyloxUiHooks {
 
     /** Replaces the panorama/title renderer with a static Cylox main menu. */
     public static void drawMainMenu(Object screen, int mouseX, int mouseY) {
-        int width = intField(screen, 0, "width", "field_146294_l", "l");
-        int height = intField(screen, 0, "height", "field_146295_m", "m");
+        ScreenAccess access = screenAccess(screen);
+        int width = readInt(access.width, screen, 0);
+        int height = readInt(access.height, screen, 0);
         if (width <= 0 || height <= 0) return;
         drawScreenBackground(screen);
 
-        List<?> buttons = listField(screen, "buttonList", "field_146292_n", "n");
-        Object minecraft = objectField(screen, "mc", "field_146297_k", "k");
+        Object buttonValue = readObject(access.buttons, screen);
+        List<?> buttons = buttonValue instanceof List<?> ? (List<?>) buttonValue : null;
+        Object minecraft = readObject(access.minecraft, screen);
         int left = width / 2 - 110, right = width / 2 + 110;
         int top = height / 2 - 45, bottom = height / 2 + 65;
         if (buttons != null) {
             for (Object b : buttons) {
-                int x = intField(b, -1, "xPosition", "field_146128_h", "h");
-                int y = intField(b, -1, "yPosition", "field_146129_i", "i");
-                int w = intField(b, 0, "width", "field_146120_f", "f");
-                int h = intField(b, 0, "height", "field_146121_g", "g");
+                ButtonAccess button = buttonAccess(b);
+                int x = readInt(button.x, b, -1);
+                int y = readInt(button.y, b, -1);
+                int w = readInt(button.width, b, 0);
+                int h = readInt(button.height, b, 0);
                 if (x >= 0 && y >= 0 && w > 0 && h > 0) {
                     left = Math.min(left, x - 12); right = Math.max(right, x + w + 12);
                     top = Math.min(top, y - 12); bottom = Math.max(bottom, y + h + 12);
@@ -209,8 +244,9 @@ public final class CyloxUiHooks {
 
     /** Replaces the tiled options texture with a static dark canvas on standard GUI screens. */
     public static void drawScreenBackground(Object screen) {
-        int w = intField(screen, 0, "width", "field_146294_l", "l");
-        int h = intField(screen, 0, "height", "field_146295_m", "m");
+        ScreenAccess access = screenAccess(screen);
+        int w = readInt(access.width, screen, 0);
+        int h = readInt(access.height, screen, 0);
         if (w <= 0 || h <= 0) return;
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -224,13 +260,40 @@ public final class CyloxUiHooks {
         GL11.glPopAttrib();
     }
 
-    private static void rect(int l, int t, int r, int b, int color) {
-        if (r <= l || b <= t) return;
+    /** Draws a button's fill, border and accent in one GL batch. */
+    private static void drawButtonShape(int x, int y, int width, int height,
+                                        int fill, int edge, int accent) {
+        GL11.glBegin(GL11.GL_QUADS);
+        color(fill);
+        quad(x, y, x + width, y + height);
+        color(edge);
+        quad(x, y, x + width, y + 1);
+        quad(x, y + height - 1, x + width, y + height);
+        quad(x, y, x + 1, y + height);
+        quad(x + width - 1, y, x + width, y + height);
+        color(accent);
+        quad(x + 2, y + 2, x + 4, y + height - 2);
+        GL11.glEnd();
+    }
+
+    private static void color(int color) {
         GL11.glColor4f(((color >> 16) & 255) / 255F, ((color >> 8) & 255) / 255F,
             (color & 255) / 255F, ((color >>> 24) & 255) / 255F);
+    }
+
+    private static void quad(int left, int top, int right, int bottom) {
+        if (right <= left || bottom <= top) return;
+        GL11.glVertex2f(left, bottom);
+        GL11.glVertex2f(right, bottom);
+        GL11.glVertex2f(right, top);
+        GL11.glVertex2f(left, top);
+    }
+
+    private static void rect(int l, int t, int r, int b, int color) {
+        if (r <= l || b <= t) return;
+        color(color);
         GL11.glBegin(GL11.GL_QUADS);
-        GL11.glVertex2f(l, b); GL11.glVertex2f(r, b);
-        GL11.glVertex2f(r, t); GL11.glVertex2f(l, t);
+        quad(l, t, r, b);
         GL11.glEnd();
     }
 
@@ -306,33 +369,6 @@ public final class CyloxUiHooks {
         } catch (Throwable ignored) { return text; }
     }
 
-    private static Method findFontWidthMethod(Object font) {
-        String[] names = {"getStringWidth", "func_78256_a", "a"};
-        for (String name : names) {
-            for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
-                for (Method method : type.getDeclaredMethods()) {
-                    Class<?>[] p = method.getParameterTypes();
-                    if (name.equals(method.getName()) && p.length == 1
-                        && p[0] == String.class && method.getReturnType() == Integer.TYPE) {
-                        try { method.setAccessible(true); return method; }
-                        catch (Throwable ignored) { }
-                    }
-                }
-            }
-        }
-        for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
-            for (Method method : type.getDeclaredMethods()) {
-                Class<?>[] p = method.getParameterTypes();
-                if (p.length == 1 && p[0] == String.class
-                    && method.getReturnType() == Integer.TYPE) {
-                    try { method.setAccessible(true); return method; }
-                    catch (Throwable ignored) { }
-                }
-            }
-        }
-        return null;
-    }
-
     private static Method findFontWidthMethod(Class<?> fontType) {
         return findMethod(fontType, new String[] {"getStringWidth", "func_78256_a", "a"},
             new Class<?>[] {String.class}, Integer.TYPE);
@@ -363,67 +399,12 @@ public final class CyloxUiHooks {
         return null;
     }
 
-    private static Method findFontDrawMethod(Object font) {
-        String[] names = {"drawStringWithShadow", "func_175063_a", "drawString", "a"};
-        for (String name : names) {
-            for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
-                for (Method method : type.getDeclaredMethods()) {
-                    Class<?>[] p = method.getParameterTypes();
-                    if (name.equals(method.getName()) && p.length == 4
-                        && p[0] == String.class && p[1] == Float.TYPE
-                        && p[2] == Float.TYPE && p[3] == Integer.TYPE) {
-                        try { method.setAccessible(true); return method; }
-                        catch (Throwable ignored) { }
-                    }
-                }
-            }
-        }
-        for (Class<?> type = font.getClass(); type != null; type = type.getSuperclass()) {
-            for (Method method : type.getDeclaredMethods()) {
-                Class<?>[] p = method.getParameterTypes();
-                if (p.length == 4 && p[0] == String.class && p[1] == Float.TYPE
-                    && p[2] == Float.TYPE && p[3] == Integer.TYPE) {
-                    try { method.setAccessible(true); return method; }
-                    catch (Throwable ignored) { }
-                }
-            }
-        }
-        return null;
-    }
-
     private static List<?> listField(Object o, String... n) {
         Object v = objectField(o, n); return v instanceof List<?> ? (List<?>) v : null;
-    }
-    private static String stringField(Object o, String... n) {
-        Object value = objectField(o, n);
-        if (value instanceof String && ((String) value).length() > 0) return (String) value;
-        if (o != null) {
-            for (Class<?> type = o.getClass(); type != null; type = type.getSuperclass()) {
-                for (Field field : type.getDeclaredFields()) {
-                    if (field.getType() != String.class) continue;
-                    try {
-                        field.setAccessible(true);
-                        Object candidate = field.get(o);
-                        if (candidate instanceof String && ((String) candidate).length() > 0) {
-                            return (String) candidate;
-                        }
-                    } catch (Throwable ignored) { }
-                }
-            }
-        }
-        return "";
     }
     private static int intField(Object o, int d, String... n) {
         Field f = findField(o, n); try { return f == null ? d : f.getInt(o); }
         catch (Throwable ignored) { return d; }
-    }
-    private static boolean boolField(Object o, boolean d, String... n) {
-        Field f = findField(o, n); try { return f == null ? d : f.getBoolean(o); }
-        catch (Throwable ignored) { return d; }
-    }
-    private static void setBool(Object o, boolean v, String... n) {
-        Field f = findField(o, n); try { if (f != null) f.setBoolean(o, v); }
-        catch (Throwable ignored) { }
     }
     private static Object objectField(Object o, String... n) {
         Field f = findField(o, n); try { return f == null ? null : f.get(o); }
