@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.3.4'
+version = '1.3.5'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -127,7 +127,7 @@ tasks.register('minecraft189AdapterJar', Jar) {
             'Client-Developer': 'dapdev',
             'TweakClass': 'dev.cylox.client.minecraft189.CyloxTweaker',
             'Minecraft-Version': '1.8.9',
-            'Client-Architecture': 'Vanilla + Native Chunk Scheduling + Background Hooks + Cylox UI',
+            'Client-Architecture': 'Vanilla 1.8.9 Renderer + Reused Via Target + Background Hooks + Cylox UI',
             'Protocol-Selection': 'Manual UI',
             'Client-UI': 'Cylox Adaptive Translucent UI'
         )
