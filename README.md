@@ -20,9 +20,9 @@ This is not an Android background service. The launcher must keep the game proce
 
 ## Sodium-inspired renderer scheduling
 
-- Routes near-player chunk rebuilds through Minecraft's existing background worker queue instead of forcing every nearby rebuild to run synchronously on the render thread.
-- Uses a mobile-focused budget of at most **2 chunk worker threads** and **2 render-buffer builders per worker**.
-- If the bounded worker queue is full, Cylox falls back to vanilla's synchronous rebuild path so a chunk update is not silently dropped.
+- Routes near-player dirty chunks into the same time-budgeted asynchronous update queue used by vanilla for distant chunks, instead of rebuilding them synchronously on the render thread.
+- Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads or change the buffer count.
+- Uses vanilla's `updateChunks(long)` time budget to submit dirty chunks; when the worker queue is full or the frame budget expires, remaining chunks stay queued for a later update.
 - Keeps vanilla chunk meshes, frustum/visibility culling, block layers, entities, tile entities, particles, HUD, controls, game ticks and networking intact. This feature does not change Video Settings or write to `options.txt`.
 - This is a targeted Sodium-inspired scheduling optimization, not a port of Sodium. Actual frame-time and stability improvements still require testing on the target launcher/device.
 
