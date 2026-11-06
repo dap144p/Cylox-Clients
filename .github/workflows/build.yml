@@ -129,6 +129,7 @@ jobs:
           - Choose the target server protocol manually using the Via selector on the Multiplayer screen; selection is saved in the game directory.
           - No automatic server-version detection or status-ping protocol selection.
           - Uses translucent dark menus, buttons and protocol selector panels to keep the gameplay visible behind the UI, with readable text.
+          - Adapts protocol-selector rows to screen height, fits long button labels, caches UI reflection lookups and caches protocol-family discovery.
           - Automatically skips vanilla rendering while the LWJGL display is inactive or hidden.
           - Completely skips the vanilla EntityRenderer frame while the display is inactive or hidden, reducing world rendering to 0 FPS.
           - Keeps the whole Minecraft main loop at 20 Hz in the background. The loop is not capped at 2 FPS because Display.sync throttles client ticks and packet-task processing as well as rendering.
