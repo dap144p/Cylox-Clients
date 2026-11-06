@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.3.7'
+version = '1.3.8'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -11,44 +11,95 @@ repositories {
     mavenCentral()
 }
 
-def viaSourceCommit = 'd22b90b20560eca4bdc553d3a0f50a60f5773aec'
-def viaLibraries = [
-    [file: layout.buildDirectory.file('via-libs/Cylox-ViaVersion-5.12.1.jar').get().asFile,
-     url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaVersion-5.12.1-downgraded.jar"],
-    [file: layout.buildDirectory.file('via-libs/Cylox-ViaBackwards-5.12.1.jar').get().asFile,
-     url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaBackwards-5.12.1-downgraded.jar"],
-    [file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.0.jar').get().asFile,
-     url: "https://raw.githubusercontent.com/ViaVersionMCP/ViaMCP/${viaSourceCommit}/libraries/ViaRewind-4.2.0-downgraded.jar"]
+def viaJava8Libraries = [
+    [
+        file: layout.buildDirectory.file('via-libs/Cylox-ViaVersion-5.12.3-SNAPSHOT-java8.jar').get().asFile,
+        url: 'https://ci.viaversion.com/job/ViaVersion-Java8/55/artifact/build/libs/ViaVersion-5.12.3-SNAPSHOT-downgraded.jar',
+        requiredClass: 'com/viaversion/viaversion/api/protocol/version/ProtocolVersion.class'
+    ],
+    [
+        file: layout.buildDirectory.file('via-libs/Cylox-ViaBackwards-5.12.3-SNAPSHOT-java8.jar').get().asFile,
+        url: 'https://ci.viaversion.com/view/ViaBackwards/job/ViaBackwards-Java8/45/artifact/build/libs/ViaBackwards-5.12.3-SNAPSHOT-downgraded.jar',
+        requiredClass: 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
+    ],
+    [
+        file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.0-java8.jar').get().asFile,
+        url: 'https://ci.viaversion.com/view/ViaRewind/job/ViaRewind-Java8/39/artifact/build/libs/ViaRewind-4.2.0-downgraded.jar',
+        requiredClass: 'com/viaversion/viarewind/api/ViaRewindPlatform.class'
+    ]
 ]
+def viaLibraryFiles = files(viaJava8Libraries.collect { it.file })
 def viaLibraryFiles = files(viaLibraries.collect { it.file })
 
 tasks.register('downloadViaLibraries') {
     outputs.files(viaLibraryFiles)
     doLast {
-        viaLibraries.each { artifact ->
+        viaJava8Libraries.each { artifact ->
             File destination = artifact.file
-            if (destination.isFile() && destination.length() > 0L) return
-            if (!destination.parentFile.isDirectory()
-                && !destination.parentFile.mkdirs()
-                && !destination.parentFile.isDirectory()) {
-                throw new GradleException("Could not create Via library directory: ${destination.parentFile}")
+            if (!destination.isFile() || destination.length() < 1024L) {
+                if (!destination.parentFile.isDirectory()
+                    && !destination.parentFile.mkdirs()
+                    && !destination.parentFile.isDirectory()) {
+                    throw new GradleException("Could not create Via library directory: ${destination.parentFile}")
+                }
+                File temporary = new File(destination.parentFile, destination.name + '.part')
+                try {
+                    URLConnection connection = new URL(artifact.url).openConnection()
+                    connection.setConnectTimeout(15000)
+                    connection.setReadTimeout(60000)
+                    connection.setRequestProperty('User-Agent', 'Cylox-Client-Build/1.3.8')
+                    connection.getInputStream().withCloseable { input ->
+                        temporary.withOutputStream { output -> output << input }
+                    }
+                    if (!temporary.isFile() || temporary.length() < 1024L) {
+                        throw new GradleException("Downloaded Via library is empty or incomplete: ${artifact.url}")
+                    }
+                    if (destination.exists() && !destination.delete()) {
+                        throw new GradleException("Could not replace Via library: ${destination}")
+                    }
+                    if (!temporary.renameTo(destination)) {
+                        throw new GradleException("Could not finalize Via library: ${destination}")
+                    }
+                } finally {
+                    if (temporary.exists()) temporary.delete()
+                }
             }
-            File temporary = new File(destination.parentFile, destination.name + '.part')
+
+            java.util.zip.ZipFile archive
             try {
-                new URL(artifact.url).withInputStream { input ->
-                    temporary.withOutputStream { output -> output << input }
+                archive = new java.util.zip.ZipFile(destination)
+            } catch (Exception invalidArchive) {
+                throw new GradleException("Invalid Via Java 8 archive: ${destination}", invalidArchive)
+            }
+            try {
+                if (archive.getEntry(artifact.requiredClass) == null) {
+                    throw new GradleException("Required Via class is missing from ${destination}: ${artifact.requiredClass}")
                 }
-                if (!temporary.isFile() || temporary.length() < 1024L) {
-                    throw new GradleException("Downloaded Via library is empty or incomplete: ${artifact.url}")
-                }
-                if (destination.exists() && !destination.delete()) {
-                    throw new GradleException("Could not replace Via library: ${destination}")
-                }
-                if (!temporary.renameTo(destination)) {
-                    throw new GradleException("Could not finalize Via library: ${destination}")
+                def entries = archive.entries()
+                while (entries.hasMoreElements()) {
+                    def entry = entries.nextElement()
+                    if (entry.isDirectory() || !entry.name.endsWith('.class')
+                        || entry.name.startsWith('META-INF/versions/')) continue
+                    archive.getInputStream(entry).withCloseable { input ->
+                        byte[] header = new byte[8]
+                        int offset = 0
+                        while (offset < header.length) {
+                            int count = input.read(header, offset, header.length - offset)
+                            if (count < 0) break
+                            offset += count
+                        }
+                        if (offset != 8 || header[0] != (byte) 0xCA || header[1] != (byte) 0xFE
+                            || header[2] != (byte) 0xBA || header[3] != (byte) 0xBE) {
+                            throw new GradleException("Invalid class header in ${destination}:${entry.name}")
+                        }
+                        int major = ((header[6] & 0xFF) << 8) | (header[7] & 0xFF)
+                        if (major > 52) {
+                            throw new GradleException("Via archive is not Java 8 compatible (class major ${major}): ${destination}:${entry.name}")
+                        }
+                    }
                 }
             } finally {
-                if (temporary.exists()) temporary.delete()
+                archive.close()
             }
         }
     }
@@ -128,7 +179,7 @@ tasks.register('minecraft189AdapterJar', Jar) {
             'Client-Developer': 'dapdev',
             'TweakClass': 'dev.cylox.client.minecraft189.CyloxTweaker',
             'Minecraft-Version': '1.8.9',
-            'Client-Architecture': 'Vanilla 1.8.9 Renderer + Terrain Scratch Reuse + Reused Via Target + Background Hooks + Cylox UI',
+            'Client-Architecture': 'Vanilla 1.8.9 Renderer + Terrain Scratch Reuse + Via 5.12.3 Java 8 Stack + Background Hooks + Cylox UI',
             'Protocol-Selection': 'Manual UI',
             'Client-UI': 'Cylox Adaptive Translucent UI'
         )
