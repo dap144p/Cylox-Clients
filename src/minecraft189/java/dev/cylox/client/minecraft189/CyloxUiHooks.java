@@ -228,9 +228,11 @@ public final class CyloxUiHooks {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        rect(left, top, right, bottom, 0x780C1B2A);
-        rect(left, top, right, top + 2, 0xC036D7E8);
-        rect(left, top, left + 2, bottom, 0xA024465A);
+        GL11.glBegin(GL11.GL_QUADS);
+        fillQuad(left, top, right, bottom, 0x780C1B2A);
+        fillQuad(left, top, right, top + 2, 0xC036D7E8);
+        fillQuad(left, top, left + 2, bottom, 0xA024465A);
+        GL11.glEnd();
         GL11.glPopAttrib();
 
         Object font = font(screen);
@@ -252,11 +254,13 @@ public final class CyloxUiHooks {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        rect(0, 0, w, h, 0x7008121E);
-        rect(0, 0, w, 2, 0xA0173448);
-        rect(0, 0, 3, h, 0xA01C6272);
-        rect(0, h - 2, w, h, 0x90152C3B);
-        rect(12, 12, 13, h - 12, 0x332FC9DA);
+        GL11.glBegin(GL11.GL_QUADS);
+        fillQuad(0, 0, w, h, 0x7008121E);
+        fillQuad(0, 0, w, 2, 0xA0173448);
+        fillQuad(0, 0, 3, h, 0xA01C6272);
+        fillQuad(0, h - 2, w, h, 0x90152C3B);
+        fillQuad(12, 12, 13, h - 12, 0x332FC9DA);
+        GL11.glEnd();
         GL11.glPopAttrib();
     }
 
@@ -274,6 +278,11 @@ public final class CyloxUiHooks {
         color(accent);
         quad(x + 2, y + 2, x + 4, y + height - 2);
         GL11.glEnd();
+    }
+
+    private static void fillQuad(int left, int top, int right, int bottom, int color) {
+        color(color);
+        quad(left, top, right, bottom);
     }
 
     private static void color(int color) {
