@@ -237,28 +237,31 @@ public final class CyloxProtocolBridge {
             GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            drawPanelRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight,
-                0.035F, 0.055F, 0.075F, 0.54F);
-            drawPanelRect(panelX, panelY, panelX + panelWidth, panelY + 2,
-                0.16F, 0.72F, 0.88F, 0.88F);
-            drawPanelRect(panelX + 1, panelY + 39, panelX + panelWidth - 1, panelY + 40,
-                0.25F, 0.35F, 0.42F, 0.52F);
-
             int listTop = panelY + PANEL_LIST_TOP;
             int trackX = panelX + panelWidth - 19;
             int trackTop = listTop + 2;
             int trackHeight = Math.min(selectorVisibleRows * PANEL_ROW_HEIGHT - 4,
                 panelY + panelHeight - 36 - trackTop);
-            drawPanelRect(trackX, trackTop, trackX + 5, trackTop + trackHeight,
-                0.18F, 0.23F, 0.28F, 0.48F);
             List<ProtocolChoice> choices = getProtocolChoices();
             int maxOffset = Math.max(0, choices.size() - selectorVisibleRows);
             int thumbHeight = choices.isEmpty() ? trackHeight
                 : Math.max(18, trackHeight * Math.min(selectorVisibleRows, choices.size()) / choices.size());
             int thumbTravel = Math.max(0, trackHeight - thumbHeight);
             int thumbY = trackTop + (maxOffset == 0 ? 0 : thumbTravel * selectorScrollOffset / maxOffset);
+
+            // One GL batch for the panel, separator and scrollbar geometry.
+            GL11.glBegin(GL11.GL_QUADS);
+            drawPanelRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight,
+                0.035F, 0.055F, 0.075F, 0.54F);
+            drawPanelRect(panelX, panelY, panelX + panelWidth, panelY + 2,
+                0.16F, 0.72F, 0.88F, 0.88F);
+            drawPanelRect(panelX + 1, panelY + 39, panelX + panelWidth - 1, panelY + 40,
+                0.25F, 0.35F, 0.42F, 0.52F);
+            drawPanelRect(trackX, trackTop, trackX + 5, trackTop + trackHeight,
+                0.18F, 0.23F, 0.28F, 0.48F);
             drawPanelRect(trackX - 1, thumbY, trackX + 6, thumbY + thumbHeight,
                 0.18F, 0.72F, 0.88F, 0.82F);
+            GL11.glEnd();
             GL11.glPopAttrib();
 
             drawPanelText(screen, "CYLOX  /  PROTOCOL SELECTOR", panelX + 15, panelY + 10, 0xFFFFFFFF);
@@ -272,15 +275,14 @@ public final class CyloxProtocolBridge {
         }
     }
 
+    /** Adds one translucent quad to the active selector-panel GL batch. */
     private static void drawPanelRect(int left, int top, int right, int bottom,
                                       float red, float green, float blue, float alpha) {
         GL11.glColor4f(red, green, blue, alpha);
-        GL11.glBegin(GL11.GL_QUADS);
         GL11.glVertex2f(left, bottom);
         GL11.glVertex2f(right, bottom);
         GL11.glVertex2f(right, top);
         GL11.glVertex2f(left, top);
-        GL11.glEnd();
     }
 
     private static void drawPanelText(Object screen, String text, float x, float y, int color) {
@@ -407,6 +409,8 @@ public final class CyloxProtocolBridge {
     }
 
     private static int screenInt(Object screen, String mcpName, String srgName, String obfuscatedName) {
+        if ("width".equals(mcpName)) return CyloxUiHooks.screenWidth(screen);
+        if ("height".equals(mcpName)) return CyloxUiHooks.screenHeight(screen);
         return readIntField(screen, 0, mcpName, srgName, obfuscatedName);
     }
 
