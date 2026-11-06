@@ -53,7 +53,8 @@ jobs:
           import pathlib
           import zipfile
 
-          version = "1.0.2"
+          import re
+          version = re.search(r"^version = '([^']+)'", pathlib.Path("build.gradle").read_text(encoding="utf-8"), re.MULTILINE).group(1)
           profile_path = pathlib.Path("build/generated/cylox/Cylox-1.8.9.json")
           profile = json.loads(profile_path.read_text(encoding="utf-8"))
           assert "inheritsFrom" not in profile, "profile must not require a parent version"
