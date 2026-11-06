@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.1.0
+Version: 1.2.0
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
@@ -11,6 +11,11 @@ INSTALL
 6. Keep the launcher's normal Java and renderer settings.
 7. Open Multiplayer and tap "Select: [version]" beside the standard "Cancel" button. The modern menu groups versions as 1.8x, 1.9x, 1.10x and onward; scroll with the mouse wheel or arrow controls.
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
+
+CYLOX UI
+- The main menu uses the custom Cylox dark theme instead of the vanilla panorama.
+- Standard vanilla buttons and menu backgrounds use the same lightweight theme.
+- Original buttons and menu actions are preserved.
 
 PROTOCOL
 - ViaVersion, ViaBackwards and ViaRewind are embedded inside the single Cylox client JAR.

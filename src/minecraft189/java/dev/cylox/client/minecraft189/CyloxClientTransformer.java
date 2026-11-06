@@ -28,9 +28,13 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedSelectorActionClasses;
     private static volatile int patchedSelectorDrawClasses;
     private static volatile int patchedSelectorScrollClasses;
+    private static volatile int patchedButtonThemeClasses;
+    private static volatile int patchedScreenBackgroundClasses;
+    private static volatile int patchedMainMenuClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
+    private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
 
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
@@ -41,6 +45,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedSelectorActionClasses = 0;
         patchedSelectorDrawClasses = 0;
         patchedSelectorScrollClasses = 0;
+        patchedButtonThemeClasses = 0;
+        patchedScreenBackgroundClasses = 0;
+        patchedMainMenuClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -51,6 +58,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedSelectorActionClassCount() { return patchedSelectorActionClasses; }
     public static int getPatchedSelectorDrawClassCount() { return patchedSelectorDrawClasses; }
     public static int getPatchedSelectorScrollClassCount() { return patchedSelectorScrollClasses; }
+    public static int getPatchedButtonThemeClassCount() { return patchedButtonThemeClasses; }
+    public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
+    public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -68,9 +78,33 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean selectorActionPatched = false;
             boolean selectorDrawPatched = false;
             boolean selectorScrollPatched = false;
+            boolean buttonThemePatched = false;
+            boolean screenBackgroundPatched = false;
+            boolean mainMenuPatched = false;
+            boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
+            boolean optionsScreenClass = hasClassString(node, "textures/gui/options_background.png");
+            boolean mainMenuClass = hasClassMarkers(node,
+                "menu.singleplayer", "menu.multiplayer", "menu.options", "menu.quit");
 
             for (MethodNode method : node.methods) {
                 if ((method.access & Opcodes.ACC_STATIC) == 0) {
+                    if (!buttonThemePatched && buttonWidgetClass && isButtonDrawMethod(method)) {
+                        insertButtonTheme(method);
+                        buttonThemePatched = true;
+                        changed = true;
+                    }
+
+                    if (!screenBackgroundPatched && optionsScreenClass && isDefaultBackgroundMethod(node, method)) {
+                        replaceWithScreenBackground(method);
+                        screenBackgroundPatched = true;
+                        changed = true;
+                    }
+
+                    if (!mainMenuPatched && mainMenuClass && "(IIF)V".equals(method.desc)) {
+                        replaceWithMainMenu(method);
+                        mainMenuPatched = true;
+                        changed = true;
+                    }
                     if (!renderPatched && "(FJ)V".equals(method.desc)
                         && hasMarkers(method, "mouse", "level", "gui")) {
                         insertRenderGuard(method);
@@ -192,6 +226,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (selectorActionPatched) patchedSelectorActionClasses++;
             if (selectorDrawPatched) patchedSelectorDrawClasses++;
             if (selectorScrollPatched) patchedSelectorScrollClasses++;
+            if (buttonThemePatched) patchedButtonThemeClasses++;
+            if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
+            if (mainMenuPatched) patchedMainMenuClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -200,12 +237,111 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (selectorActionPatched) System.out.println("[Cylox] Manual Via selector action injected: " + node.name);
             if (selectorDrawPatched) System.out.println("[Cylox] Modern protocol selector panel injected: " + node.name);
             if (selectorScrollPatched) System.out.println("[Cylox] Protocol selector mouse-wheel hook injected: " + node.name);
+            if (buttonThemePatched) System.out.println("[Cylox] Cylox button theme injected: " + node.name);
+            if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
+            if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
                 + error.getClass().getSimpleName() + ": " + error.getMessage());
             return basicClass;
         }
+    }
+
+
+    private static boolean hasClassString(ClassNode node, String expected) {
+        for (MethodNode method : node.methods) {
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (instruction instanceof LdcInsnNode && expected.equals(((LdcInsnNode) instruction).cst)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasClassMarkers(ClassNode node, String... markers) {
+        Set<String> found = new HashSet<String>();
+        for (MethodNode method : node.methods) {
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (instruction instanceof LdcInsnNode) {
+                    Object value = ((LdcInsnNode) instruction).cst;
+                    if (value instanceof String) found.add((String) value);
+                }
+            }
+        }
+        for (String marker : markers) if (!found.contains(marker)) return false;
+        return true;
+    }
+
+    private static boolean isButtonDrawMethod(MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0 || !"V".equals(
+            Type.getReturnType(method.desc).getDescriptor())) return false;
+        Type[] args = Type.getArgumentTypes(method.desc);
+        if (args.length != 3 || args[0].getSort() != Type.OBJECT
+            || args[1].getSort() != Type.INT || args[2].getSort() != Type.INT) return false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode
+                && "(IIIIII)V".equals(((MethodInsnNode) instruction).desc)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isDefaultBackgroundMethod(ClassNode node, MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0 || !"()V".equals(method.desc)) return false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (node.name.equals(call.owner) && "(I)V".equals(call.desc)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static void insertButtonTheme(MethodNode method) {
+        LabelNode vanilla = new LabelNode();
+        InsnList hook = new InsnList();
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        hook.add(new VarInsnNode(Opcodes.ILOAD, 2));
+        hook.add(new VarInsnNode(Opcodes.ILOAD, 3));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, UI,
+            "drawButton", "(Ljava/lang/Object;Ljava/lang/Object;II)Z", false));
+        hook.add(new JumpInsnNode(Opcodes.IFEQ, vanilla));
+        hook.add(new InsnNode(Opcodes.RETURN));
+        hook.add(vanilla);
+        hook.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        method.instructions.insert(hook);
+    }
+
+    private static void replaceWithScreenBackground(MethodNode method) {
+        method.instructions.clear();
+        method.tryCatchBlocks.clear();
+        if (method.localVariables != null) method.localVariables.clear();
+        method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        method.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, UI,
+            "drawScreenBackground", "(Ljava/lang/Object;)V", false));
+        method.instructions.add(new InsnNode(Opcodes.RETURN));
+        method.maxStack = 1;
+        method.maxLocals = 1;
+    }
+
+    private static void replaceWithMainMenu(MethodNode method) {
+        method.instructions.clear();
+        method.tryCatchBlocks.clear();
+        if (method.localVariables != null) method.localVariables.clear();
+        method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        method.instructions.add(new VarInsnNode(Opcodes.ILOAD, 1));
+        method.instructions.add(new VarInsnNode(Opcodes.ILOAD, 2));
+        method.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, UI,
+            "drawMainMenu", "(Ljava/lang/Object;II)V", false));
+        method.instructions.add(new InsnNode(Opcodes.RETURN));
+        method.maxStack = 3;
+        method.maxLocals = 4;
     }
 
     /** Finds the local-variable slot for the Channel argument in an instance method. */

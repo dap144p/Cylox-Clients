@@ -1,7 +1,7 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -18,6 +18,14 @@ Cylox is a minimal 1.8.9 client adapter. Its gameplay-side purpose is to reduce 
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
+## Cylox lightweight UI
+
+- Replaces the main-menu panorama and vanilla title renderer with a static Cylox screen.
+- Applies a dark navy, cyan and orange theme to vanilla buttons.
+- Replaces the tiled vanilla options background on standard GUI screens with a static dark canvas.
+- Keeps the original button objects, IDs, click actions and protocol selector behavior.
+- Uses immediate-mode rectangles and Minecraft's existing font renderer; no added UI framework, textures, blur, shaders or animations.
+
 ## Manual Via protocol selector
 
 - ViaVersion, ViaBackwards and ViaRewind are bundled inside **the single Cylox client JAR**.
@@ -32,9 +40,9 @@ This is not an Android background service. The launcher must keep the game proce
 
 ## Scope
 
-Included: manual version-family selector, embedded Via protocol translation, outgoing-handshake verification, background render suppression and a small 1.8.9 LaunchWrapper adapter.
+Included: Cylox main-menu theme, themed vanilla buttons and menu backgrounds, manual version-family selector, embedded Via protocol translation, outgoing-handshake verification, background render suppression and a small 1.8.9 LaunchWrapper adapter.
 
-Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
+Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, custom HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
 
 ## Download
 

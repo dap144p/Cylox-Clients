@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.1.0'
+version = '1.2.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -63,6 +63,7 @@ sourceSets {
             include '**/CyloxClientTransformer.java'
             include '**/CyloxBackgroundHooks.java'
             include '**/CyloxProtocolBridge.java'
+            include '**/CyloxUiHooks.java'
         }
         compileClasspath += sourceSets.main.output
         compileClasspath += viaLibraryFiles
@@ -126,8 +127,9 @@ tasks.register('minecraft189AdapterJar', Jar) {
             'Client-Developer': 'dapdev',
             'TweakClass': 'dev.cylox.client.minecraft189.CyloxTweaker',
             'Minecraft-Version': '1.8.9',
-            'Client-Architecture': 'Vanilla + Embedded Via + Background Hooks',
-            'Protocol-Selection': 'Manual UI'
+            'Client-Architecture': 'Vanilla + Embedded Via + Background Hooks + Cylox UI',
+            'Protocol-Selection': 'Manual UI',
+            'Client-UI': 'Cylox Lightweight Theme'
         )
     }
 }

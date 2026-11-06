@@ -46,6 +46,9 @@ public final class Vanilla189Verifier {
         require("Multiplayer selector action", CyloxClientTransformer.getPatchedSelectorActionClassCount());
         require("Modern Multiplayer selector panel", CyloxClientTransformer.getPatchedSelectorDrawClassCount());
         require("Protocol selector mouse-wheel scroll", CyloxClientTransformer.getPatchedSelectorScrollClassCount());
+        require("Cylox themed vanilla buttons", CyloxClientTransformer.getPatchedButtonThemeClassCount());
+        require("Cylox menu background", CyloxClientTransformer.getPatchedScreenBackgroundClassCount());
+        require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
 
