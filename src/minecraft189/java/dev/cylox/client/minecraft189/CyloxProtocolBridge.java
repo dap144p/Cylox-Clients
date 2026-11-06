@@ -37,6 +37,13 @@ public final class CyloxProtocolBridge {
     private static final int MENU_COLUMNS = 3;
     private static final int MENU_ROWS = 6;
     private static final int PAGE_SIZE = MENU_COLUMNS * MENU_ROWS;
+    private static final String[][] BUTTON_INT_FIELDS = new String[][] {
+        {"id", "field_146127_k", "k"},
+        {"xPosition", "field_146128_h", "h"},
+        {"yPosition", "field_146129_i", "i"},
+        {"width", "field_146120_f", "f"},
+        {"height", "field_146121_g", "g"}
+    };
     private static volatile boolean available;
     private static volatile int selectedProtocolId = NATIVE_PROTOCOL;
     private static volatile boolean selectorMenuOpen;
@@ -77,12 +84,15 @@ public final class CyloxProtocolBridge {
         }
     }
 
-    /** Adds a Select menu beside the vanilla Cancel button on Multiplayer. */
+    /** Adds Select beside vanilla Cancel without changing any vanilla button. */
     public static void addSelectorButton(Object screen) {
         if (!available || screen == null) return;
         try {
             List<Object> buttons = findButtonList(screen);
-            if (buttons == null || buttons.isEmpty()) return;
+            if (buttons == null || buttons.isEmpty()) {
+                System.err.println("[Cylox] Multiplayer button list was not found.");
+                return;
+            }
             removeMenuButtons(buttons);
             selectorMenuOpen = false;
             for (Object button : buttons) {
@@ -93,32 +103,42 @@ public final class CyloxProtocolBridge {
             }
             Object template = buttons.get(0);
             Object cancel = findCancelButton(buttons);
-            int x = 8, y = 8, buttonWidth = 164, buttonHeight = 20;
-            if (cancel != null) {
-                int cancelX = buttonInt(cancel, 1, 8);
-                int cancelY = buttonInt(cancel, 2, 8);
-                int cancelWidth = buttonInt(cancel, 3, 100);
-                int cancelHeight = buttonInt(cancel, 4, 20);
-                y = cancelY;
-                buttonHeight = cancelHeight;
-                if (cancelWidth >= 160) {
-                    int leftWidth = (cancelWidth - 4) / 2;
-                    int rightWidth = cancelWidth - leftWidth - 4;
-                    setButtonInt(cancel, 3, leftWidth);
-                    x = cancelX + leftWidth + 4;
-                    buttonWidth = rightWidth;
-                } else {
-                    buttonWidth = Math.max(80, Math.min(110, cancelWidth));
-                    x = cancelX + cancelWidth + 4;
+            int cancelX = cancel == null ? -1 : buttonInt(cancel, 1, -1);
+            int cancelY = cancel == null ? -1 : buttonInt(cancel, 2, -1);
+            int cancelWidth = cancel == null ? -1 : buttonInt(cancel, 3, -1);
+            int cancelHeight = cancel == null ? 20 : buttonInt(cancel, 4, 20);
+            if (cancelX < 0 || cancelY < 0 || cancelWidth <= 0) {
+                int screenWidth = screenInt(screen, "width", "field_146294_l", "l");
+                int screenHeight = screenInt(screen, "height", "field_146295_m", "m");
+                if (screenWidth <= 0 || screenHeight <= 0) {
+                    System.err.println("[Cylox] Could not resolve vanilla Cancel button coordinates.");
+                    return;
                 }
-            } else {
-                System.err.println("[Cylox] Multiplayer Cancel button not found; using fallback selector position.");
+                // GuiMultiplayer.createButtons(): Cancel is at width/2 + 80, height - 28.
+                cancelX = screenWidth / 2 + 80;
+                cancelY = screenHeight - 28;
+                cancelWidth = 75;
+                cancelHeight = 20;
+            }
+            final int gap = 4;
+            int buttonWidth = 120;
+            int x = cancelX + cancelWidth + gap;
+            int y = cancelY;
+            int screenWidth = screenInt(screen, "width", "field_146294_l", "l");
+            if (screenWidth > 0 && x + buttonWidth > screenWidth - 4) {
+                buttonWidth = Math.max(80, screenWidth - 4 - x);
+            }
+            if (buttonWidth < 80) {
+                buttonWidth = Math.min(120, Math.max(80, cancelX - 8));
+                x = Math.max(4, cancelX - buttonWidth - gap);
             }
             buttons.add(createButton(template, SELECTOR_BUTTON_ID, x, y,
-                buttonWidth, buttonHeight, selectorLabel()));
-            System.out.println("[Cylox] Protocol Select menu added beside Cancel.");
+                buttonWidth, cancelHeight, selectorLabel()));
+            System.out.println("[Cylox] Multiplayer Cancel preserved at (" + cancelX + "," + cancelY
+                + "); Select placed at (" + x + "," + y + "), width " + buttonWidth + ".");
         } catch (Throwable error) {
-            System.err.println("[Cylox] Could not add protocol selector UI: " + error.getMessage());
+            System.err.println("[Cylox] Could not add protocol selector UI: "
+                + error.getClass().getSimpleName() + ": " + error.getMessage());
         }
     }
 
@@ -133,7 +153,7 @@ public final class CyloxProtocolBridge {
                 selectorMenuOpen = !selectorMenuOpen;
                 if (selectorMenuOpen) {
                     selectorPage = pageForSelectedProtocol();
-                    rebuildSelectorMenu(buttons, button);
+                    rebuildSelectorMenu(screen, buttons, button);
                 } else {
                     removeMenuButtons(buttons);
                 }
@@ -141,12 +161,12 @@ public final class CyloxProtocolBridge {
             }
             if (id == PAGE_PREVIOUS_ID) {
                 selectorPage = Math.max(0, selectorPage - 1);
-                rebuildSelectorMenu(buttons, findButton(buttons, SELECTOR_BUTTON_ID));
+                rebuildSelectorMenu(screen, buttons, findButton(buttons, SELECTOR_BUTTON_ID));
                 return;
             }
             if (id == PAGE_NEXT_ID) {
                 selectorPage = Math.min(Math.max(0, pageCount() - 1), selectorPage + 1);
-                rebuildSelectorMenu(buttons, findButton(buttons, SELECTOR_BUTTON_ID));
+                rebuildSelectorMenu(screen, buttons, findButton(buttons, SELECTOR_BUTTON_ID));
                 return;
             }
             if (id >= OPTION_FIRST_ID && id < OPTION_FIRST_ID + PAGE_SIZE) {
@@ -170,7 +190,7 @@ public final class CyloxProtocolBridge {
         }
     }
 
-    private static void rebuildSelectorMenu(List<Object> buttons, Object selector) throws Exception {
+    private static void rebuildSelectorMenu(Object screen, List<Object> buttons, Object selector) throws Exception {
         removeMenuButtons(buttons);
         if (selector == null) return;
         List<ProtocolVersion> versions = getSupportedProtocols();
@@ -179,11 +199,18 @@ public final class CyloxProtocolBridge {
         selectorPage = Math.max(0, Math.min(selectorPage, pages - 1));
         int selectorX = buttonInt(selector, 1, 8);
         int selectorY = buttonInt(selector, 2, 8);
-        int selectorWidth = buttonInt(selector, 3, 100);
-        int menuWidth = Math.max(300, Math.min(420, selectorWidth * 4));
+        int selectorWidth = buttonInt(selector, 3, 120);
+        int screenWidth = screenInt(screen, "width", "field_146294_l", "l");
+        int screenHeight = screenInt(screen, "height", "field_146295_m", "m");
+        int menuWidth = screenWidth > 0 ? Math.min(420, Math.max(240, screenWidth - 8)) : 360;
         int columnWidth = (menuWidth - 8) / MENU_COLUMNS;
-        int menuX = Math.max(4, selectorX + selectorWidth / 2 - menuWidth / 2);
-        int navigationY = Math.max(28, selectorY - (MENU_ROWS * 24 + 28));
+        int menuX = selectorX + selectorWidth / 2 - menuWidth / 2;
+        if (screenWidth > 0) menuX = Math.max(4, Math.min(menuX, screenWidth - menuWidth - 4));
+        else menuX = Math.max(4, menuX);
+        int menuHeight = 164;
+        int navigationY = selectorY - (MENU_ROWS * 24 + 28);
+        if (screenHeight > 0) navigationY = Math.max(4, Math.min(navigationY, screenHeight - menuHeight - 4));
+        else navigationY = Math.max(4, navigationY);
         buttons.add(createButton(selector, PAGE_PREVIOUS_ID, menuX, navigationY, columnWidth, 20, "Previous"));
         buttons.add(createButton(selector, PAGE_LABEL_ID, menuX + columnWidth + 4, navigationY,
             columnWidth, 20, "Page " + (selectorPage + 1) + "/" + pages));
@@ -202,6 +229,7 @@ public final class CyloxProtocolBridge {
             int y = navigationY + 24 + row * 24;
             buttons.add(createButton(selector, OPTION_FIRST_ID + offset, x, y, columnWidth, 20, label));
         }
+        System.out.println("[Cylox] Protocol selection menu opened: page " + (selectorPage + 1) + "/" + pages + ".");
     }
 
     private static int pageForSelectedProtocol() {
@@ -253,55 +281,60 @@ public final class CyloxProtocolBridge {
         return constructor.newInstance(id, x, y, width, height, label);
     }
 
-    private static List<Field> integerFields(Object target) {
-        List<Field> fields = new ArrayList<Field>();
+    private static Field findField(Object target, String... names) {
+        if (target == null) return null;
         for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (field.getType() != Integer.TYPE) continue;
+            for (String name : names) {
                 try {
+                    Field field = type.getDeclaredField(name);
                     field.setAccessible(true);
-                    fields.add(field);
-                } catch (Throwable ignored) { }
+                    return field;
+                } catch (NoSuchFieldException ignored) {
+                    // Try the next MCP, SRG or obfuscated field name.
+                } catch (Throwable ignored) {
+                    // Inaccessible field; try another mapping.
+                }
             }
         }
-        return fields;
+        return null;
     }
 
-    private static int buttonId(Object button) {
-        List<Field> fields = integerFields(button);
-        if (fields.isEmpty()) return -1;
+    private static int readIntField(Object target, int fallback, String... names) {
+        Field field = findField(target, names);
+        if (field == null || field.getType() != Integer.TYPE) return fallback;
         try {
-            return fields.get(0).getInt(button);
-        } catch (Throwable ignored) {
-            return -1;
-        }
-    }
-
-    private static int buttonInt(Object button, int index, int fallback) {
-        List<Field> fields = integerFields(button);
-        if (index < 0 || index >= fields.size()) return fallback;
-        try {
-            return fields.get(index).getInt(button);
+            return field.getInt(target);
         } catch (Throwable ignored) {
             return fallback;
         }
     }
 
-    private static void setButtonInt(Object button, int index, int value) {
-        List<Field> fields = integerFields(button);
-        if (index < 0 || index >= fields.size()) return;
-        try {
-            fields.get(index).setInt(button, value);
-        } catch (Throwable ignored) { }
+    private static int screenInt(Object screen, String mcpName, String srgName, String obfuscatedName) {
+        return readIntField(screen, 0, mcpName, srgName, obfuscatedName);
+    }
+
+    private static int buttonId(Object button) {
+        return buttonInt(button, 0, -1);
+    }
+
+    private static int buttonInt(Object button, int index, int fallback) {
+        if (index < 0 || index >= BUTTON_INT_FIELDS.length) return fallback;
+        return readIntField(button, fallback, BUTTON_INT_FIELDS[index]);
     }
 
     private static String buttonLabel(Object button) {
-        for (Class<?> type = button.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (field.getType() != String.class) continue;
+        Field field = findField(button, "displayString", "field_146126_j", "j");
+        if (field != null && field.getType() == String.class) {
+            try {
+                return (String) field.get(button);
+            } catch (Throwable ignored) { }
+        }
+        for (Class<?> type = button == null ? null : button.getClass(); type != null; type = type.getSuperclass()) {
+            for (Field candidate : type.getDeclaredFields()) {
+                if (candidate.getType() != String.class) continue;
                 try {
-                    field.setAccessible(true);
-                    Object value = field.get(button);
+                    candidate.setAccessible(true);
+                    Object value = candidate.get(button);
                     if (value instanceof String) return (String) value;
                 } catch (Throwable ignored) { }
             }
@@ -416,25 +449,23 @@ public final class CyloxProtocolBridge {
     }
 
     private static boolean hasButtonId(Object button, int expectedId) {
-        for (Class<?> type = button.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (field.getType() != Integer.TYPE) continue;
-                try {
-                    field.setAccessible(true);
-                    if (field.getInt(button) == expectedId) return true;
-                } catch (Throwable ignored) { }
-            }
-        }
-        return false;
+        return buttonId(button) == expectedId;
     }
 
     private static void setButtonLabel(Object button, String label) {
-        for (Class<?> type = button.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (field.getType() != String.class) continue;
+        Field field = findField(button, "displayString", "field_146126_j", "j");
+        if (field != null && field.getType() == String.class) {
+            try {
+                field.set(button, label);
+                return;
+            } catch (Throwable ignored) { }
+        }
+        for (Class<?> type = button == null ? null : button.getClass(); type != null; type = type.getSuperclass()) {
+            for (Field candidate : type.getDeclaredFields()) {
+                if (candidate.getType() != String.class) continue;
                 try {
-                    field.setAccessible(true);
-                    field.set(button, label);
+                    candidate.setAccessible(true);
+                    candidate.set(button, label);
                     return;
                 } catch (Throwable ignored) { }
             }

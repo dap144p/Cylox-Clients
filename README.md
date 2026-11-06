@@ -1,7 +1,7 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.0.3  
+**Version:** 1.0.5  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -21,8 +21,8 @@ This is not an Android background service. The launcher must keep the game proce
 ## Manual Via protocol selector
 
 - ViaVersion, ViaBackwards and ViaRewind are bundled inside **the single Cylox client JAR**.
-- Open Multiplayer and tap **Select: [version]** beside the **Cancel** button.
-- A menu opens with supported target versions. Choose the exact protocol version required by the destination server; use the page controls for additional versions.
+- Open Multiplayer and tap **Select: [version]** immediately to the right of the standard **Cancel** button. Cylox leaves the vanilla Cancel button and the other Multiplayer controls at their original coordinates.
+- A menu opens above the selector with supported target versions. Choose the exact protocol version required by the destination server; use the page controls for additional versions.
 - The selected target is saved in `cylox/protocol.properties` inside the game directory.
 - Default: native Minecraft **1.8.9** (protocol 47).
 - Cylox checks that a translation route exists from 1.8.9 to the selected target before connecting, and logs the target used by the handshake.
@@ -66,8 +66,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.0.1.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Background-Client-1.8.9-1.0.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.0.5.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Background-Client-1.8.9-1.0.5.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 

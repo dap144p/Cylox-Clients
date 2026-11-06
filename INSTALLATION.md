@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.0.4
+Version: 1.0.5
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
@@ -9,8 +9,8 @@ INSTALL
 4. Refresh the launcher's version list.
 5. Select Cylox-1.8.9 and launch it. Its standalone profile declares the vanilla 1.8.9 client JAR, game libraries and asset index as dependencies, allowing MJ Launcher to download missing files. A separate vanilla 1.8.9 profile should not be required.
 6. Keep the launcher's normal Java and renderer settings.
-7. Open Multiplayer and tap "Select: [version]" beside "Cancel".
-8. Choose the exact target protocol from the menu before connecting. The selection is saved in cylox/protocol.properties.
+7. Open Multiplayer and tap "Select: [version]" immediately to the right of the standard "Cancel" button. The vanilla Cancel and other Multiplayer buttons keep their original positions.
+8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
 
 PROTOCOL
 - ViaVersion, ViaBackwards and ViaRewind are embedded inside the single Cylox client JAR.
