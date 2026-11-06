@@ -527,5 +527,3 @@ public final class CyloxProtocolBridge {
         channel.pipeline().addLast(new MCPVLBPipeline(user));
     }
 }
-
-}
