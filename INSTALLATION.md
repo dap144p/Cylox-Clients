@@ -13,9 +13,9 @@ INSTALL
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
 
 RENDERER CORE
-- Near-player chunk rebuilds use Minecraft's existing worker queue instead of always compiling synchronously on the render thread.
-- The mobile-focused budget is at most 2 chunk workers and 2 render-buffer builders per worker.
-- If the worker queue is full, Cylox falls back to the vanilla synchronous rebuild so chunk updates are preserved.
+- Near-player dirty chunks join the same time-budgeted asynchronous update queue used by vanilla for distant chunks, avoiding synchronous compilation on the render thread.
+- Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool without creating additional threads.
+- Vanilla's time-budgeted update loop keeps remaining dirty chunks queued when the worker queue is full or the frame budget expires.
 - Normal chunk meshes, world visibility, entities, tile entities, particles, HUD, controls, ticks and networking remain enabled. This feature does not change Video Settings or options.txt.
 - This is a targeted Sodium-inspired scheduler, not a full Sodium port. Test frame time and stability on the target device.
 
