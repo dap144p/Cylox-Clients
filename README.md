@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.3.2  
+**Version:** 1.3.3  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -18,12 +18,13 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
-## Lightweight in-game graphics profile
+## Sodium-inspired renderer scheduling
 
-- Applies once after Minecraft loads `options.txt`; Cylox does not overwrite the file with its own defaults.
-- Caps render distance at **4 chunks** (lower user values are preserved), disables Fancy Graphics, smooth lighting/AO, clouds and entity shadows, and sets particles to **Minimal**.
-- Keeps the world, blocks, entities, player model, HUD, input, game ticks and network processing active. This is a normal Minecraft world with lower-cost visual settings, not a 1D/monochrome render or entity-removal mode.
-- Video settings can still be changed during a session. The lightweight preset is applied again at the next launch.
+- Routes near-player dirty chunks into the same time-budgeted asynchronous update queue used by vanilla for distant chunks, instead of rebuilding them synchronously on the render thread.
+- Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads or change the buffer count.
+- Uses vanilla's `updateChunks(long)` time budget to submit dirty chunks; when the worker queue is full or the frame budget expires, remaining chunks stay queued for a later update.
+- Keeps vanilla chunk meshes, frustum/visibility culling, block layers, entities, tile entities, particles, HUD, controls, game ticks and networking intact. This feature does not change Video Settings or write to `options.txt`.
+- This is a targeted Sodium-inspired scheduling optimization, not a port of Sodium. Actual frame-time and stability improvements still require testing on the target launcher/device.
 
 ## Cylox adaptive lightweight UI
 
@@ -48,7 +49,7 @@ This is not an Android background service. The launcher must keep the game proce
 
 ## Scope
 
-Included: Cylox main-menu theme, themed vanilla buttons and menu backgrounds, manual version-family selector, embedded Via protocol translation, outgoing-handshake verification, background render suppression and a small 1.8.9 LaunchWrapper adapter.
+Included: Cylox main-menu theme, themed vanilla buttons and menu backgrounds, manual version-family selector, embedded Via protocol translation, outgoing-handshake verification, background render suppression and a 1.8.9 LaunchWrapper adapter with a mobile-focused chunk scheduler.
 
 Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, custom HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
 
@@ -82,8 +83,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.3.0.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.3.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.3.3.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.3.3.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 

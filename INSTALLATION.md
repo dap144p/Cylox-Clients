@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.2
+Version: 1.3.3
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
@@ -12,11 +12,12 @@ INSTALL
 7. Open Multiplayer and tap "Select: [version]" beside the standard "Cancel" button. The modern menu groups versions as 1.8x, 1.9x, 1.10x and onward; scroll with the mouse wheel or arrow controls.
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
 
-PERFORMANCE PROFILE
-- At startup, render distance is capped at 4 chunks (any lower configured value is kept).
-- Fancy Graphics, smooth lighting/AO, clouds and entity shadows are disabled; particles are set to Minimal.
-- World blocks, entities, player, HUD, input, ticks and network remain active. This is still normal Minecraft rendering with lighter visual settings.
-- Cylox applies this profile in memory after reading options.txt; it does not overwrite the options file. Changes made in Video Settings work for the current session and the profile is reapplied on the next launch.
+RENDERER CORE
+- Near-player dirty chunks join the same time-budgeted asynchronous update queue used by vanilla for distant chunks, avoiding synchronous compilation on the render thread.
+- Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool without creating additional threads.
+- Vanilla's time-budgeted update loop keeps remaining dirty chunks queued when the worker queue is full or the frame budget expires.
+- Normal chunk meshes, world visibility, entities, tile entities, particles, HUD, controls, ticks and networking remain enabled. This feature does not change Video Settings or options.txt.
+- This is a targeted Sodium-inspired scheduler, not a full Sodium port. Test frame time and stability on the target device.
 
 CYLOX UI
 - The main menu uses a translucent Cylox dark theme instead of the vanilla panorama.
