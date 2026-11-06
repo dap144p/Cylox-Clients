@@ -681,7 +681,9 @@ public final class CyloxProtocolBridge {
                 return;
             }
 
-            setTargetProtocol(selected);
+            // The global Via target is already applied at startup or when the user
+            // changes the selector. Do not reload it on a Netty event-loop thread for
+            // every connection; only install the per-channel handlers here.
             attachVia(channel);
 
             final boolean decoderReady = channel.pipeline().get("via-decoder") != null;

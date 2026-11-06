@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.3.4  
+**Version:** 1.3.5  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -18,12 +18,13 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
-## Native chunk scheduling (1.3.4)
+## Vanilla renderer and connection stability (1.3.5)
 
-- Removes the 1.3.3 override that sent near-player dirty chunks through the delayed, time-budgeted queue. That change could make nearby terrain appear late and increase visible pop-in.
-- Restores Minecraft 1.8.9's own near/far chunk-update decision: nearby work follows the native immediate path, while the distant-work queue and its existing workers remain vanilla-managed.
-- Does not add worker threads, change the render-buffer pool, disable world features, or alter Video Settings / `options.txt`.
-- This is a regression correction, not a claim that a new renderer has been implemented or that FPS has been benchmarked. Actual frame-time and stability improvements still require testing on MJ Launcher and the target device.
+- Keeps Minecraft 1.8.9's original chunk scheduler, `WorldRenderer`, culling, render layers and `RegionRenderCacheBuilder` pool. Cylox does not route near chunks to a delayed queue or change normal graphics settings.
+- Chunk buffers remain pooled and grow on demand for large meshes. Cylox does not preallocate multi-megabyte buffers for every layer at startup, avoiding an unnecessary fixed memory increase on low-memory Android devices.
+- Applies the selected Via target when the game initializes or when the user changes the protocol selector. A new Netty channel reuses that configured target and only attaches its per-channel handlers; it no longer reloads Via's global protocol manager on each connection.
+- This removes redundant connection-setup work. It is not a claim of a measured FPS increase, and it does not yet identify the exact cause of the packet exceptions in the supplied log.
+- Actual frame-time, memory and connection stability still need testing on MJ Launcher and the target device.
 
 ## Cylox adaptive lightweight UI
 
@@ -82,8 +83,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.3.4.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.3.4.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.3.5.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.3.5.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
