@@ -1,7 +1,7 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.2.3  
+**Version:** 1.3.0  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -18,13 +18,14 @@ Cylox is a minimal 1.8.9 client adapter. Its gameplay-side purpose is to reduce 
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
-## Cylox lightweight UI
+## Cylox adaptive lightweight UI
 
-- Replaces the main-menu panorama and vanilla title renderer with a static Cylox screen.
-- Applies translucent dark-navy buttons with cyan/orange accents; hover states remain more visible for PvP use.
-- Uses a semi-transparent dark overlay on standard GUI screens so the game world remains visible behind menus.
-- Keeps the original button objects, IDs, click actions and protocol selector behavior.
-- Keeps menus, buttons and the protocol selector semi-transparent, with readable text and no blur or animation. Uses immediate-mode rectangles and Minecraft's existing font renderer; no added UI framework, textures or shaders.
+- Uses one consistent dark navy, cyan and orange visual system across the main menu, standard menu backgrounds, vanilla buttons and the protocol selector.
+- Keeps backgrounds and controls semi-transparent so gameplay can remain visible behind supported screens; button hover and focus states become more prominent without hiding the world.
+- Adapts protocol-selector row count to the available screen height and keeps the full protocol list scrollable.
+- Clips long button labels to their available width and preserves original vanilla button objects, IDs and click actions.
+- Caches reflective button and FontRenderer accessors, and builds the supported protocol-family list once instead of repeating reflection and route discovery every frame.
+- Uses immediate-mode rectangles and Minecraft's existing font renderer; no added UI framework, texture packs, blur, shaders or animations.
 
 ## Manual Via protocol selector
 
@@ -74,8 +75,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.2.3.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Background-Client-1.8.9-1.2.3.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.3.0.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Background-Client-1.8.9-1.3.0.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
