@@ -78,7 +78,7 @@ tasks.register('downloadViaLibraries') {
                 while (entries.hasMoreElements()) {
                     def entry = entries.nextElement()
                     if (entry.isDirectory() || !entry.name.endsWith('.class')
-                        || entry.name.startsWith('META-INF/versions/')) continue
+                        || entry.name.startsWith('META-INF/versions/') || entry.name == 'module-info.class') continue
                     archive.getInputStream(entry).withCloseable { input ->
                         byte[] header = new byte[8]
                         int offset = 0
