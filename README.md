@@ -1,7 +1,7 @@
 # Cylox Client — Background Edition
 
 **Developer:** dapdev  
-**Version:** 1.2.2  
+**Version:** 1.2.3  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -21,10 +21,10 @@ This is not an Android background service. The launcher must keep the game proce
 ## Cylox lightweight UI
 
 - Replaces the main-menu panorama and vanilla title renderer with a static Cylox screen.
-- Applies a dark navy, cyan and orange theme to vanilla buttons.
-- Replaces the tiled vanilla options background on standard GUI screens with a static dark canvas.
+- Applies translucent dark-navy buttons with cyan/orange accents; hover states remain more visible for PvP use.
+- Uses a semi-transparent dark overlay on standard GUI screens so the game world remains visible behind menus.
 - Keeps the original button objects, IDs, click actions and protocol selector behavior.
-- Uses immediate-mode rectangles and Minecraft's existing font renderer; no added UI framework, textures, blur, shaders or animations.
+- Keeps menus, buttons and the protocol selector semi-transparent, with readable text and no blur or animation. Uses immediate-mode rectangles and Minecraft's existing font renderer; no added UI framework, textures or shaders.
 
 ## Manual Via protocol selector
 
@@ -74,8 +74,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.2.2.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Background-Client-1.8.9-1.2.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.2.3.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Background-Client-1.8.9-1.2.3.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
