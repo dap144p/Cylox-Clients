@@ -130,8 +130,8 @@ jobs:
           - No automatic server-version detection or status-ping protocol selection.
           - Uses translucent dark menus, buttons and protocol selector panels to keep the gameplay visible behind the UI, with readable text.
           - Adapts protocol-selector rows to screen height, fits long button labels, caches UI reflection lookups and caches protocol-family discovery.
-          - Uses a mobile-focused chunk worker budget: at most 2 chunk workers and 2 render-buffer builders per worker.
-          - Routes near-player chunk rebuilds through the vanilla background worker queue instead of always rebuilding them synchronously on the render thread; falls back to vanilla synchronous rebuilding if the queue is full.
+          - Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads.
+          - Routes near-player dirty chunks into the same time-budgeted asynchronous queue as distant chunks; vanilla keeps unsubmitted chunks queued when its worker queue is full or the frame time budget expires.
           - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. The renderer feature does not modify Video Settings or options.txt.
           - Automatically skips vanilla rendering while the LWJGL display is inactive or hidden.
           - Completely skips the vanilla EntityRenderer frame while the display is inactive or hidden, reducing world rendering to 0 FPS.
