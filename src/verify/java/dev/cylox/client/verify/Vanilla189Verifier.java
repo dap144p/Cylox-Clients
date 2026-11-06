@@ -49,6 +49,7 @@ public final class Vanilla189Verifier {
         require("Cylox themed vanilla buttons", CyloxClientTransformer.getPatchedButtonThemeClassCount());
         require("Cylox menu background", CyloxClientTransformer.getPatchedScreenBackgroundClassCount());
         require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
+        require("terrain render-graph scratch reuse", CyloxClientTransformer.getPatchedRenderGraphClassCount());
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
 
