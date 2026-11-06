@@ -82,10 +82,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
-            boolean guiScreenBaseClass = hasMethodDescriptor(node, "(IIF)V")
-                && hasMethodDescriptor(node, "(I)V");
-            boolean mainMenuClass = hasClassMarkers(node,
-                "menu.singleplayer", "menu.multiplayer", "menu.options", "menu.quit");
+            boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
+                || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
+            boolean mainMenuClass = isMinecraftGuiClass(name, transformedName, "GuiMainMenu")
+                || hasClassMarkers(node, "menu.singleplayer", "menu.multiplayer", "menu.options", "menu.quit");
 
             for (MethodNode method : node.methods) {
                 if ((method.access & Opcodes.ACC_STATIC) == 0) {
@@ -249,6 +249,19 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         }
     }
 
+
+    private static boolean isMinecraftGuiClass(String name, String transformedName, String simpleName) {
+        String expected = "net.minecraft.client.gui." + simpleName;
+        return matchesClassName(name, expected, simpleName)
+            || matchesClassName(transformedName, expected, simpleName);
+    }
+
+    private static boolean matchesClassName(String candidate, String expected, String simpleName) {
+        if (candidate == null) return false;
+        String normalized = candidate.replace('/', '.');
+        return normalized.equals(expected) || normalized.equals(simpleName)
+            || normalized.endsWith("." + simpleName);
+    }
 
     private static boolean hasMethodDescriptor(ClassNode node, String descriptor) {
         for (MethodNode method : node.methods) if (descriptor.equals(method.desc)) return true;
