@@ -122,7 +122,7 @@ jobs:
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with the vanilla renderer preserved and reduced Via packet-buffer reallocations.
+          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla chunk scheduling, reusable terrain-culling scratch collections and reduced Via packet-buffer reallocations.
 
           - The Cylox client and ViaVersion, ViaBackwards and ViaRewind protocol features are bundled into ONE JAR.
           - The standalone profile declares Minecraft 1.8.9's official client artifact, libraries and asset index as launcher dependencies; a separate vanilla profile is not required when the launcher resolves legacy libraries correctly.
@@ -132,6 +132,7 @@ jobs:
           - Adapts protocol-selector rows to screen height, fits long button labels, caches UI reflection lookups and caches protocol-family discovery.
           - Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads.
           - Preserves Minecraft 1.8.9's native near/far chunk-update scheduling; Cylox does not add a custom chunk queue or renderer.
+          - Reuses the render-thread visible-chunk list and FIFO terrain traversal queue in RenderGlobal.setupTerrain, avoiding repeated scratch collection and linked-node allocation when the culling graph is rebuilt; culling decisions and ordering remain vanilla.
           - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Video Settings and options.txt are unchanged.
           - Sizes Via's temporary packet buffers from the incoming packet length (minimum 256 bytes) to avoid unnecessary initial buffer growth; translated packets can still expand when required.
           - Applies the selected Via target at startup or selector change; channel initialization reuses it instead of reloading Via's global protocol manager for every connection.
