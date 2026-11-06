@@ -30,6 +30,73 @@ public final class CyloxRenderHooks {
 
     private CyloxRenderHooks() { }
 
+    private static volatile long nextBudgetSampleNanos;
+    private static volatile long uploadBudgetNanos = 250_000L;
+
+    /**
+     * Vanilla 1.8.9 passes the frame-start timestamp to RenderGlobal.updateChunks.
+     * By the time uploads are processed that deadline has already expired, so
+     * runChunkUploads normally drains only its first queued upload. Extend the
+     * deadline by a small mode-aware budget so the queue can make progress.
+     *
+     * Integrated singleplayer gets a smaller budget, reduced further when its
+     * recent server tick cost is high. Reflection failure is deliberately
+     * conservative: it falls back to the smallest budget.
+     */
+    public static long extendChunkDeadline(long originalDeadlineNanos) {
+        if (originalDeadlineNanos == 0L) return 0L;
+        long budget = currentUploadBudgetNanos();
+        long proposed = System.nanoTime() + budget;
+        return Math.max(originalDeadlineNanos, proposed);
+    }
+
+    private static long currentUploadBudgetNanos() {
+        long now = System.nanoTime();
+        if (now < nextBudgetSampleNanos) return uploadBudgetNanos;
+
+        synchronized (CyloxRenderHooks.class) {
+            now = System.nanoTime();
+            if (now < nextBudgetSampleNanos) return uploadBudgetNanos;
+            long nextBudget = 250_000L;
+            try {
+                Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
+                Object minecraft = minecraftClass.getMethod("getMinecraft").invoke(null);
+                boolean singleplayer = Boolean.TRUE.equals(
+                    minecraftClass.getMethod("isSingleplayer").invoke(minecraft));
+
+                if (!singleplayer) {
+                    nextBudget = 2_000_000L;
+                } else {
+                    Object server = minecraftClass.getMethod("getIntegratedServer").invoke(minecraft);
+                    if (server != null) {
+                        Object value = server.getClass().getField("tickTimeArray").get(server);
+                        if (value instanceof long[]) {
+                            long[] tickTimes = (long[]) value;
+                            long total = 0L;
+                            int samples = 0;
+                            for (long tickTime : tickTimes) {
+                                if (tickTime > 0L) {
+                                    total += tickTime;
+                                    samples++;
+                                }
+                            }
+                            double averageTickNanos = samples == 0 ? 0.0D
+                                : (double) total / (double) samples;
+                            nextBudget = averageTickNanos > 75_000_000.0D
+                                ? 250_000L : 1_000_000L;
+                        }
+                    }
+                }
+            } catch (Throwable unavailable) {
+                // Keep the conservative default if runtime mapping/reflection differs.
+                nextBudget = 250_000L;
+            }
+            uploadBudgetNanos = nextBudget;
+            nextBudgetSampleNanos = now + 500_000_000L;
+            return nextBudget;
+        }
+    }
+
     /**
      * Returns the render-thread scratch list used for the visible chunk graph.
      * The owner argument keeps the call site explicit and documents that this
