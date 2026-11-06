@@ -462,13 +462,23 @@ public final class CyloxProtocolBridge {
     }
 
     private static String familyLabel(String versionName) {
-        if (versionName == null || !versionName.startsWith("1.")) return null;
-        int nextDot = versionName.indexOf('.', 2);
-        String minorText = nextDot < 0 ? versionName.substring(2) : versionName.substring(2, nextDot);
+        if (versionName == null) return null;
+        int firstDot = versionName.indexOf('.');
+        if (firstDot <= 0 || firstDot == versionName.length() - 1) return null;
         try {
+            int major = Integer.parseInt(versionName.substring(0, firstDot));
+            int nextDot = versionName.indexOf('.', firstDot + 1);
+            String minorText = nextDot < 0
+                ? versionName.substring(firstDot + 1)
+                : versionName.substring(firstDot + 1, nextDot);
             int minor = Integer.parseInt(minorText);
-            if (minor < 8) return null;
-            return "1." + minor + "x";
+            if (major == 1) {
+                if (minor < 8) return null;
+                return "1." + minor + "x";
+            }
+            // New Minecraft release naming (26.1, 26.2, 26.3, ...) is grouped by major.minor.
+            if (major >= 26) return major + "." + minor + "x";
+            return null;
         } catch (NumberFormatException ignored) {
             return null;
         }
