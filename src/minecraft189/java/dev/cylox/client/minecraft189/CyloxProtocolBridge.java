@@ -32,7 +32,7 @@ public final class CyloxProtocolBridge {
     private static final int OPTION_FIRST_ID = 20200;
     private static final int SCROLL_UP_ID = 20290;
     private static final int SCROLL_DOWN_ID = 20291;
-    private static final int MENU_VISIBLE_ROWS = 7;
+    private static final int MENU_VISIBLE_ROWS = 5;
     private static final int PANEL_WIDTH = 360;
     private static final int PANEL_HEIGHT = 250;
     private static final int PANEL_ROW_HEIGHT = 24;
