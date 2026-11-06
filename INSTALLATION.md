@@ -1,6 +1,6 @@
 CYLOX BACKGROUND CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.0.7
+Version: 1.0.8
 
 INSTALL
 1. Download the complete Background Client ZIP from GitHub Releases.
@@ -16,10 +16,10 @@ PROTOCOL
 - ViaVersion, ViaBackwards and ViaRewind are embedded inside the single Cylox client JAR.
 - No separate Via JARs need to be downloaded or installed.
 - Default target is native 1.8.9 (protocol 47).
-- The menu only lists target versions with a known Via translation route from 1.8.9.
+- The menu only lists version families with an actual Via translation route from 1.8.9. All listed families use the same general-purpose Via pipeline.
 - Cylox does not ping servers to select a protocol automatically.
 - Choose a protocol family equal to or newer than the minimum server version. For a server requiring 1.13+, choose 1.13x or newer.
-- Cylox attaches Via's encoder and decoder during vanilla channel initialization, before the initial handshake is sent. Logs show the selected route and the actual protocol ID in the outgoing handshake. For 1.13x, that ID should be 393.
+- Cylox verifies that the correct Netty Channel argument is received by the initializer hook, then confirms both Via encoder/decoder are active. Logs show the selected route and actual outgoing handshake ID for any selected family.
 
 BACKGROUND
 - Automatically skips vanilla world/UI rendering while the LWJGL display is inactive or hidden.

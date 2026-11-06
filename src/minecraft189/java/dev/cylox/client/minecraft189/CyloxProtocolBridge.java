@@ -10,7 +10,6 @@ import de.florianmichael.vialoadingbase.netty.event.CompressionReorderEvent;
 import de.florianmichael.viamcp.MCPVLBPipeline;
 import dev.cylox.client.protocol.CyloxProtocolTargetResolver;
 import io.netty.channel.Channel;
-import io.netty.channel.socket.SocketChannel;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -477,7 +476,9 @@ public final class CyloxProtocolBridge {
 
     private static List<ProtocolChoice> getProtocolChoices() {
         Map<String, ProtocolChoice> families = new HashMap<String, ProtocolChoice>();
+        ProtocolVersion nativeVersion = ProtocolVersion.getProtocol(NATIVE_PROTOCOL);
         for (ProtocolVersion version : getSupportedProtocols()) {
+            if (!hasTranslationRoute(nativeVersion, version)) continue;
             String label = familyLabel(version.getName());
             if (label == null) continue;
             String exactName = label.substring(0, label.length() - 1);
@@ -497,10 +498,18 @@ public final class CyloxProtocolBridge {
         return result;
     }
 
+    private static boolean hasTranslationRoute(ProtocolVersion source, ProtocolVersion target) {
+        if (source == null || target == null) return false;
+        if (source.getVersion() == target.getVersion()) return true;
+        return Via.getManager().getProtocolManager().getProtocolPath(source, target) != null;
+    }
+
     private static int normalizeProtocol(int requestedProtocolId) {
-        for (ProtocolVersion version : getSupportedProtocols()) {
-            if (version.getVersion() == requestedProtocolId) return requestedProtocolId;
-        }
+        ProtocolVersion requested = ProtocolVersion.getProtocol(requestedProtocolId);
+        ProtocolVersion nativeVersion = ProtocolVersion.getProtocol(NATIVE_PROTOCOL);
+        if (requested != null && hasTranslationRoute(nativeVersion, requested)) return requestedProtocolId;
+        System.err.println("[Cylox] Saved target protocol " + requestedProtocolId
+            + " has no 1.8.9 translation route; reset to native protocol " + NATIVE_PROTOCOL + ".");
         return NATIVE_PROTOCOL;
     }
 
@@ -624,22 +633,43 @@ public final class CyloxProtocolBridge {
     }
 
     /**
-     * Called from the vanilla ChannelInitializer after Minecraft installs its
-     * timeout/decoder/encoder/packet handlers and before the first handshake.
+     * Called at the end of the vanilla Netty ChannelInitializer, before handshake.
+     * The channel may be exposed as Channel rather than SocketChannel by some launchers.
      */
     public static void install(Object candidate) {
-        if (!available || !(candidate instanceof SocketChannel)) return;
+        System.out.println("[Cylox] Via initializer reached: available=" + available
+            + ", candidate=" + (candidate == null ? "null" : candidate.getClass().getName()));
+        if (!available) {
+            System.err.println("[Cylox] Via pipeline skipped: Via bridge is not initialized.");
+            return;
+        }
+        if (!(candidate instanceof Channel)) {
+            System.err.println("[Cylox] Via pipeline skipped: initializer argument is not this Netty Channel type.");
+            return;
+        }
         try {
-            Channel channel = (Channel) candidate;
-            int selected = CyloxProtocolTargetResolver.resolve(true, selectedProtocolId);
-            if (selected == NATIVE_PROTOCOL) return;
+            final Channel channel = (Channel) candidate;
+            final List<String> names = channel.pipeline().names();
+            System.out.println("[Cylox] Vanilla Netty pipeline: " + names + ".");
+            if (channel.pipeline().get("decoder") == null || channel.pipeline().get("encoder") == null) {
+                System.err.println("[Cylox] Via pipeline skipped: vanilla decoder/encoder not ready; pipeline=" + names + ".");
+                return;
+            }
+
+            final int selected = CyloxProtocolTargetResolver.resolve(true, selectedProtocolId);
+            if (selected == NATIVE_PROTOCOL) {
+                System.out.println("[Cylox] Native 1.8.9 selected; Via translation is not required.");
+                return;
+            }
 
             setTargetProtocol(selected);
             attachVia(channel);
 
-            if (channel.pipeline().get("via-decoder") == null
-                || channel.pipeline().get("via-encoder") == null) {
-                throw new IllegalStateException("Via encoder/decoder were not inserted into the vanilla pipeline");
+            final boolean decoderReady = channel.pipeline().get("via-decoder") != null;
+            final boolean encoderReady = channel.pipeline().get("via-encoder") != null;
+            if (!decoderReady || !encoderReady) {
+                throw new IllegalStateException("Via handlers missing after attach (decoder="
+                    + decoderReady + ", encoder=" + encoderReady + "); pipeline=" + channel.pipeline().names());
             }
 
             ProtocolVersion target = ProtocolVersion.getProtocol(selected);
@@ -647,9 +677,11 @@ public final class CyloxProtocolBridge {
                 + "1.8.9 (protocol " + NATIVE_PROTOCOL + ") -> "
                 + (target == null ? selected : target.getName())
                 + " (protocol " + selected + ").");
+            System.out.println("[Cylox] Active Netty pipeline: " + channel.pipeline().names() + ".");
         } catch (Throwable error) {
             System.err.println("[Cylox] Could not attach Via before initial handshake: "
                 + error.getClass().getSimpleName() + ": " + error.getMessage());
+            error.printStackTrace();
         }
     }
 

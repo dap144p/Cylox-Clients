@@ -3,6 +3,7 @@ package dev.cylox.client.minecraft189;
 import java.util.HashSet;
 import java.util.Set;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -77,13 +78,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         changed = true;
                     }
 
-                    boolean socketInitializer = method.desc.contains("Lio/netty/channel/socket/SocketChannel;")
-                        || method.desc.contains("Lio/netty/channel/Channel;");
-                    if (!protocolPipelinePatched && socketInitializer
+                    int channelArgumentSlot = channelArgumentSlot(method.desc);
+                    if (!protocolPipelinePatched && channelArgumentSlot >= 0
                         && hasMarkers(method, "timeout", "splitter", "decoder", "prepender", "encoder", "packet_handler")) {
-                        insertBeforeReturns(method, VIA, "install", "(Ljava/lang/Object;)V", 1);
+                        insertBeforeReturns(method, VIA, "install", "(Ljava/lang/Object;)V", channelArgumentSlot);
                         protocolPipelinePatched = true;
                         changed = true;
+                        System.out.println("[Cylox] Via initializer hook configured: "
+                            + node.name + "." + method.name + method.desc
+                            + ", channelLocal=" + channelArgumentSlot + ".");
                     }
 
                     if (!compressionPatched && hasMarkers(method, "decompress", "compress")) {
@@ -203,6 +206,23 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 + error.getClass().getSimpleName() + ": " + error.getMessage());
             return basicClass;
         }
+    }
+
+    /** Finds the local-variable slot for the Channel argument in an instance method. */
+    private static int channelArgumentSlot(String descriptor) {
+        Type[] arguments = Type.getArgumentTypes(descriptor);
+        int slot = 1; // instance method: slot 0 is this
+        for (Type argument : arguments) {
+            if (argument.getSort() == Type.OBJECT) {
+                String name = argument.getInternalName();
+                if ("io/netty/channel/Channel".equals(name)
+                    || "io/netty/channel/socket/SocketChannel".equals(name)) {
+                    return slot;
+                }
+            }
+            slot += argument.getSize();
+        }
+        return -1;
     }
 
     private static void insertRenderGuard(MethodNode method) {

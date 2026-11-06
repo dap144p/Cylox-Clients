@@ -38,7 +38,15 @@ public abstract class VLBPipeline extends ChannelInboundHandlerAdapter {
         super.handlerAdded(ctx);
 
         ctx.pipeline().addBefore(getDecoderHandlerName(), VIA_DECODER_HANDLER_NAME, this.createVLBViaDecodeHandler());
-        ctx.pipeline().addBefore(getEncoderHandlerName(), VIA_ENCODER_HANDLER_NAME, this.createVLBViaEncodeHandler());
+        try {
+            ctx.pipeline().addBefore(getEncoderHandlerName(), VIA_ENCODER_HANDLER_NAME, this.createVLBViaEncodeHandler());
+        } catch (Exception error) {
+            ChannelHandler decoder = ctx.pipeline().get(VIA_DECODER_HANDLER_NAME);
+            if (decoder != null) ctx.pipeline().remove(decoder);
+            throw error;
+        }
+        System.out.println("[Cylox] Via Netty handlers active: "
+            + ctx.channel().pipeline().names() + ".");
     }
 
     @Override
