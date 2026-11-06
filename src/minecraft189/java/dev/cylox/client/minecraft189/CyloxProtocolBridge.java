@@ -654,9 +654,16 @@ public final class CyloxProtocolBridge {
             return;
         }
         if (!(candidate instanceof Channel)) {
-            System.err.println("[Cylox] Via pipeline skipped: initializer argument is not this Netty Channel type.");
+            ClassLoader expectedLoader = Channel.class.getClassLoader();
+            ClassLoader actualLoader = candidate.getClass().getClassLoader();
+            System.err.println("[Cylox] Netty classloader mismatch: bridge Channel loader="
+                + expectedLoader + ", candidate loader=" + actualLoader
+                + ", candidate interfaces=" + java.util.Arrays.toString(candidate.getClass().getInterfaces()) + ".");
+            System.err.println("[Cylox] Via pipeline skipped because LaunchWrapper loaded duplicate Netty classes.");
             return;
         }
+        System.out.println("[Cylox] Netty channel type verified: "
+            + candidate.getClass().getName() + " is instance of " + Channel.class.getName() + ".");
         try {
             final Channel channel = (Channel) candidate;
             final List<String> names = channel.pipeline().names();

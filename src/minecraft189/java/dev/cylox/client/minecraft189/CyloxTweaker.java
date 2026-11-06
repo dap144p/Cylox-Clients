@@ -23,7 +23,11 @@ public final class CyloxTweaker implements ITweaker {
     @Override
     public void injectIntoClassLoader(LaunchClassLoader classLoader) {
         classLoader.addClassLoaderExclusion("dev.cylox.client.");
+        // Cylox is parent-loaded; force the Netty API and NIO channel classes to
+        // resolve through the same loader or Channel.isInstance(candidate) is false.
+        classLoader.addClassLoaderExclusion("io.netty.");
         classLoader.addTransformerExclusion("dev.cylox.client.");
+        System.out.println("[Cylox] Netty package parent delegation enabled: io.netty.");
         CyloxProtocolBridge.initialize(gameDirectory);
         classLoader.registerTransformer("dev.cylox.client.minecraft189.CyloxClientTransformer");
         System.out.println("[Cylox] Background client 1.8.9 initialized.");
