@@ -124,7 +124,7 @@ jobs:
                       continue
                   with archive.open(name) as stream:
                       header = stream.read(8)
-                  assert len(header) == 8 and header[:4] == b"\\xca\\xfe\\xba\\xbe", f"Invalid class header: {name}"
+                  assert len(header) == 8 and header[:4] == bytes((0xCA, 0xFE, 0xBA, 0xBE)), f"Invalid class header: {name}"
                   major = int.from_bytes(header[6:8], "big")
                   highest_major = max(highest_major, major)
                   checked += 1
