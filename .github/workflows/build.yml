@@ -100,10 +100,10 @@ jobs:
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
-          name: Cylox-Background-Client-1.8.9
+          name: Cylox-Client-1.8.9
           path: |
             build/libs/Cylox-Client-1.8.9-*.jar
-            build/distributions/Cylox-Background-Client-1.8.9-*.zip
+            build/distributions/Cylox-Client-1.8.9-*.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -117,7 +117,7 @@ jobs:
           VERSION="$(sed -n "s/^version = '\\(.*\\)'/\\1/p" build.gradle | head -n1)"
           TAG="v${VERSION}"
           JAR="build/libs/Cylox-Client-1.8.9-${VERSION}.jar"
-          ZIP="build/distributions/Cylox-Background-Client-1.8.9-${VERSION}.zip"
+          ZIP="build/distributions/Cylox-Client-1.8.9-${VERSION}.zip"
           test -s "$JAR"
           test -s "$ZIP"
 
@@ -161,7 +161,7 @@ jobs:
             gh release edit "$TAG" --title "Cylox Client ${VERSION} — 1.8.9" --notes "$NOTES"
             upload_release_assets "$TAG"
           else
-            gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Background Client ${VERSION} — 1.8.9" --notes "$NOTES"
+            gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Client ${VERSION} — 1.8.9" --notes "$NOTES"
           fi
 
           if gh release view latest >/dev/null 2>&1; then
@@ -178,5 +178,5 @@ jobs:
             done < <(gh release view latest --json assets --jq '.assets[].name')
             upload_release_assets latest
           else
-            gh release create latest "${ASSETS[@]}" --title "Cylox Background Client latest — 1.8.9" --notes "$NOTES"
+            gh release create latest "${ASSETS[@]}" --title "Cylox Client latest — 1.8.9" --notes "$NOTES"
           fi
