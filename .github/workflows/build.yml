@@ -97,6 +97,41 @@ jobs:
           unzip -l "$JAR" | grep -q 'com/viaversion/viaversion/api/protocol/version/ProtocolVersion.class'
           unzip -l "$JAR" | grep -q 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
 
+      - name: Verify embedded Via stack uses Java 8 bytecode
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import zipfile
+
+          version = re.search(r"^version = '([^']+)'", pathlib.Path("build.gradle").read_text(encoding="utf-8"), re.MULTILINE).group(1)
+          jar_path = pathlib.Path(f"build/libs/Cylox-Client-1.8.9-{version}.jar")
+          required = {
+              "com/viaversion/viaversion/api/protocol/version/ProtocolVersion.class",
+              "com/viaversion/viabackwards/api/ViaBackwardsPlatform.class",
+              "com/viaversion/viarewind/api/ViaRewindPlatform.class",
+          }
+          checked = 0
+          highest_major = 0
+          with zipfile.ZipFile(jar_path) as archive:
+              names = set(archive.namelist())
+              missing = required - names
+              assert not missing, f"Missing embedded Via classes: {sorted(missing)}"
+              for name in names:
+                  if not name.endswith(".class") or name.startswith("META-INF/versions/") or name.endswith("/module-info.class") or name == "module-info.class":
+                      continue
+                  with archive.open(name) as stream:
+                      header = stream.read(8)
+                  assert len(header) == 8 and header[:4] == b"\\xca\\xfe\\xba\\xbe", f"Invalid class header: {name}"
+                  major = int.from_bytes(header[6:8], "big")
+                  highest_major = max(highest_major, major)
+                  checked += 1
+                  assert major <= 52, f"Class requires newer than Java 8 (major {major}): {name}"
+          print(f"[Cylox] Verified {checked} bundled class files; maximum class major version {highest_major} (Java 8 limit: 52).")
+          PY
+
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
@@ -122,9 +157,12 @@ jobs:
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla chunk scheduling, reusable terrain-culling scratch collections and reduced Via packet-buffer reallocations.
+          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with an updated Java 8-compatible Via protocol stack.
 
-          - The Cylox client and ViaVersion, ViaBackwards and ViaRewind protocol features are bundled into ONE JAR.
+          - Bundles ViaVersion 5.12.3-SNAPSHOT (upstream Java 8 CI build #55), ViaBackwards 5.12.3-SNAPSHOT (build #45), and ViaRewind 4.2.0 (build #39) inside the single Cylox client JAR.
+          - Uses the upstream Java 8 compatibility artifacts; CI validates the JAR contents and checks ordinary class files for Java 8 bytecode compatibility.
+          - Replaces the ViaVersion/ViaBackwards 5.12.1 libraries used in v1.3.7. The manual protocol selector, target resolver, Netty pipeline placement and handshake logic remain unchanged.
+          - Does not change the Minecraft renderer, chunk scheduler, graphics settings or background behavior.
           - The standalone profile declares Minecraft 1.8.9's official client artifact, libraries and asset index as launcher dependencies; a separate vanilla profile is not required when the launcher resolves legacy libraries correctly.
           - Choose the target server protocol manually using the Via selector on the Multiplayer screen; selection is saved in the game directory.
           - No automatic server-version detection or status-ping protocol selection.
@@ -135,6 +173,7 @@ jobs:
           - Reuses the render-thread visible-chunk list and FIFO terrain traversal queue in RenderGlobal.setupTerrain, avoiding repeated scratch collection and linked-node allocation when the culling graph is rebuilt; culling decisions and ordering remain vanilla.
           - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Video Settings and options.txt are unchanged.
           - Sizes Via's temporary packet buffers from the incoming packet length (minimum 256 bytes) to avoid unnecessary initial buffer growth; translated packets can still expand when required.
+          - Java 8 compatibility builds are an upstream fallback and may continue to log that Java 8 is outside normal support. Real MJ Launcher testing is still required to confirm server packet compatibility.
           - Applies the selected Via target at startup or selector change; channel initialization reuses it instead of reloading Via's global protocol manager for every connection.
           - Automatically skips vanilla rendering while the LWJGL display is inactive or hidden.
           - Completely skips the vanilla EntityRenderer frame while the display is inactive or hidden, reducing world rendering to 0 FPS.
