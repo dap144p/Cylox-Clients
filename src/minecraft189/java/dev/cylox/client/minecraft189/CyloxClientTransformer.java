@@ -9,7 +9,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FrameNode;
-import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
@@ -32,12 +32,13 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedButtonThemeClasses;
     private static volatile int patchedScreenBackgroundClasses;
     private static volatile int patchedMainMenuClasses;
-    private static volatile int patchedPerformanceSettingsClasses;
+    private static volatile int patchedChunkDispatcherClasses;
+    private static volatile int patchedNearChunkUpdateClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
-    private static final String PERFORMANCE = "dev/cylox/client/minecraft189/CyloxPerformanceHooks";
+    private static final String RENDER = "dev/cylox/client/minecraft189/CyloxRenderHooks";
 
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
@@ -51,7 +52,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedButtonThemeClasses = 0;
         patchedScreenBackgroundClasses = 0;
         patchedMainMenuClasses = 0;
-        patchedPerformanceSettingsClasses = 0;
+        patchedChunkDispatcherClasses = 0;
+        patchedNearChunkUpdateClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -65,7 +67,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedButtonThemeClassCount() { return patchedButtonThemeClasses; }
     public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
-    public static int getPatchedPerformanceSettingsClassCount() { return patchedPerformanceSettingsClasses; }
+    public static int getPatchedChunkDispatcherClassCount() { return patchedChunkDispatcherClasses; }
+    public static int getPatchedNearChunkUpdateClassCount() { return patchedNearChunkUpdateClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -86,7 +89,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean buttonThemePatched = false;
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
-            boolean performanceSettingsPatched = false;
+            boolean chunkDispatcherPatched = false;
+            boolean nearChunkUpdatesPatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -94,10 +98,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 || hasClassMarkers(node, "menu.singleplayer", "menu.multiplayer", "menu.options", "menu.quit");
 
             for (MethodNode method : node.methods) {
-                if (!performanceSettingsPatched && isPerformanceOptionsLoader(method)) {
-                    performanceSettingsPatched = insertPerformanceDefaults(node, method);
-                    if (performanceSettingsPatched) changed = true;
-                }
                 if ((method.access & Opcodes.ACC_STATIC) == 0) {
                     if (!buttonThemePatched && buttonWidgetClass && isButtonDrawMethod(method)) {
                         insertButtonTheme(method);
@@ -201,6 +201,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
+            chunkDispatcherPatched = patchChunkDispatcher(node);
+            if (chunkDispatcherPatched) changed = true;
+            nearChunkUpdatesPatched = patchNearChunkUpdates(node);
+            if (nearChunkUpdatesPatched) changed = true;
+
             if (selectorButtonPatched) {
                 for (MethodNode method : node.methods) {
                     if (!"(IIF)V".equals(method.desc)) continue;
@@ -240,7 +245,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) patchedButtonThemeClasses++;
             if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
             if (mainMenuPatched) patchedMainMenuClasses++;
-            if (performanceSettingsPatched) patchedPerformanceSettingsClasses++;
+            if (chunkDispatcherPatched) patchedChunkDispatcherClasses++;
+            if (nearChunkUpdatesPatched) patchedNearChunkUpdateClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -252,7 +258,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) System.out.println("[Cylox] Cylox button theme injected: " + node.name);
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
-            if (performanceSettingsPatched) System.out.println("[Cylox] Lightweight graphics preset injected: " + node.name);
+            if (chunkDispatcherPatched) System.out.println("[Cylox] Mobile chunk worker/buffer budget injected: " + node.name);
+            if (nearChunkUpdatesPatched) System.out.println("[Cylox] Near-player chunk rebuilds routed through worker queue: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -263,73 +270,156 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
 
 
-    /** Detects vanilla GameSettings.loadOptions by its serialized option keys. */
-    private static boolean isPerformanceOptionsLoader(MethodNode method) {
-        return (method.access & Opcodes.ACC_STATIC) == 0 && "()V".equals(method.desc)
-            && hasMarkers(method, "renderDistance", "particles", "fancyGraphics",
-                "ao", "renderClouds", "entityShadows");
-    }
+    /** Detects vanilla 1.8.9's ChunkRenderDispatcher by its methods and constructor shape. */
+    private static boolean patchChunkDispatcher(ClassNode node) {
+        boolean obfuscated = "bho".equals(node.name);
+        boolean named = node.name.endsWith("/ChunkRenderDispatcher");
+        if (!obfuscated && !named) return false;
 
-    /** Finds the obfuscated field written by the option parser for a known option key. */
-    private static FieldInsnNode findOptionField(ClassNode owner, MethodNode method,
-                                                  String optionKey, String descriptor) {
-        boolean afterKey = false;
-        for (AbstractInsnNode instruction = method.instructions.getFirst();
-             instruction != null; instruction = instruction.getNext()) {
-            if (instruction instanceof LdcInsnNode
-                && optionKey.equals(((LdcInsnNode) instruction).cst)) {
-                afterKey = true;
-                continue;
+        String chunkDescriptor = obfuscated ? "(Lbht;)Z"
+            : "(Lnet/minecraft/client/renderer/chunk/RenderChunk;)Z";
+        String laterName = obfuscated ? "a" : "updateChunkLater";
+        String nowName = obfuscated ? "b" : "updateChunkNow";
+        MethodNode later = null;
+        MethodNode now = null;
+        MethodNode constructor = null;
+
+        for (MethodNode method : node.methods) {
+            if (laterName.equals(method.name) && chunkDescriptor.equals(method.desc)) later = method;
+            if (nowName.equals(method.name) && chunkDescriptor.equals(method.desc)) now = method;
+            if ("<init>".equals(method.name) && "(I)V".equals(method.desc)
+                && hasMethodCall(method, "java/lang/Runtime", "availableProcessors", "()I")
+                && hasMethodCall(method, "java/lang/Runtime", "maxMemory", "()J")) {
+                constructor = method;
             }
-            if (afterKey && instruction instanceof FieldInsnNode) {
-                FieldInsnNode field = (FieldInsnNode) instruction;
-                if (field.getOpcode() == Opcodes.PUTFIELD
-                    && owner.name.equals(field.owner) && descriptor.equals(field.desc)) {
-                    return field;
+        }
+
+        if (later == null || now == null || constructor == null
+            || !hasMethodCall(later, "java/util/concurrent/BlockingQueue", "offer", "(Ljava/lang/Object;)Z")) {
+            return false;
+        }
+
+        MethodInsnNode processorCall = null;
+        int processorCalls = 0;
+        IntInsnNode builderFactor = null;
+        int builderFactors = 0;
+        for (AbstractInsnNode instruction = constructor.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if ("java/lang/Runtime".equals(call.owner)
+                    && "availableProcessors".equals(call.name) && "()I".equals(call.desc)) {
+                    processorCall = call;
+                    processorCalls++;
                 }
             }
+            if (instruction instanceof IntInsnNode) {
+                IntInsnNode integer = (IntInsnNode) instruction;
+                if (integer.getOpcode() == Opcodes.BIPUSH && integer.operand == 8
+                    && nextExecutable(integer) != null
+                    && nextExecutable(integer).getOpcode() == Opcodes.IMUL
+                    && hasFollowingIntClamp(integer, 8)) {
+                    builderFactor = integer;
+                    builderFactors++;
+                }
+            }
+        }
+        if (processorCalls != 1 || builderFactors != 1) {
+            System.err.println("[Cylox] Mobile chunk scheduler skipped: expected one worker-count source and one builder-pool multiplier in " + node.name);
+            return false;
+        }
+
+        constructor.instructions.insert(processorCall,
+            new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER, "limitChunkWorkers", "(I)I", false));
+        builderFactor.operand = 2;
+        return true;
+    }
+
+    private static boolean hasFollowingIntClamp(AbstractInsnNode instruction, int distance) {
+        AbstractInsnNode cursor = instruction;
+        for (int i = 0; i < distance && cursor != null; i++) {
+            cursor = nextExecutable(cursor);
+            if (cursor instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) cursor;
+                if (call.getOpcode() == Opcodes.INVOKESTATIC && "(III)I".equals(call.desc)) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Replaces only the near-chunk synchronous call followed by setNeedsUpdate(false). */
+    private static boolean patchNearChunkUpdates(ClassNode node) {
+        boolean patched = false;
+        for (MethodNode method : node.methods) {
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (!(instruction instanceof MethodInsnNode)) continue;
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                boolean obfuscated = "bho".equals(call.owner) && "b".equals(call.name)
+                    && "(Lbht;)Z".equals(call.desc);
+                boolean named = call.owner.endsWith("/ChunkRenderDispatcher")
+                    && "updateChunkNow".equals(call.name)
+                    && "(Lnet/minecraft/client/renderer/chunk/RenderChunk;)Z".equals(call.desc);
+                if ((!obfuscated && !named) || !hasNeedsUpdateClearAfter(method, call)) continue;
+
+                String asyncName = obfuscated ? "a" : "updateChunkLater";
+                String syncName = call.name;
+                InsnList arguments = new InsnList();
+                arguments.add(new LdcInsnNode(asyncName));
+                arguments.add(new LdcInsnNode(syncName));
+                method.instructions.insertBefore(call, arguments);
+                method.instructions.set(call, new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER,
+                    "scheduleNearChunk",
+                    "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)Z", false));
+                patched = true;
+            }
+        }
+        return patched;
+    }
+
+    private static boolean hasNeedsUpdateClearAfter(MethodNode method, AbstractInsnNode call) {
+        AbstractInsnNode cursor = nextExecutable(call);
+        if (cursor == null || cursor.getOpcode() != Opcodes.POP) return false;
+        String chunkOwner = Type.getArgumentTypes(((MethodInsnNode) call).desc)[0].getInternalName();
+        cursor = nextExecutable(cursor);
+        for (int i = 0; i < 12 && cursor != null; i++, cursor = nextExecutable(cursor)) {
+            if (cursor instanceof MethodInsnNode) {
+                MethodInsnNode candidate = (MethodInsnNode) cursor;
+                if (chunkOwner.equals(candidate.owner) && "(Z)V".equals(candidate.desc)
+                    && ("a".equals(candidate.name) || "setNeedsUpdate".equals(candidate.name))) {
+                    AbstractInsnNode previous = previousExecutable(candidate);
+                    if (previous != null && (previous.getOpcode() == Opcodes.ICONST_0
+                        || (previous instanceof IntInsnNode && ((IntInsnNode) previous).operand == 0))) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasMethodCall(MethodNode method, String owner, String name, String descriptor) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (owner.equals(call.owner) && name.equals(call.name) && descriptor.equals(call.desc)) return true;
+        }
+        return false;
+    }
+
+    private static AbstractInsnNode nextExecutable(AbstractInsnNode instruction) {
+        for (AbstractInsnNode current = instruction == null ? null : instruction.getNext();
+             current != null; current = current.getNext()) {
+            if (current.getOpcode() >= 0) return current;
         }
         return null;
     }
 
-    /**
-     * Applies a conservative in-memory graphics preset after vanilla options load.
-     * It never edits options.txt, the world, entities or gameplay/network code.
-     */
-    private static boolean insertPerformanceDefaults(ClassNode owner, MethodNode method) {
-        FieldInsnNode renderDistance = findOptionField(owner, method, "renderDistance", "I");
-        FieldInsnNode fancyGraphics = findOptionField(owner, method, "fancyGraphics", "Z");
-        FieldInsnNode ambientOcclusion = findOptionField(owner, method, "ao", "I");
-        FieldInsnNode clouds = findOptionField(owner, method, "renderClouds", "I");
-        FieldInsnNode particles = findOptionField(owner, method, "particles", "I");
-        FieldInsnNode entityShadows = findOptionField(owner, method, "entityShadows", "Z");
-        if (renderDistance == null || fancyGraphics == null || ambientOcclusion == null
-            || clouds == null || particles == null || entityShadows == null) {
-            System.err.println("[Cylox] Lightweight graphics preset skipped: could not map all GameSettings fields in "
-                + owner.name + "." + method.name + method.desc);
-            return false;
+    private static AbstractInsnNode previousExecutable(AbstractInsnNode instruction) {
+        for (AbstractInsnNode current = instruction == null ? null : instruction.getPrevious();
+             current != null; current = current.getPrevious()) {
+            if (current.getOpcode() >= 0) return current;
         }
-
-        boolean inserted = false;
-        for (AbstractInsnNode instruction = method.instructions.getFirst();
-             instruction != null; instruction = instruction.getNext()) {
-            if (instruction.getOpcode() != Opcodes.RETURN) continue;
-            InsnList hook = new InsnList();
-            hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
-            hook.add(new LdcInsnNode(renderDistance.name));
-            hook.add(new LdcInsnNode(fancyGraphics.name));
-            hook.add(new LdcInsnNode(ambientOcclusion.name));
-            hook.add(new LdcInsnNode(clouds.name));
-            hook.add(new LdcInsnNode(particles.name));
-            hook.add(new LdcInsnNode(entityShadows.name));
-            hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, PERFORMANCE,
-                "applyDefaults",
-                "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-                false));
-            method.instructions.insertBefore(instruction, hook);
-            inserted = true;
-        }
-        return inserted;
+        return null;
     }
 
     private static boolean isMinecraftGuiClass(String name, String transformedName, String simpleName) {
