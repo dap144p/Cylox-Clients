@@ -21,16 +21,18 @@ This is not an Android background service. The launcher must keep the game proce
 ## Manual Via protocol selector
 
 - ViaVersion, ViaBackwards and ViaRewind are bundled inside **the single Cylox client JAR**.
-- Open the Multiplayer screen and use the **Via: [version]** button in the upper-left corner to cycle through protocol versions supported by the embedded Via stack.
+- Open Multiplayer and tap **Select: [version]** beside the **Cancel** button.
+- A menu opens with supported target versions. Choose the exact protocol version required by the destination server; use the page controls for additional versions.
 - The selected target is saved in `cylox/protocol.properties` inside the game directory.
 - Default: native Minecraft **1.8.9** (protocol 47).
+- Cylox checks that a translation route exists from 1.8.9 to the selected target before connecting, and logs the target used by the handshake.
 - Protocol selection is **manual**. Cylox does not ping the server to guess its version and does not switch protocol automatically.
 - Set the Via selector to the destination server's protocol before connecting. A wrong selection can cause the server to reject the handshake or can lead to compatibility issues.
 - Via translates packets; it cannot guarantee that every server plugin, custom registry, or version-specific feature will behave identically.
 
 ## Scope
 
-Included: manual protocol selector, embedded Via protocol bridge, background render suppression and a small 1.8.9 LaunchWrapper adapter.
+Included: manual protocol selection menu, embedded Via protocol bridge, background render suppression and a small 1.8.9 LaunchWrapper adapter.
 
 Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
 
@@ -50,7 +52,7 @@ The complete installation ZIP contains one standalone Cylox version profile and 
 4. Refresh the version list and select **Cylox-1.8.9**.
 5. Launch it. The standalone profile declares the vanilla 1.8.9 client JAR, libraries and asset index as dependencies; MJ Launcher should download missing files. You do not need to install a separate vanilla 1.8.9 profile first.
 6. Keep the launcher's normal Java runtime and renderer settings.
-7. Open Multiplayer and select the target protocol using the **Via** button before connecting.
+7. Open Multiplayer, tap **Select: [version]** beside **Cancel**, then choose the target version from the menu before connecting.
 
 Do not extract the ZIP inside `versions/`; it already contains the correct folder paths.
 

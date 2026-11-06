@@ -25,7 +25,12 @@ public class VLBBaseVersionProvider extends BaseVersionProvider {
     @Override
     public ProtocolVersion getClosestServerProtocol(UserConnection connection) throws Exception {
         if (connection.isClientSide()) {
-            return ViaLoadingBase.getInstance().getTargetVersion();
+            ProtocolVersion target = ViaLoadingBase.getInstance().getTargetVersion();
+            if (target != null) {
+                System.out.println("[Cylox] Via handshake target: " + target.getName()
+                    + " (protocol " + target.getVersion() + ").");
+                return target;
+            }
         }
         return super.getClosestServerProtocol(connection);
     }

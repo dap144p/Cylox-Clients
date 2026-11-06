@@ -71,7 +71,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
                     boolean socketInitializer = method.desc.contains("Lio/netty/channel/socket/SocketChannel;")
                         || method.desc.contains("Lio/netty/channel/Channel;");
-                    if (!protocolConnectPatched && "ek$5".equals(node.name) && socketInitializer
+                    if (!protocolConnectPatched && socketInitializer
                         && hasMarkers(method, "timeout", "splitter", "decoder", "prepender", "encoder", "packet_handler")) {
                         insertBeforeReturns(method, VIA, "install", "(Ljava/lang/Object;)V", 1);
                         protocolConnectPatched = true;
