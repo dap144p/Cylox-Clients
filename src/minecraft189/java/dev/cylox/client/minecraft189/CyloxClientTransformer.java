@@ -82,7 +82,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
-            boolean optionsScreenClass = hasClassString(node, "textures/gui/options_background.png");
+            boolean guiScreenBaseClass = hasMethodDescriptor(node, "(IIF)V")
+                && hasMethodDescriptor(node, "(I)V");
             boolean mainMenuClass = hasClassMarkers(node,
                 "menu.singleplayer", "menu.multiplayer", "menu.options", "menu.quit");
 
@@ -94,7 +95,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         changed = true;
                     }
 
-                    if (!screenBackgroundPatched && optionsScreenClass && isDefaultBackgroundMethod(node, method)) {
+                    if (!screenBackgroundPatched && guiScreenBaseClass && isDefaultBackgroundMethod(node, method)) {
                         replaceWithScreenBackground(method);
                         screenBackgroundPatched = true;
                         changed = true;
@@ -248,6 +249,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         }
     }
 
+
+    private static boolean hasMethodDescriptor(ClassNode node, String descriptor) {
+        for (MethodNode method : node.methods) if (descriptor.equals(method.desc)) return true;
+        return false;
+    }
 
     private static boolean hasClassString(ClassNode node, String expected) {
         for (MethodNode method : node.methods) {
