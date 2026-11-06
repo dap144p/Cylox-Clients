@@ -1,8 +1,10 @@
 package dev.cylox.client.background;
 
-/** Pure policy for the background renderer and frame-loop limiter. */
+/** Background rendering and tick-safe main-loop policy. */
 public final class BackgroundPolicy {
-    public static final int BACKGROUND_FPS = 5;
+    // This throttles Minecraft's whole main loop, not only rendering.
+    // Keep 20 Hz so client ticks and queued packet tasks are not starved.
+    public static final int BACKGROUND_LOOP_FPS = 20;
 
     private BackgroundPolicy() { }
 
@@ -11,6 +13,6 @@ public final class BackgroundPolicy {
     }
 
     public static int frameLimit(boolean foreground, int requestedFrameLimit) {
-        return foreground ? requestedFrameLimit : BACKGROUND_FPS;
+        return foreground ? requestedFrameLimit : BACKGROUND_LOOP_FPS;
     }
 }

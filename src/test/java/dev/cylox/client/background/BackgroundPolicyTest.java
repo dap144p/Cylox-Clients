@@ -11,9 +11,9 @@ public class BackgroundPolicyTest {
     }
 
     @Test
-    public void capsBackgroundFrameLimitAtFive() {
-        assertEquals(5, BackgroundPolicy.frameLimit(false, 120));
-        assertEquals(5, BackgroundPolicy.frameLimit(false, 30));
+    public void keepsBackgroundMainLoopAtTickSafeTwentyHertz() {
+        assertEquals(20, BackgroundPolicy.frameLimit(false, 120));
+        assertEquals(20, BackgroundPolicy.frameLimit(false, 30));
     }
 
     @Test

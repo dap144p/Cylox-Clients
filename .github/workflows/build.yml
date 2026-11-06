@@ -129,7 +129,8 @@ jobs:
           - Choose the target server protocol manually using the Via selector on the Multiplayer screen; selection is saved in the game directory.
           - No automatic server-version detection or status-ping protocol selection.
           - Automatically skips vanilla rendering while the LWJGL display is inactive or hidden.
-          - Limits the background frame loop to 5 FPS; foreground rendering returns to the launcher's normal frame limit.
+          - Completely skips the vanilla EntityRenderer frame while the display is inactive or hidden, reducing world rendering to 0 FPS.
+          - Keeps the whole Minecraft main loop at 20 Hz in the background. The loop is not capped at 2 FPS because Display.sync throttles client ticks and packet-task processing as well as rendering.
           - No anti-AFK, auto-clicker, movement automation, HUD, Click GUI, Forge or Fabric.
           - Minecraft, Java runtime, renderer, assets and base game libraries are downloaded or supplied by the launcher; they are not merged into the Cylox JAR.
           - Developer: dapdev. License: GPL-3.0-or-later.
