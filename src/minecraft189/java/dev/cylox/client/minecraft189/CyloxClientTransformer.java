@@ -31,7 +31,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedButtonThemeClasses;
     private static volatile int patchedScreenBackgroundClasses;
     private static volatile int patchedMainMenuClasses;
-    private static volatile int patchedNearChunkUpdateClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -49,7 +48,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedButtonThemeClasses = 0;
         patchedScreenBackgroundClasses = 0;
         patchedMainMenuClasses = 0;
-        patchedNearChunkUpdateClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -63,7 +61,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedButtonThemeClassCount() { return patchedButtonThemeClasses; }
     public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
-    public static int getPatchedNearChunkUpdateClassCount() { return patchedNearChunkUpdateClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -84,7 +81,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean buttonThemePatched = false;
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
-            boolean nearChunkUpdatesPatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -195,9 +191,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
-            nearChunkUpdatesPatched = patchNearChunkUpdates(node);
-            if (nearChunkUpdatesPatched) changed = true;
-
             if (selectorButtonPatched) {
                 for (MethodNode method : node.methods) {
                     if (!"(IIF)V".equals(method.desc)) continue;
@@ -237,7 +230,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) patchedButtonThemeClasses++;
             if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
             if (mainMenuPatched) patchedMainMenuClasses++;
-            if (nearChunkUpdatesPatched) patchedNearChunkUpdateClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -249,7 +241,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) System.out.println("[Cylox] Cylox button theme injected: " + node.name);
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
-            if (nearChunkUpdatesPatched) System.out.println("[Cylox] Near-player dirty chunks routed through vanilla's time-budgeted worker queue: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -259,55 +250,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     }
 
 
-
-    /**
-     * Routes near-player dirty chunks through the same time-budgeted queue used by vanilla
-     * for distant chunks. A constant false selects the existing chunksToUpdate branch.
-     */
-    private static boolean patchNearChunkUpdates(ClassNode node) {
-        for (MethodNode method : node.methods) {
-            if (!hasMarkers(method, "build near")) continue;
-            for (AbstractInsnNode instruction = method.instructions.getFirst();
-                 instruction != null; instruction = instruction.getNext()) {
-                if (!(instruction instanceof MethodInsnNode)) continue;
-                MethodInsnNode call = (MethodInsnNode) instruction;
-                int opcode = call.getOpcode();
-                if ((opcode != Opcodes.INVOKESPECIAL && opcode != Opcodes.INVOKEVIRTUAL)
-                    || !node.name.equals(call.owner)
-                    || Type.getReturnType(call.desc).getSort() != Type.BOOLEAN) continue;
-
-                Type[] arguments = Type.getArgumentTypes(call.desc);
-                if (arguments.length != 2 || arguments[0].getSort() != Type.OBJECT
-                    || arguments[1].getSort() != Type.OBJECT) continue;
-                String chunkType = arguments[1].getInternalName();
-                if (!"bht".equals(chunkType) && !chunkType.endsWith("/RenderChunk")) continue;
-
-                AbstractInsnNode branch = nextExecutable(instruction);
-                if (!(branch instanceof JumpInsnNode)
-                    || (branch.getOpcode() != Opcodes.IFEQ && branch.getOpcode() != Opcodes.IFNE)) continue;
-
-                // Drop the private helper's receiver and two object arguments, then
-                // force its condition to false so the existing async queue branch runs.
-                InsnList routeToQueue = new InsnList();
-                for (int i = 0; i < arguments.length + 1; i++) {
-                    routeToQueue.add(new InsnNode(Opcodes.POP));
-                }
-                routeToQueue.add(new InsnNode(Opcodes.ICONST_0));
-                method.instructions.insertBefore(instruction, routeToQueue);
-                method.instructions.remove(instruction);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static AbstractInsnNode nextExecutable(AbstractInsnNode instruction) {
-        for (AbstractInsnNode current = instruction == null ? null : instruction.getNext();
-             current != null; current = current.getNext()) {
-            if (current.getOpcode() >= 0) return current;
-        }
-        return null;
-    }
 
     private static boolean isMinecraftGuiClass(String name, String transformedName, String simpleName) {
         String expected = "net.minecraft.client.gui." + simpleName;

@@ -39,7 +39,6 @@ public final class Vanilla189Verifier {
         }
 
         require("render suppression", CyloxClientTransformer.getPatchedRenderClassCount());
-        require("near-player chunks routed through vanilla time-budgeted queue", CyloxClientTransformer.getPatchedNearChunkUpdateClassCount());
         require("background frame limiter", CyloxClientTransformer.getPatchedFrameLimitClassCount());
         require("Via protocol pipeline", CyloxClientTransformer.getPatchedProtocolPipelineClassCount());
         require("Via compression hook", CyloxClientTransformer.getPatchedCompressionClassCount());

@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.3
+Version: 1.3.4
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
@@ -13,11 +13,11 @@ INSTALL
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
 
 RENDERER CORE
-- Near-player dirty chunks join the same time-budgeted asynchronous update queue used by vanilla for distant chunks, avoiding synchronous compilation on the render thread.
-- Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool without creating additional threads.
-- Vanilla's time-budgeted update loop keeps remaining dirty chunks queued when the worker queue is full or the frame budget expires.
-- Normal chunk meshes, world visibility, entities, tile entities, particles, HUD, controls, ticks and networking remain enabled. This feature does not change Video Settings or options.txt.
-- This is a targeted Sodium-inspired scheduler, not a full Sodium port. Test frame time and stability on the target device.
+- Restores Minecraft 1.8.9's native near/far chunk-update scheduling.
+- Removes the 1.3.3 override that placed near-player dirty chunks into the delayed queue, which could make nearby terrain appear late.
+- Distant chunk work continues to use the vanilla time-budgeted queue and existing workers.
+- No extra worker threads, custom buffer pool, disabled world features, or Video Settings changes are introduced.
+- This corrects a scheduling regression; actual FPS and frame-time results still need testing on MJ Launcher and the target device.
 
 CYLOX UI
 - The main menu uses a translucent Cylox dark theme instead of the vanilla panorama.
