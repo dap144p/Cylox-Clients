@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.2  
+**Version:** 1.4.5  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -58,6 +58,32 @@ This is not an Android background service. The launcher must keep the game proce
 - Reports include average FPS, average/maximum frame time, average/maximum terrain-setup time, and average/maximum chunk-upload time.
 - Use the report to identify whether a low-end device is limited by frame rendering, terrain visibility traversal, or chunk uploads before introducing a renderer change.
 - This diagnostic build does not claim an FPS improvement by itself. Actual optimization requires comparing measurements on the same device, world, render distance, renderer, and scene.
+
+## Low-end render engine — phase 1 (1.4.3)
+
+- Caches the current camera block's `getVisibleFacings` result in `RenderGlobal`. When only yaw/pitch changes while the camera remains in the same block, Cylox can reuse the six-direction visibility result instead of rebuilding the opaque-block graph across the 16×16×16 block section.
+- The cache is single-entry, keyed by the `RenderGlobal` instance and immutable `BlockPos`, invalidated by render-range block updates and world replacement, and returns a defensive Set copy because vanilla mutates the result in its spectator/visibility branch.
+- Does not cache frustum decisions, replace vanilla BFS traversal, change chunk scheduling, hide chunks, reduce render distance, or alter gameplay/network behavior.
+- Extends opt-in profiling to entity rendering, block-layer rendering and particle rendering. The five-second report includes average/maximum time for each area plus visibility-cache hits, misses and invalidations.
+- Enable the report with `-Dcylox.profile=true`. The profiler is disabled by default.
+- This is a conservative first optimization, not a complete Sodium-equivalent renderer. Further entity, block-layer, particle and render-state optimizations will be selected from the new measurements and tested independently to avoid chunk-visibility regressions.
+
+## Terrain profiling breakdown (1.4.4)
+
+- Splits the existing vanilla `RenderGlobal.setupTerrain` profiler boundaries into camera update, render-list initialization, cull preparation, visibility culling and synchronous nearby-chunk builds.
+- Uses the existing vanilla section transitions only. It does not replace BFS traversal, frustum tests, the render queue, chunk update scheduling or chunk upload behavior.
+- The `terrainBuildNear*` metrics are nested inside `terrainCulling*`; do not add them together. They show how much of the culling phase is spent rebuilding nearby chunks synchronously.
+- The five-second report emits average, maximum and sample count for each phase. This remains opt-in and disabled unless `-Dcylox.profile=true` is enabled.
+- This build adds diagnostics only. It does not claim an FPS increase; collect another comparable AlwiNation spawn log before selecting the next optimization.
+
+
+## Spawn-lobby stress-test preset and visibility cache (1.4.5)
+
+- Extends the conservative single-position visibility cache to a 64-entry least-recently-used cache for recently visited camera blocks. The cache remains scoped to one RenderGlobal instance and is cleared on render-range updates or world replacement.
+- Returns defensive Set copies because vanilla can mutate the visibility result. Vanilla BFS traversal, frustum decisions, render queues, chunk scheduling, chunk uploads, and world visibility remain unchanged.
+- On the first 1.4.5 launch only, seeds the standard Minecraft Video Settings through `options.txt`: Fancy Graphics, 16-chunk render distance, maximum smooth lighting, All particles, entity shadows, clouds enabled, mipmap level 4, maximum FPS limit, and VSync off.
+- Backs up an existing `options.txt` to `cylox/options-before-graphics-preset.txt` before changing it. The preset marker prevents repeated overwrites, so later changes made in Minecraft's own Settings menu are preserved.
+- The maximum graphics preset is intentionally a stress test, not a recommended low-end daily profile. Restore the backup or lower settings in Video Settings after profiling.
 
 ## Cylox adaptive lightweight UI
 
@@ -116,8 +142,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.4.2.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.4.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.4.5.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.4.5.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 

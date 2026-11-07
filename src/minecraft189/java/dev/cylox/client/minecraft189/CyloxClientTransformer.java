@@ -17,6 +17,7 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 
 /** Adds the background hooks, embedded Via pipeline hooks and manual protocol selector UI. */
 public final class CyloxClientTransformer implements net.minecraft.launchwrapper.IClassTransformer {
@@ -33,13 +34,20 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedMainMenuClasses;
     private static volatile int patchedFrameProfileClasses;
     private static volatile int patchedTerrainProfileClasses;
+    private static volatile int patchedTerrainBreakdownClasses;
     private static volatile int patchedChunkUploadProfileClasses;
     private static volatile int patchedViaRewindEquipmentClasses;
+    private static volatile int patchedVisibilityCacheClasses;
+    private static volatile int patchedVisibilityInvalidationClasses;
+    private static volatile int patchedEntityProfileClasses;
+    private static volatile int patchedBlockLayerProfileClasses;
+    private static volatile int patchedParticleProfileClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
+    private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
     // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
     // PacketHandlers class is the SET_EQUIPPED_ITEM registration.
@@ -59,8 +67,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedMainMenuClasses = 0;
         patchedFrameProfileClasses = 0;
         patchedTerrainProfileClasses = 0;
+        patchedTerrainBreakdownClasses = 0;
         patchedChunkUploadProfileClasses = 0;
         patchedViaRewindEquipmentClasses = 0;
+        patchedVisibilityCacheClasses = 0;
+        patchedVisibilityInvalidationClasses = 0;
+        patchedEntityProfileClasses = 0;
+        patchedBlockLayerProfileClasses = 0;
+        patchedParticleProfileClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -76,8 +90,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
     public static int getPatchedFrameProfileClassCount() { return patchedFrameProfileClasses; }
     public static int getPatchedTerrainProfileClassCount() { return patchedTerrainProfileClasses; }
+    public static int getPatchedTerrainBreakdownClassCount() { return patchedTerrainBreakdownClasses; }
     public static int getPatchedChunkUploadProfileClassCount() { return patchedChunkUploadProfileClasses; }
     public static int getPatchedViaRewindEquipmentClassCount() { return patchedViaRewindEquipmentClasses; }
+    public static int getPatchedVisibilityCacheClassCount() { return patchedVisibilityCacheClasses; }
+    public static int getPatchedVisibilityInvalidationClassCount() { return patchedVisibilityInvalidationClasses; }
+    public static int getPatchedEntityProfileClassCount() { return patchedEntityProfileClasses; }
+    public static int getPatchedBlockLayerProfileClassCount() { return patchedBlockLayerProfileClasses; }
+    public static int getPatchedParticleProfileClassCount() { return patchedParticleProfileClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -100,8 +120,23 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean mainMenuPatched = false;
             boolean frameProfilePatched = false;
             boolean terrainProfilePatched = false;
+            boolean terrainBreakdownPatched = false;
             boolean chunkUploadProfilePatched = false;
+            boolean visibilityCachePatched = false;
+            boolean visibilityInvalidationPatched = false;
+            boolean entityProfilePatched = false;
+            boolean blockLayerProfilePatched = false;
+            boolean particleProfilePatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
+            boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
+            int visibilityGraphCandidates = 0;
+            int blockLayerCandidates = 0;
+            if (terrainClass) {
+                for (MethodNode candidate : node.methods) {
+                    if (isVisibilityGraphMethod(candidate)) visibilityGraphCandidates++;
+                    if (isBlockLayerRenderMethod(candidate)) blockLayerCandidates++;
+                }
+            }
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -139,6 +174,39 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
                         insertTimedSection(method, 1);
                         terrainProfilePatched = true;
+                        changed = true;
+                    }
+
+                    if (terrainClass && !terrainBreakdownPatched
+                        && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
+                        terrainBreakdownPatched = insertTerrainBreakdown(method);
+                        if (terrainBreakdownPatched) changed = true;
+                    }
+
+                    if (terrainClass && visibilityGraphCandidates == 1 && !visibilityCachePatched
+                        && isVisibilityGraphMethod(method)) {
+                        injectVisibilityCache(method);
+                        visibilityCachePatched = true;
+                        changed = true;
+                    }
+
+                    if (terrainClass && isTerrainCacheInvalidationMethod(node, method)) {
+                        insertVisibilityCacheInvalidation(method);
+                        visibilityInvalidationPatched = true;
+                        changed = true;
+                    }
+
+                    if (terrainClass && !entityProfilePatched
+                        && hasMarkers(method, "entities", "blockentities")) {
+                        insertTimedSection(method, 3);
+                        entityProfilePatched = true;
+                        changed = true;
+                    }
+
+                    if (terrainClass && blockLayerCandidates == 1 && !blockLayerProfilePatched
+                        && isBlockLayerRenderMethod(method)) {
+                        insertTimedSection(method, 4);
+                        blockLayerProfilePatched = true;
                         changed = true;
                     }
 
@@ -228,6 +296,16 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
+            if (particleManagerClass) {
+                for (MethodNode method : node.methods) {
+                    if ((method.access & Opcodes.ACC_STATIC) == 0 && isParticleRenderMethod(method)) {
+                        insertTimedSection(method, 5);
+                        particleProfilePatched = true;
+                        changed = true;
+                    }
+                }
+            }
+
             boolean viaRewindEquipmentPatched = false;
             // In the pinned 4.2.0 Java 8 artifact SET_EQUIPPED_ITEM is
             // the tenth anonymous PacketHandlers class; other packet handlers
@@ -278,8 +356,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (mainMenuPatched) patchedMainMenuClasses++;
             if (frameProfilePatched) patchedFrameProfileClasses++;
             if (terrainProfilePatched) patchedTerrainProfileClasses++;
+            if (terrainBreakdownPatched) patchedTerrainBreakdownClasses++;
             if (chunkUploadProfilePatched) patchedChunkUploadProfileClasses++;
             if (viaRewindEquipmentPatched) patchedViaRewindEquipmentClasses++;
+            if (visibilityCachePatched) patchedVisibilityCacheClasses++;
+            if (visibilityInvalidationPatched) patchedVisibilityInvalidationClasses++;
+            if (entityProfilePatched) patchedEntityProfileClasses++;
+            if (blockLayerProfilePatched) patchedBlockLayerProfileClasses++;
+            if (particleProfilePatched) patchedParticleProfileClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -295,6 +379,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (terrainProfilePatched) System.out.println("[Cylox] Opt-in terrain profiler injected: " + node.name);
             if (chunkUploadProfilePatched) System.out.println("[Cylox] Opt-in chunk-upload profiler injected: " + node.name);
             if (viaRewindEquipmentPatched) System.out.println("[Cylox] ViaRewind local-player equipment guard injected: " + node.name);
+            if (visibilityCachePatched) System.out.println("[Cylox] Terrain visibility cache injected: " + node.name);
+            if (visibilityInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache invalidation injected: " + node.name);
+            if (entityProfilePatched) System.out.println("[Cylox] Opt-in entity renderer profiler injected: " + node.name);
+            if (blockLayerProfilePatched) System.out.println("[Cylox] Opt-in block-layer profiler injected: " + node.name);
+            if (particleProfilePatched) System.out.println("[Cylox] Opt-in particle profiler injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -545,11 +634,210 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         }
     }
 
+    private static boolean isVisibilityGraphMethod(MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0
+            || !"Ljava/util/Set;".equals(Type.getReturnType(method.desc).getDescriptor())) return false;
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        if (arguments.length != 1 || arguments[0].getSort() != Type.OBJECT) return false;
+        boolean createsGraph = false;
+        boolean iterates = false;
+        boolean returnsSetFromCall = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof org.objectweb.asm.tree.TypeInsnNode
+                && instruction.getOpcode() == Opcodes.NEW) createsGraph = true;
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if ("java/util/Iterator".equals(call.owner)
+                    && "hasNext".equals(call.name) && "()Z".equals(call.desc)) iterates = true;
+                if ("Ljava/util/Set;".equals(Type.getReturnType(call.desc).getDescriptor())) returnsSetFromCall = true;
+            }
+        }
+        return createsGraph && iterates && returnsSetFromCall;
+    }
+
+    private static boolean isBlockLayerRenderMethod(MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0
+            || Type.getReturnType(method.desc).getSort() != Type.INT) return false;
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        return arguments.length == 4 && arguments[0].getSort() == Type.OBJECT
+            && arguments[1].getSort() == Type.DOUBLE && arguments[2].getSort() == Type.INT
+            && arguments[3].getSort() == Type.OBJECT;
+    }
+
+    private static boolean isParticleRenderMethod(MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0 || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        return arguments.length == 2 && arguments[0].getSort() == Type.OBJECT
+            && arguments[1].getSort() == Type.FLOAT;
+    }
+
+    private static boolean isTerrainCacheInvalidationMethod(ClassNode owner, MethodNode method) {
+        // A constructor may store its world argument and call an instance refresh method,
+        // which resembles the world-replacement pattern. Never inject before super() or this().
+        if ("<init>".equals(method.name) || "<clinit>".equals(method.name)) return false;
+        if ((method.access & Opcodes.ACC_STATIC) != 0 || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
+        if ("(IIIIII)V".equals(method.desc)) return true;
+
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        boolean forwardsBlockRange = arguments.length == 1
+            && arguments[0].getSort() == Type.OBJECT
+            && hasMethodCallDescriptor(method, "(IIIIII)V");
+        boolean replacesWorld = false;
+        if (arguments.length == 1 && arguments[0].getSort() == Type.OBJECT) {
+            boolean writesWorldField = false;
+            boolean callsOwnNoArgMethod = false;
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
+                    org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
+                    if (field.getOpcode() == Opcodes.PUTFIELD && owner.name.equals(field.owner)
+                        && arguments[0].getDescriptor().equals(field.desc)) writesWorldField = true;
+                } else if (instruction instanceof MethodInsnNode) {
+                    MethodInsnNode call = (MethodInsnNode) instruction;
+                    if (owner.name.equals(call.owner) && "()V".equals(call.desc)) callsOwnNoArgMethod = true;
+                }
+            }
+            replacesWorld = writesWorldField && callsOwnNoArgMethod;
+        }
+        return forwardsBlockRange || replacesWorld;
+    }
+
+    private static void injectVisibilityCache(MethodNode method) {
+        LabelNode cached = new LabelNode();
+        LabelNode original = new LabelNode();
+        InsnList lookup = new InsnList();
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        lookup.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
+            "getCachedVisibleFacings", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false));
+        lookup.add(new InsnNode(Opcodes.DUP));
+        lookup.add(new JumpInsnNode(Opcodes.IFNONNULL, cached));
+        lookup.add(new InsnNode(Opcodes.POP));
+        lookup.add(new JumpInsnNode(Opcodes.GOTO, original));
+        lookup.add(cached);
+        lookup.add(new FrameNode(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Object"}));
+        lookup.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/util/Set"));
+        lookup.add(new InsnNode(Opcodes.ARETURN));
+        lookup.add(original);
+        lookup.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        method.instructions.insert(lookup);
+
+        int cachedResultLocal = method.maxLocals++;
+        for (AbstractInsnNode instruction = method.instructions.getFirst(); instruction != null; ) {
+            AbstractInsnNode next = instruction.getNext();
+            if (instruction.getOpcode() == Opcodes.ARETURN) {
+                InsnList store = new InsnList();
+                store.add(new VarInsnNode(Opcodes.ASTORE, cachedResultLocal));
+                store.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                store.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                store.add(new VarInsnNode(Opcodes.ALOAD, cachedResultLocal));
+                store.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
+                    "cacheVisibleFacings", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V", false));
+                store.add(new VarInsnNode(Opcodes.ALOAD, cachedResultLocal));
+                method.instructions.insertBefore(instruction, store);
+            }
+            instruction = next;
+        }
+    }
+
+    private static void insertVisibilityCacheInvalidation(MethodNode method) {
+        InsnList hook = new InsnList();
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
+            "invalidateVisibilityCache", "(Ljava/lang/Object;)V", false));
+        method.instructions.insert(hook);
+    }
+
+    /**
+     * Breaks RenderGlobal.setupTerrain into its existing vanilla profiler phases.
+     * Hooks are placed only at section transitions already present in 1.8.9;
+     * no traversal, chunk scheduling, or render decisions are changed.
+     */
+    private static boolean insertTerrainBreakdown(MethodNode method) {
+        MethodInsnNode cameraStart = findProfilerStringCall(method, "camera");
+        MethodInsnNode renderListStart = findProfilerStringCall(method, "renderlistcamera");
+        MethodInsnNode cullPrepStart = findProfilerStringCall(method, "cull");
+        MethodInsnNode cullingStart = findProfilerStringCall(method, "culling");
+        MethodInsnNode buildNearStart = findProfilerStringCall(method, "build near");
+        if (cameraStart == null || renderListStart == null || cullPrepStart == null
+            || cullingStart == null || buildNearStart == null) return false;
+
+        MethodInsnNode buildNearEnd = findFollowingProfilerEnd(method, buildNearStart, buildNearStart.owner, false);
+        MethodInsnNode cullingEnd = findFollowingProfilerEnd(method, cullingStart, cullingStart.owner, true);
+        if (buildNearEnd == null || cullingEnd == null || buildNearEnd == cullingEnd) return false;
+
+        insertTerrainSectionBeginAfter(method, cameraStart, 6);
+        insertTerrainSectionEndBefore(method, renderListStart, 6);
+        insertTerrainSectionBeginAfter(method, renderListStart, 7);
+        insertTerrainSectionEndBefore(method, cullPrepStart, 7);
+        insertTerrainSectionBeginAfter(method, cullPrepStart, 8);
+        insertTerrainSectionEndBefore(method, cullingStart, 8);
+        insertTerrainSectionBeginAfter(method, cullingStart, 9);
+        insertTerrainSectionBeginAfter(method, buildNearStart, 10);
+        insertTerrainSectionEndBefore(method, buildNearEnd, 10);
+        insertTerrainSectionEndBefore(method, cullingEnd, 9);
+        return true;
+    }
+
+    private static MethodInsnNode findProfilerStringCall(MethodNode method, String label) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)
+                || !"(Ljava/lang/String;)V".equals(((MethodInsnNode) instruction).desc)) continue;
+            AbstractInsnNode previous = instruction.getPrevious();
+            while (previous != null && previous.getOpcode() < 0) previous = previous.getPrevious();
+            if (previous instanceof LdcInsnNode && label.equals(((LdcInsnNode) previous).cst)) {
+                return (MethodInsnNode) instruction;
+            }
+        }
+        return null;
+    }
+
+    private static MethodInsnNode findFollowingProfilerEnd(MethodNode method, MethodInsnNode start,
+                                                            String profilerOwner, boolean last) {
+        MethodInsnNode found = null;
+        boolean afterStart = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction == start) {
+                afterStart = true;
+            } else if (afterStart && instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (profilerOwner.equals(call.owner) && "()V".equals(call.desc)) {
+                    if (!last) return call;
+                    found = call;
+                }
+            }
+        }
+        return found;
+    }
+
+    private static void insertTerrainSectionBeginAfter(MethodNode method, MethodInsnNode call, int section) {
+        InsnList hook = new InsnList();
+        hook.add(new LdcInsnNode(Integer.valueOf(section)));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
+        method.instructions.insert(call, hook);
+    }
+
+    private static void insertTerrainSectionEndBefore(MethodNode method, MethodInsnNode call, int section) {
+        InsnList hook = new InsnList();
+        hook.add(new LdcInsnNode(Integer.valueOf(section)));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
+        method.instructions.insertBefore(call, hook);
+    }
+
     private static void insertTimedSection(MethodNode method, int section) {
         java.util.List<AbstractInsnNode> originalReturns = new java.util.ArrayList<AbstractInsnNode>();
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null; instruction = instruction.getNext()) {
-            if (instruction.getOpcode() == Opcodes.RETURN) originalReturns.add(instruction);
+            int opcode = instruction.getOpcode();
+            if (opcode == Opcodes.IRETURN || opcode == Opcodes.LRETURN || opcode == Opcodes.FRETURN
+                || opcode == Opcodes.DRETURN || opcode == Opcodes.ARETURN || opcode == Opcodes.RETURN) {
+                originalReturns.add(instruction);
+            }
         }
 
         InsnList begin = new InsnList();
@@ -558,11 +846,20 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
         method.instructions.insert(begin);
 
+        Type returnType = Type.getReturnType(method.desc);
+        int resultLocal = -1;
+        if (returnType.getSort() != Type.VOID) {
+            resultLocal = method.maxLocals;
+            method.maxLocals += returnType.getSize();
+        }
+
         for (AbstractInsnNode instruction : originalReturns) {
             InsnList end = new InsnList();
+            if (resultLocal >= 0) end.add(new VarInsnNode(returnType.getOpcode(Opcodes.ISTORE), resultLocal));
             end.add(new LdcInsnNode(Integer.valueOf(section)));
             end.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
                 "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
+            if (resultLocal >= 0) end.add(new VarInsnNode(returnType.getOpcode(Opcodes.ILOAD), resultLocal));
             method.instructions.insertBefore(instruction, end);
         }
     }

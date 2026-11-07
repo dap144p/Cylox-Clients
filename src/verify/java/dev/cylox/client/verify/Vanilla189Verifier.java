@@ -1,6 +1,10 @@
 package dev.cylox.client.verify;
 
 import dev.cylox.client.minecraft189.CyloxClientTransformer;
+import dev.cylox.client.minecraft189.CyloxVisibilityCacheHooks;
+import dev.cylox.client.minecraft189.CyloxGraphicsPreset;
+import java.util.HashSet;
+import java.util.Set;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -52,9 +56,128 @@ public final class Vanilla189Verifier {
         require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
         require("opt-in frame profiler", CyloxClientTransformer.getPatchedFrameProfileClassCount());
         require("opt-in terrain profiler", CyloxClientTransformer.getPatchedTerrainProfileClassCount());
+        require("opt-in terrain phase profiler", CyloxClientTransformer.getPatchedTerrainBreakdownClassCount());
         require("opt-in chunk-upload profiler", CyloxClientTransformer.getPatchedChunkUploadProfileClassCount());
+        require("terrain visibility cache", CyloxClientTransformer.getPatchedVisibilityCacheClassCount());
+        require("terrain visibility cache invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
+        require("opt-in entity renderer profiler", CyloxClientTransformer.getPatchedEntityProfileClassCount());
+        require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
+        require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
+        verifyVisibilityCacheBehavior();
+        verifyGraphicsPresetBehavior();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
+    }
+
+    private static void verifyVisibilityCacheBehavior() {
+        Object renderGlobal = new Object();
+        Set<String> expected = new HashSet<String>();
+        expected.add("north");
+        expected.add("south");
+
+        for (int i = 0; i < 64; i++) {
+            CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, Integer.valueOf(i), expected);
+        }
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 64) {
+            throw new IllegalStateException("Visibility cache did not retain exactly 64 entries");
+        }
+
+        Object oldest = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(oldest instanceof Set)) {
+            throw new IllegalStateException("Visibility cache missed the first stored entry");
+        }
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, Integer.valueOf(64), expected);
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 64
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(1)) != null) {
+            throw new IllegalStateException("Visibility cache did not evict its least-recently-used entry");
+        }
+
+        Object firstCopy = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(firstCopy instanceof Set) || firstCopy == expected || !expected.equals(firstCopy)) {
+            throw new IllegalStateException("Visibility cache did not return a defensive copy");
+        }
+        ((Set<?>) firstCopy).clear();
+        Object secondCopy = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(secondCopy instanceof Set) || !expected.equals(secondCopy)) {
+            throw new IllegalStateException("Mutating a returned visibility set changed the cached value");
+        }
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 0) {
+            throw new IllegalStateException("Visibility cache did not clear on invalidation");
+        }
+        System.out.println("[Cylox] Verified bounded 64-entry LRU visibility cache, defensive copies and invalidation.");
+    }
+
+    private static void verifyGraphicsPresetBehavior() throws Exception {
+        File root = java.nio.file.Files.createTempDirectory("cylox-graphics-preset").toFile();
+        File options = new File(root, "options.txt");
+        File cyloxDirectory = new File(root, "cylox");
+        File backup = new File(cyloxDirectory, "options-before-graphics-preset.txt");
+        try {
+            java.nio.file.Files.write(options.toPath(), java.util.Arrays.asList(
+                "renderDistance:3",
+                "fancyGraphics:false",
+                "ao:0",
+                "particles:2",
+                "entityShadows:false",
+                "renderClouds:false",
+                "mipmapLevels:0",
+                "maxFps:30",
+                "enableVsync:true",
+                "lang:en_US"
+            ), java.nio.charset.StandardCharsets.UTF_8);
+
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(root);
+            java.util.List<String> applied = java.nio.file.Files.readAllLines(
+                options.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            String[] expected = new String[] {
+                "renderDistance:16",
+                "fancyGraphics:true",
+                "ao:2",
+                "particles:0",
+                "entityShadows:true",
+                "renderClouds:true",
+                "mipmapLevels:4",
+                "maxFps:260",
+                "enableVsync:false",
+                "lang:en_US"
+            };
+            for (String entry : expected) {
+                if (!applied.contains(entry)) {
+                    throw new IllegalStateException("Graphics preset is missing expected setting: " + entry);
+                }
+            }
+            if (!backup.isFile()) throw new IllegalStateException("Original options.txt backup was not created");
+            java.util.List<String> original = java.nio.file.Files.readAllLines(
+                backup.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            if (!original.contains("renderDistance:3") || !original.contains("lang:en_US")) {
+                throw new IllegalStateException("Original options.txt backup did not preserve existing settings");
+            }
+
+            java.nio.file.Files.write(options.toPath(), java.util.Arrays.asList("renderDistance:4"),
+                java.nio.charset.StandardCharsets.UTF_8);
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(root);
+            java.util.List<String> afterSecondLaunch = java.nio.file.Files.readAllLines(
+                options.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            if (!afterSecondLaunch.contains("renderDistance:4")) {
+                throw new IllegalStateException("Graphics preset overwrote user settings after its first launch");
+            }
+            System.out.println("[Cylox] Verified one-time maximum graphics preset, options.txt backup and user-setting preservation.");
+        } finally {
+            deleteRecursively(root);
+        }
+    }
+
+    private static void deleteRecursively(File file) {
+        if (file == null || !file.exists()) return;
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) deleteRecursively(child);
+        }
+        if (!file.delete()) {
+            System.err.println("[Cylox] Could not remove verifier temporary file: " + file);
+        }
     }
 
     private static void verifyViaRewindEquipmentHook(File viaRewindJar) throws Exception {
