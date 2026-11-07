@@ -28,8 +28,10 @@ public final class CyloxTweaker implements ITweaker {
         classLoader.addClassLoaderExclusion("io.netty.");
         classLoader.addTransformerExclusion("dev.cylox.client.");
         System.out.println("[Cylox] Netty package parent delegation enabled: io.netty.");
-        CyloxProtocolBridge.initialize(gameDirectory);
+        // Register before ViaLoadingBase initializes protocols so the bundled
+        // ViaRewind classes pass through Cylox's transformer on first load.
         classLoader.registerTransformer("dev.cylox.client.minecraft189.CyloxClientTransformer");
+        CyloxProtocolBridge.initialize(gameDirectory);
         System.out.println("[Cylox] Background client 1.8.9 initialized.");
     }
 

@@ -96,6 +96,12 @@ jobs:
           fi
           unzip -l "$JAR" | grep -q 'com/viaversion/viaversion/api/protocol/version/ProtocolVersion.class'
           unzip -l "$JAR" | grep -q 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
+          unzip -l "$JAR" | grep -q 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
+          if unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxRenderHooks.class'; then
+            echo "Unexpected custom terrain scratch hook in Cylox JAR"
+            exit 1
+          fi
 
       - name: Verify embedded Via stack uses Java 8 bytecode
         shell: bash
@@ -112,6 +118,7 @@ jobs:
               "com/viaversion/viaversion/api/protocol/version/ProtocolVersion.class",
               "com/viaversion/viabackwards/api/ViaBackwardsPlatform.class",
               "com/viaversion/viarewind/api/ViaRewindPlatform.class",
+              "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class",
           }
           checked = 0
           highest_major = 0
@@ -157,14 +164,15 @@ jobs:
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with Via decoder error propagation.
+          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla terrain traversal and Via equipment handling.
 
-          - Bundles ViaVersion 5.12.3-SNAPSHOT (upstream Java 8 CI build #55), ViaBackwards 5.12.3-SNAPSHOT (build #45), and ViaRewind 4.2.0 (build #39) inside the single Cylox client JAR.
+          - Bundles ViaVersion 5.12.3-SNAPSHOT (upstream Java 8 CI build #55), ViaBackwards 5.12.3-SNAPSHOT (build #45), and the established ViaRewind 4.2.0 Java 8 compatibility build #39 inside the single Cylox client JAR.
+          - Applies ViaRewind commit f6424ddb565b9350cc347ce43f67c7e608767499 to the embedded 4.2.0 class at load time, cancelling redundant local-player equipment packets in the 1.9-to-1.8 translation.
           - The Via decoder preserves normal CancelCodecException cancellation but forwards every other decoder/translation exception to Minecraft's NetworkManager instead of silently swallowing it.
           - This is an error-path correction; it does not claim that every 1.13 packet or scoreboard compatibility issue is fixed.
-          - Uses the upstream Java 8 compatibility artifacts; CI validates the JAR contents and checks ordinary class files for Java 8 bytecode compatibility.
+          - Uses pinned upstream Java 8 compatibility artifacts; CI validates their contents, confirms the injected ViaRewind guard against the pinned class, and checks ordinary bundled class files for Java 8 bytecode compatibility.
           - Replaces the ViaVersion/ViaBackwards 5.12.1 libraries used in v1.3.7. The manual protocol selector, target resolver, Netty pipeline placement and handshake logic remain unchanged.
-          - Does not change the Minecraft renderer, chunk scheduler, graphics settings or background behavior.
+          - Restores native Minecraft 1.8.9 terrain traversal by removing Cylox 1.3.7's custom visible-chunk list and traversal-queue replacements. Native chunk scheduling, culling and render-buffer pooling remain in place.
           - The standalone profile declares Minecraft 1.8.9's official client artifact, libraries and asset index as launcher dependencies; a separate vanilla profile is not required when the launcher resolves legacy libraries correctly.
           - Choose the target server protocol manually using the Via selector on the Multiplayer screen; selection is saved in the game directory.
           - No automatic server-version detection or status-ping protocol selection.
@@ -172,7 +180,7 @@ jobs:
           - Adapts protocol-selector rows to screen height, fits long button labels, caches UI reflection lookups and caches protocol-family discovery.
           - Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads.
           - Preserves Minecraft 1.8.9's native near/far chunk-update scheduling; Cylox does not add a custom chunk queue or renderer.
-          - Reuses the render-thread visible-chunk list and FIFO terrain traversal queue in RenderGlobal.setupTerrain, avoiding repeated scratch collection and linked-node allocation when the culling graph is rebuilt; culling decisions and ordering remain vanilla.
+          - Does not inject a custom terrain list or queue into RenderGlobal.setupTerrain; no renderer FPS gain is claimed without device measurements.
           - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Video Settings and options.txt are unchanged.
           - Sizes Via's temporary packet buffers from the incoming packet length (minimum 256 bytes) to avoid unnecessary initial buffer growth; translated packets can still expand when required.
           - Java 8 compatibility builds are an upstream fallback and may continue to log that Java 8 is outside normal support. Real MJ Launcher testing is still required to confirm server packet compatibility.

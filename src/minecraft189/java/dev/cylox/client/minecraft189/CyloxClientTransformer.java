@@ -31,12 +31,16 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedButtonThemeClasses;
     private static volatile int patchedScreenBackgroundClasses;
     private static volatile int patchedMainMenuClasses;
-    private static volatile int patchedRenderGraphClasses;
+    private static volatile int patchedViaRewindEquipmentClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
-    private static final String RENDER = "dev/cylox/client/minecraft189/CyloxRenderHooks";
+    private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
+    private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
+    // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
+    // PacketHandlers class is the SET_EQUIPPED_ITEM registration.
+    private static final String VIA_REWIND_EQUIPMENT_HANDLER_CLASS = VIA_REWIND_EQUIPMENT_REWRITER + "$10";
 
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
@@ -50,7 +54,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedButtonThemeClasses = 0;
         patchedScreenBackgroundClasses = 0;
         patchedMainMenuClasses = 0;
-        patchedRenderGraphClasses = 0;
+        patchedViaRewindEquipmentClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -64,7 +68,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedButtonThemeClassCount() { return patchedButtonThemeClasses; }
     public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
-    public static int getPatchedRenderGraphClassCount() { return patchedRenderGraphClasses; }
+    public static int getPatchedViaRewindEquipmentClassCount() { return patchedViaRewindEquipmentClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -85,7 +89,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean buttonThemePatched = false;
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
-            boolean renderGraphPatched = false;
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -178,44 +181,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     }
                 }
 
-                if (!renderGraphPatched && (method.access & Opcodes.ACC_STATIC) == 0
-                    && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
-                    boolean renderInfoListReused = false;
-                    boolean traversalQueueReused = false;
-                    for (AbstractInsnNode instruction = method.instructions.getFirst();
-                         instruction != null; ) {
-                        AbstractInsnNode next = instruction.getNext();
-                        if (instruction instanceof MethodInsnNode) {
-                            MethodInsnNode call = (MethodInsnNode) instruction;
-                            if (!renderInfoListReused
-                                && "com/google/common/collect/Lists".equals(call.owner)
-                                && "newArrayList".equals(call.name)
-                                && "()Ljava/util/ArrayList;".equals(call.desc)) {
-                                InsnList replacement = new InsnList();
-                                replacement.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                                replacement.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER,
-                                    "reuseRenderInfos", "(Ljava/lang/Object;)Ljava/util/ArrayList;", false));
-                                method.instructions.insertBefore(instruction, replacement);
-                                method.instructions.remove(instruction);
-                                renderInfoListReused = true;
-                                changed = true;
-                            } else if (!traversalQueueReused
-                                && "com/google/common/collect/Lists".equals(call.owner)
-                                && "newLinkedList".equals(call.name)
-                                && "()Ljava/util/LinkedList;".equals(call.desc)) {
-                                InsnList replacement = new InsnList();
-                                replacement.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER,
-                                    "reuseTraversalQueue", "()Ljava/util/LinkedList;", false));
-                                method.instructions.insertBefore(instruction, replacement);
-                                method.instructions.remove(instruction);
-                                traversalQueueReused = true;
-                                changed = true;
-                            }
-                        }
-                        instruction = next;
-                    }
-                    renderGraphPatched = renderInfoListReused && traversalQueueReused;
-                }
 
                 if (!frameLimitPatched) {
                     for (AbstractInsnNode instruction = method.instructions.getFirst();
@@ -233,6 +198,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         }
                     }
                 }
+            }
+
+            boolean viaRewindEquipmentPatched = false;
+            // In the pinned 4.2.0 Java 8 artifact SET_EQUIPPED_ITEM is
+            // the tenth anonymous PacketHandlers class; other packet handlers
+            // have similar read/cancel/write bytecode and must remain untouched.
+            if (VIA_REWIND_EQUIPMENT_HANDLER_CLASS.equals(node.name)) {
+                viaRewindEquipmentPatched = injectViaRewindEquipmentGuard(node);
+                if (viaRewindEquipmentPatched) changed = true;
             }
 
             if (selectorButtonPatched) {
@@ -274,7 +248,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) patchedButtonThemeClasses++;
             if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
             if (mainMenuPatched) patchedMainMenuClasses++;
-            if (renderGraphPatched) patchedRenderGraphClasses++;
+            if (viaRewindEquipmentPatched) patchedViaRewindEquipmentClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -286,7 +260,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) System.out.println("[Cylox] Cylox button theme injected: " + node.name);
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
-            if (renderGraphPatched) System.out.println("[Cylox] Reused terrain-culling scratch collections: " + node.name);
+            if (viaRewindEquipmentPatched) System.out.println("[Cylox] ViaRewind local-player equipment guard injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -296,6 +270,78 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     }
 
 
+
+    /**
+     * Adds the upstream ViaRewind local-player equipment cancellation to the
+     * anonymous SET_EQUIPPED_ITEM PacketHandlers class in the Java 8 artifact.
+     */
+    private static boolean injectViaRewindEquipmentGuard(ClassNode node) {
+        MethodNode target = null;
+        int matches = 0;
+        for (MethodNode method : node.methods) {
+            if (!"(Lcom/viaversion/viaversion/api/protocol/packet/PacketWrapper;)V".equals(method.desc)) {
+                continue;
+            }
+            boolean readsPacket = false;
+            boolean cancelsPacket = false;
+            boolean writesPacket = false;
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (!(instruction instanceof MethodInsnNode)) continue;
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (!"com/viaversion/viaversion/api/protocol/packet/PacketWrapper".equals(call.owner)) continue;
+                if ("read".equals(call.name)
+                    && "(Lcom/viaversion/viaversion/api/type/Type;)Ljava/lang/Object;".equals(call.desc)) {
+                    readsPacket = true;
+                } else if ("cancel".equals(call.name) && "()V".equals(call.desc)) {
+                    cancelsPacket = true;
+                } else if ("write".equals(call.name)
+                    && "(Lcom/viaversion/viaversion/api/type/Type;Ljava/lang/Object;)V".equals(call.desc)) {
+                    writesPacket = true;
+                }
+            }
+            if (readsPacket && cancelsPacket && writesPacket) {
+                target = method;
+                matches++;
+            }
+        }
+        // Fail closed: patch only the unique SET_EQUIPPED_ITEM lambda. A changed
+        // upstream class shape must fail CI verification instead of patching a
+        // different packet handler.
+        if (matches != 1 || target == null) {
+            for (MethodNode method : node.methods) {
+                if (method.desc.indexOf("PacketWrapper") < 0) continue;
+                StringBuilder diagnostic = new StringBuilder("[Cylox] ViaRewind candidate ")
+                    .append(method.name).append(method.desc).append(":");
+                for (AbstractInsnNode instruction = method.instructions.getFirst();
+                     instruction != null; instruction = instruction.getNext()) {
+                    if (instruction instanceof MethodInsnNode) {
+                        MethodInsnNode call = (MethodInsnNode) instruction;
+                        if ("read".equals(call.name) || "cancel".equals(call.name)
+                            || "setCancelled".equals(call.name) || "write".equals(call.name)) {
+                            diagnostic.append(" ").append(call.owner).append(".")
+                                .append(call.name).append(call.desc);
+                        }
+                    }
+                }
+                System.out.println(diagnostic.toString());
+            }
+            return false;
+        }
+
+        int wrapperSlot = (target.access & Opcodes.ACC_STATIC) != 0 ? 0 : 1;
+        LabelNode continueVanilla = new LabelNode();
+        InsnList guard = new InsnList();
+        guard.add(new VarInsnNode(Opcodes.ALOAD, wrapperSlot));
+        guard.add(new MethodInsnNode(Opcodes.INVOKESTATIC, VIA_REWIND,
+            "cancelOwnPlayerEquipment", "(Ljava/lang/Object;)Z", false));
+        guard.add(new JumpInsnNode(Opcodes.IFEQ, continueVanilla));
+        guard.add(new InsnNode(Opcodes.RETURN));
+        guard.add(continueVanilla);
+        guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        target.instructions.insert(guard);
+        return true;
+    }
 
     private static boolean isMinecraftGuiClass(String name, String transformedName, String simpleName) {
         String expected = "net.minecraft.client.gui." + simpleName;

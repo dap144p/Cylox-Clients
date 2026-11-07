@@ -1,12 +1,10 @@
 package dev.cylox.client.verify;
 
 import dev.cylox.client.minecraft189.CyloxClientTransformer;
-import dev.cylox.client.minecraft189.CyloxRenderHooks;
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -16,7 +14,7 @@ public final class Vanilla189Verifier {
     private Vanilla189Verifier() { }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) throw new IllegalArgumentException("Pass the official Minecraft 1.8.9 JAR path");
+        if (args.length != 2) throw new IllegalArgumentException("Pass the official Minecraft 1.8.9 JAR and pinned ViaRewind JAR paths");
         File vanillaJar = new File(args[0]);
         if (!vanillaJar.isFile()) throw new IllegalArgumentException("Minecraft JAR does not exist: " + vanillaJar);
 
@@ -52,30 +50,55 @@ public final class Vanilla189Verifier {
         require("Cylox themed vanilla buttons", CyloxClientTransformer.getPatchedButtonThemeClassCount());
         require("Cylox menu background", CyloxClientTransformer.getPatchedScreenBackgroundClassCount());
         require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
-        require("terrain render-graph scratch reuse", CyloxClientTransformer.getPatchedRenderGraphClassCount());
-        verifyScratchCollectionReuse();
+        verifyViaRewindEquipmentHook(new File(args[1]));
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
 
-    private static void verifyScratchCollectionReuse() {
-        Object owner = new Object();
-        ArrayList<Object> firstList = CyloxRenderHooks.reuseRenderInfos(owner);
-        firstList.add(owner);
-        ArrayList<Object> secondList = CyloxRenderHooks.reuseRenderInfos(owner);
-        if (firstList != secondList || !secondList.isEmpty()) {
-            throw new IllegalStateException("Render-info scratch list was not reused and cleared");
+    private static void verifyViaRewindEquipmentHook(File viaRewindJar) throws Exception {
+        if (!viaRewindJar.isFile()) {
+            throw new IllegalArgumentException("ViaRewind JAR does not exist: " + viaRewindJar);
         }
+        String className = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
+        String entryName = className + ".class";
+        int patchedHandlers = 0;
+        boolean foundRewriter = false;
+        try (JarFile jar = new JarFile(viaRewindJar)) {
+            JarEntry rewriterEntry = jar.getJarEntry(entryName);
+            if (rewriterEntry == null) {
+                throw new IllegalStateException("ViaRewind equipment rewriter is missing: " + entryName);
+            }
+            foundRewriter = true;
 
-        LinkedList<Object> firstQueue = CyloxRenderHooks.reuseTraversalQueue();
-        firstQueue.add(owner);
-        if (firstQueue.poll() != owner || !firstQueue.isEmpty()) {
-            throw new IllegalStateException("Terrain traversal queue does not preserve FIFO behavior");
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (entry.isDirectory() || !name.endsWith(".class")
+                    || !name.startsWith(className + "$")) {
+                    continue;
+                }
+                String internalName = name.substring(0, name.length() - 6);
+                byte[] original;
+                try (InputStream input = jar.getInputStream(entry);
+                     ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = input.read(buffer)) >= 0) output.write(buffer, 0, count);
+                    original = output.toByteArray();
+                }
+                int before = CyloxClientTransformer.getPatchedViaRewindEquipmentClassCount();
+                byte[] transformed = new CyloxClientTransformer().transform(internalName, internalName, original);
+                int after = CyloxClientTransformer.getPatchedViaRewindEquipmentClassCount();
+                if (transformed != null && !Arrays.equals(original, transformed)) {
+                    patchedHandlers += after - before;
+                }
+            }
         }
-        LinkedList<Object> secondQueue = CyloxRenderHooks.reuseTraversalQueue();
-        if (firstQueue != secondQueue || !secondQueue.isEmpty()) {
-            throw new IllegalStateException("Terrain traversal queue was not reused and cleared");
+        if (!foundRewriter || patchedHandlers != 1) {
+            throw new IllegalStateException("Expected exactly one ViaRewind equipment-handler patch, found "
+                + patchedHandlers);
         }
-        System.out.println("[Cylox] Verified reusable render-info list and FIFO terrain queue.");
+        System.out.println("[Cylox] Verified ViaRewind local-player equipment guard in its PacketHandlers inner class.");
     }
 
     private static void require(String hook, int count) {
