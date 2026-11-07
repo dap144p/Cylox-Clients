@@ -123,7 +123,7 @@ jobs:
               "com/viaversion/viarewind/api/ViaRewindPlatform.class",
               "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class",
               "xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class",
-              "dev/cylox/client/minecraft189/CyloxRenderHooks.class",
+              "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks.class",
           }
           checked = 0
           highest_major = 0
