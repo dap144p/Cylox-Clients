@@ -142,7 +142,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean particleProfilePatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
-            boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png");
+            boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png")
+                || hasFontRendererWidthPattern(node);
             boolean nameTagRenderClass = hasClassString(node, "deadmau5");
             String fontUnicodeField = fontRendererClass ? findUnicodeField(node) : null;
             int visibilityGraphCandidates = 0;
@@ -957,6 +958,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             }
         }
         return stringWidthCalls >= 3;
+    }
+
+    private static boolean hasFontRendererWidthPattern(ClassNode owner) {
+        if (findUnicodeField(owner) == null) return false;
+        int widthMethods = 0;
+        for (MethodNode method : owner.methods) {
+            if (isStringWidthMethod(owner, method)) widthMethods++;
+        }
+        return widthMethods == 1;
     }
 
     private static boolean isStringWidthMethod(ClassNode owner, MethodNode method) {
