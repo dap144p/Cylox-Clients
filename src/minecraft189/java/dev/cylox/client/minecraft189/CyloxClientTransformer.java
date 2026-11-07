@@ -17,6 +17,7 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 
 /** Adds the background hooks, embedded Via pipeline hooks and manual protocol selector UI. */
 public final class CyloxClientTransformer implements net.minecraft.launchwrapper.IClassTransformer {
@@ -364,9 +365,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
             if (frameProfilePatched) System.out.println("[Cylox] Opt-in frame profiler injected: " + node.name);
-            if (entityProfilePatched) System.out.println("[Cylox] Opt-in entity renderer profiler injected: " + node.name);
-            if (blockLayerProfilePatched) System.out.println("[Cylox] Opt-in block-layer profiler injected: " + node.name);
-            if (particleProfilePatched) System.out.println("[Cylox] Opt-in particle profiler injected: " + node.name);
             if (terrainProfilePatched) System.out.println("[Cylox] Opt-in terrain profiler injected: " + node.name);
             if (chunkUploadProfilePatched) System.out.println("[Cylox] Opt-in chunk-upload profiler injected: " + node.name);
             if (viaRewindEquipmentPatched) System.out.println("[Cylox] ViaRewind local-player equipment guard injected: " + node.name);
