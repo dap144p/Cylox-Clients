@@ -122,7 +122,6 @@ sourceSets {
             include '**/CyloxPerformanceMonitor.java'
             include '**/CyloxVisibilityCacheHooks.java'
             include '**/CyloxTextWidthCache.java'
-            include '**/CyloxEntityRenderHooks.java'
             include '**/CyloxUiHooks.java'
         }
         compileClasspath += sourceSets.main.output
