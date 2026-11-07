@@ -53,6 +53,11 @@ public final class Vanilla189Verifier {
         require("opt-in frame profiler", CyloxClientTransformer.getPatchedFrameProfileClassCount());
         require("opt-in terrain profiler", CyloxClientTransformer.getPatchedTerrainProfileClassCount());
         require("opt-in chunk-upload profiler", CyloxClientTransformer.getPatchedChunkUploadProfileClassCount());
+        require("terrain visibility cache", CyloxClientTransformer.getPatchedVisibilityCacheClassCount());
+        require("terrain visibility cache invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
+        require("opt-in entity renderer profiler", CyloxClientTransformer.getPatchedEntityProfileClassCount());
+        require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
+        require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
