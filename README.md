@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.3  
+**Version:** 1.4.4  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -67,6 +67,15 @@ This is not an Android background service. The launcher must keep the game proce
 - Extends opt-in profiling to entity rendering, block-layer rendering and particle rendering. The five-second report includes average/maximum time for each area plus visibility-cache hits, misses and invalidations.
 - Enable the report with `-Dcylox.profile=true`. The profiler is disabled by default.
 - This is a conservative first optimization, not a complete Sodium-equivalent renderer. Further entity, block-layer, particle and render-state optimizations will be selected from the new measurements and tested independently to avoid chunk-visibility regressions.
+
+## Terrain profiling breakdown (1.4.4)
+
+- Splits the existing vanilla `RenderGlobal.setupTerrain` profiler boundaries into camera update, render-list initialization, cull preparation, visibility culling and synchronous nearby-chunk builds.
+- Uses the existing vanilla section transitions only. It does not replace BFS traversal, frustum tests, the render queue, chunk update scheduling or chunk upload behavior.
+- The `terrainBuildNear*` metrics are nested inside `terrainCulling*`; do not add them together. They show how much of the culling phase is spent rebuilding nearby chunks synchronously.
+- The five-second report emits average, maximum and sample count for each phase. This remains opt-in and disabled unless `-Dcylox.profile=true` is enabled.
+- This build adds diagnostics only. It does not claim an FPS increase; collect another comparable AlwiNation spawn log before selecting the next optimization.
+
 
 ## Cylox adaptive lightweight UI
 
