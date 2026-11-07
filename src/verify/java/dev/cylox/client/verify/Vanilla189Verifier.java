@@ -1,6 +1,9 @@
 package dev.cylox.client.verify;
 
 import dev.cylox.client.minecraft189.CyloxClientTransformer;
+import dev.cylox.client.minecraft189.CyloxVisibilityCacheHooks;
+import java.util.HashSet;
+import java.util.Set;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -60,7 +63,48 @@ public final class Vanilla189Verifier {
         require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
         require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
+        verifyVisibilityCacheBehavior();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
+    }
+
+    private static void verifyVisibilityCacheBehavior() {
+        Object renderGlobal = new Object();
+        Set<String> expected = new HashSet<String>();
+        expected.add("north");
+        expected.add("south");
+
+        for (int i = 0; i < 64; i++) {
+            CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, Integer.valueOf(i), expected);
+        }
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 64) {
+            throw new IllegalStateException("Visibility cache did not retain exactly 64 entries");
+        }
+
+        Object oldest = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(oldest instanceof Set)) {
+            throw new IllegalStateException("Visibility cache missed the first stored entry");
+        }
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, Integer.valueOf(64), expected);
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 64
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(1)) != null) {
+            throw new IllegalStateException("Visibility cache did not evict its least-recently-used entry");
+        }
+
+        Object firstCopy = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(firstCopy instanceof Set) || firstCopy == expected || !expected.equals(firstCopy)) {
+            throw new IllegalStateException("Visibility cache did not return a defensive copy");
+        }
+        ((Set<?>) firstCopy).clear();
+        Object secondCopy = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(secondCopy instanceof Set) || !expected.equals(secondCopy)) {
+            throw new IllegalStateException("Mutating a returned visibility set changed the cached value");
+        }
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 0) {
+            throw new IllegalStateException("Visibility cache did not clear on invalidation");
+        }
+        System.out.println("[Cylox] Verified bounded 64-entry LRU visibility cache, defensive copies and invalidation.");
     }
 
     private static void verifyViaRewindEquipmentHook(File viaRewindJar) throws Exception {
