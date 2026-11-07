@@ -157,9 +157,11 @@ jobs:
           test -s "$ZIP"
 
           NOTES="$(cat <<EOF
-          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with an updated Java 8-compatible Via protocol stack.
+          Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with Via decoder error propagation.
 
           - Bundles ViaVersion 5.12.3-SNAPSHOT (upstream Java 8 CI build #55), ViaBackwards 5.12.3-SNAPSHOT (build #45), and ViaRewind 4.2.0 (build #39) inside the single Cylox client JAR.
+          - The Via decoder preserves normal CancelCodecException cancellation but forwards every other decoder/translation exception to Minecraft's NetworkManager instead of silently swallowing it.
+          - This is an error-path correction; it does not claim that every 1.13 packet or scoreboard compatibility issue is fixed.
           - Uses the upstream Java 8 compatibility artifacts; CI validates the JAR contents and checks ordinary class files for Java 8 bytecode compatibility.
           - Replaces the ViaVersion/ViaBackwards 5.12.1 libraries used in v1.3.7. The manual protocol selector, target resolver, Netty pipeline placement and handshake logic remain unchanged.
           - Does not change the Minecraft renderer, chunk scheduler, graphics settings or background behavior.
