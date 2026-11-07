@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.0  
+**Version:** 1.4.1  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -41,6 +41,15 @@ This is not an Android background service. The launcher must keep the game proce
 - Preserves the native chunk-update scheduling, `WorldRenderer`, render layers, frustum/visibility culling and `RegionRenderCacheBuilder` pool.
 - Does not change video settings or claim a measured FPS improvement. The purpose of this rollback is to eliminate the custom terrain traversal as a cause of delayed or incomplete chunk visibility.
 - Actual chunk loading, dimension/gamemode transitions, frame time, memory use and Via compatibility still require testing on MJ Launcher and the target device.
+
+## Low-end performance diagnostics (1.4.1)
+
+- Adds opt-in timing for complete rendered frames, vanilla terrain setup/culling, and the vanilla chunk-upload phase.
+- Diagnostics are disabled by default and do not alter graphics settings, chunk scheduling, worker count, gameplay ticks, or network behavior.
+- To collect a five-second rolling report, add `-Dcylox.profile=true` to the JVM arguments before launching.
+- Reports include average FPS, average/maximum frame time, average/maximum terrain-setup time, and average/maximum chunk-upload time.
+- Use the report to identify whether a low-end device is limited by frame rendering, terrain visibility traversal, or chunk uploads before introducing a renderer change.
+- This diagnostic build does not claim an FPS improvement by itself. Actual optimization requires comparing measurements on the same device, world, render distance, renderer, and scene.
 
 ## Cylox adaptive lightweight UI
 
@@ -99,8 +108,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.4.0.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.4.0.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.4.1.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.4.1.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
