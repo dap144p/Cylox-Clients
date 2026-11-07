@@ -46,7 +46,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
-    private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxRenderHooks";
+    private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
     // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
     // PacketHandlers class is the SET_EQUIPPED_ITEM registration.
