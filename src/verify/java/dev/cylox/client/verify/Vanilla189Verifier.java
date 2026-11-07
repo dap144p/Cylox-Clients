@@ -61,8 +61,11 @@ public final class Vanilla189Verifier {
         require("opt-in terrain phase profiler", CyloxClientTransformer.getPatchedTerrainBreakdownClassCount());
         require("opt-in chunk-upload profiler", CyloxClientTransformer.getPatchedChunkUploadProfileClassCount());
         require("terrain visibility cache", CyloxClientTransformer.getPatchedVisibilityCacheClassCount());
-        require("terrain visibility cache invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
+        require("terrain visibility cache world invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
+        require("terrain visibility cache range invalidation", CyloxClientTransformer.getPatchedVisibilityRangeInvalidationClassCount());
         require("terrain visibility graph snapshot cache", CyloxClientTransformer.getPatchedVisibilityGraphCacheClassCount());
+        require("entity render-view state reuse", CyloxClientTransformer.getPatchedEntitySleepingCacheClassCount());
+        require("player equipment slot bounds guard", CyloxClientTransformer.getPatchedPlayerEquipmentGuardClassCount());
         require("opt-in entity renderer profiler", CyloxClientTransformer.getPatchedEntityProfileClassCount());
         require("opt-in floating nameplate profiler", CyloxClientTransformer.getPatchedNameTagProfileClassCount());
         require("FontRenderer text-width cache", CyloxClientTransformer.getPatchedFontWidthCacheClassCount());
@@ -71,6 +74,7 @@ public final class Vanilla189Verifier {
         verifyViaRewindEquipmentHook(new File(args[1]));
         verifyVisibilityCacheBehavior();
         verifyVisibilityGraphSnapshotBehavior();
+        verifyVisibilityRangeInvalidationBehavior();
         verifyTextWidthCacheBehavior();
         verifyGraphicsPresetBehavior();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
@@ -132,6 +136,86 @@ public final class Vanilla189Verifier {
         int getRemainingCount() {
             return remainingCount;
         }
+    }
+
+    private static final class FakeBlockPos {
+        private final int x;
+        private final int y;
+        private final int z;
+
+        FakeBlockPos(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        public long toLong() {
+            long xMask = (1L << 26) - 1L;
+            long yMask = (1L << 12) - 1L;
+            long zMask = (1L << 26) - 1L;
+            return ((long) x & xMask) << 38
+                | ((long) y & yMask) << 26
+                | ((long) z & zMask);
+        }
+
+        @Override
+        public int hashCode() {
+            return (x * 31 + y) * 31 + z;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof FakeBlockPos)) return false;
+            FakeBlockPos that = (FakeBlockPos) other;
+            return x == that.x && y == that.y && z == that.z;
+        }
+    }
+
+    private static void verifyVisibilityRangeInvalidationBehavior() {
+        Object renderGlobal = new Object();
+        Set<String> facings = new HashSet<String>();
+        facings.add("north");
+        FakeBlockPos nearCameraA = new FakeBlockPos(1, 1, 1);
+        FakeBlockPos nearCameraB = new FakeBlockPos(15, 15, 15);
+        FakeBlockPos farCamera = new FakeBlockPos(33, 1, 1);
+        FakeBlockPos negativeCamera = new FakeBlockPos(-17, 1, 1);
+
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, nearCameraA, facings);
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, nearCameraB, facings);
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, farCamera, facings);
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, negativeCamera, facings);
+
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal,
+            new FakeBlockPos(0, 0, 0), new FakeVisGraph());
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal,
+            new FakeBlockPos(32, 0, 0), new FakeVisGraph());
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal,
+            new FakeBlockPos(-32, 0, 0), new FakeVisGraph());
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityRange(renderGlobal, 1, 1, 1, 1, 1, 1);
+
+        if (CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, nearCameraA) != null
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, nearCameraB) != null
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, farCamera) == null
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, negativeCamera) == null) {
+            throw new IllegalStateException("Range invalidation removed the wrong camera-block cache sections");
+        }
+
+        if (CyloxVisibilityCacheHooks.getCachedVisibilityGraph(renderGlobal,
+                new FakeBlockPos(0, 0, 0)) != null
+            || CyloxVisibilityCacheHooks.getCachedVisibilityGraph(renderGlobal,
+                new FakeBlockPos(32, 0, 0)) == null
+            || CyloxVisibilityCacheHooks.getCachedVisibilityGraph(renderGlobal,
+                new FakeBlockPos(-32, 0, 0)) == null) {
+            throw new IllegalStateException("Range invalidation removed the wrong VisGraph snapshots");
+        }
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 2
+            || CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 2) {
+            throw new IllegalStateException("Range invalidation did not retain unaffected cache entries");
+        }
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
+        System.out.println("[Cylox] Verified block-range invalidation preserves unaffected positive and negative VisGraph sections.");
     }
 
     private static void verifyVisibilityGraphSnapshotBehavior() {
