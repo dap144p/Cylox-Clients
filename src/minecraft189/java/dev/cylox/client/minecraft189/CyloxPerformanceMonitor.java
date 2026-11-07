@@ -153,6 +153,7 @@ public final class CyloxPerformanceMonitor {
             + ", visibilityHits=" + CyloxVisibilityCacheHooks.getVisibilityCacheHits()
             + ", visibilityMisses=" + CyloxVisibilityCacheHooks.getVisibilityCacheMisses()
             + ", visibilityInvalidations=" + CyloxVisibilityCacheHooks.getVisibilityCacheInvalidations()
+            + ", visibilityCacheEntries=" + CyloxVisibilityCacheHooks.getVisibilityCacheSize()
             + ", frames=" + frameCount + ".");
 
         windowStartedAt = now;
