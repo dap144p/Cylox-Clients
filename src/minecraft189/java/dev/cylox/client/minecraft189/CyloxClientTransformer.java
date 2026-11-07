@@ -810,8 +810,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 || result.getSort() != Type.OBJECT) continue;
             AbstractInsnNode positionLoad = previousRealInstruction(instruction);
             if (!(positionLoad instanceof VarInsnNode) || positionLoad.getOpcode() != Opcodes.ALOAD) continue;
-            AbstractInsnNode ownerLoad = previousRealInstruction(positionLoad);
-            if (!(ownerLoad instanceof VarInsnNode) || ownerLoad.getOpcode() != Opcodes.ALOAD) continue;
+            AbstractInsnNode worldField = previousRealInstruction(positionLoad);
+            if (!(worldField instanceof org.objectweb.asm.tree.FieldInsnNode)
+                || worldField.getOpcode() != Opcodes.GETFIELD) continue;
+            AbstractInsnNode ownerLoad = previousRealInstruction(worldField);
+            if (!(ownerLoad instanceof VarInsnNode) || ownerLoad.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) ownerLoad).var != 0) continue;
             sectionLocal = ((VarInsnNode) positionLoad).var;
             worldLoad = ownerLoad;
             break;
