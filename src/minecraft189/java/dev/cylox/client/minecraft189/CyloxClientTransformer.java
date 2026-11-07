@@ -273,8 +273,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         MethodNode target = null;
         int matches = 0;
         for (MethodNode method : node.methods) {
-            if (!method.name.startsWith("lambda$")
-                || !"(Lcom/viaversion/viaversion/api/protocol/packet/PacketWrapper;)V".equals(method.desc)) {
+            if (!"(Lcom/viaversion/viaversion/api/protocol/packet/PacketWrapper;)V".equals(method.desc)) {
                 continue;
             }
             boolean readsPacket = false;
@@ -303,7 +302,26 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         // Fail closed: patch only the unique SET_EQUIPPED_ITEM lambda. A changed
         // upstream class shape must fail CI verification instead of patching a
         // different packet handler.
-        if (matches != 1 || target == null) return false;
+        if (matches != 1 || target == null) {
+            for (MethodNode method : node.methods) {
+                if (method.desc.indexOf("PacketWrapper") < 0) continue;
+                StringBuilder diagnostic = new StringBuilder("[Cylox] ViaRewind candidate ")
+                    .append(method.name).append(method.desc).append(":");
+                for (AbstractInsnNode instruction = method.instructions.getFirst();
+                     instruction != null; instruction = instruction.getNext()) {
+                    if (instruction instanceof MethodInsnNode) {
+                        MethodInsnNode call = (MethodInsnNode) instruction;
+                        if ("read".equals(call.name) || "cancel".equals(call.name)
+                            || "setCancelled".equals(call.name) || "write".equals(call.name)) {
+                            diagnostic.append(" ").append(call.owner).append(".")
+                                .append(call.name).append(call.desc);
+                        }
+                    }
+                }
+                System.out.println(diagnostic.toString());
+            }
+            return false;
+        }
 
         int wrapperSlot = (target.access & Opcodes.ACC_STATIC) != 0 ? 0 : 1;
         LabelNode continueVanilla = new LabelNode();
