@@ -81,7 +81,7 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void beginSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > TERRAIN_BUILD_NEAR) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > NAME_TAG) return;
         START_TIMES.get()[section] = System.nanoTime();
     }
 
