@@ -38,7 +38,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedChunkUploadProfileClasses;
     private static volatile int patchedViaRewindEquipmentClasses;
     private static volatile int patchedVisibilityCacheClasses;
+    private static volatile int patchedVisibilityGraphCacheClasses;
     private static volatile int patchedVisibilityInvalidationClasses;
+    private static volatile int patchedNameTagProfileClasses;
+    private static volatile int patchedFontWidthCacheClasses;
     private static volatile int patchedEntityProfileClasses;
     private static volatile int patchedBlockLayerProfileClasses;
     private static volatile int patchedParticleProfileClasses;
@@ -48,6 +51,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
     private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks";
+    private static final String TEXT_WIDTH_CACHE = "dev/cylox/client/minecraft189/CyloxTextWidthCache";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
     // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
     // PacketHandlers class is the SET_EQUIPPED_ITEM registration.
@@ -71,7 +75,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedChunkUploadProfileClasses = 0;
         patchedViaRewindEquipmentClasses = 0;
         patchedVisibilityCacheClasses = 0;
+        patchedVisibilityGraphCacheClasses = 0;
         patchedVisibilityInvalidationClasses = 0;
+        patchedNameTagProfileClasses = 0;
+        patchedFontWidthCacheClasses = 0;
         patchedEntityProfileClasses = 0;
         patchedBlockLayerProfileClasses = 0;
         patchedParticleProfileClasses = 0;
@@ -94,7 +101,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedChunkUploadProfileClassCount() { return patchedChunkUploadProfileClasses; }
     public static int getPatchedViaRewindEquipmentClassCount() { return patchedViaRewindEquipmentClasses; }
     public static int getPatchedVisibilityCacheClassCount() { return patchedVisibilityCacheClasses; }
+    public static int getPatchedVisibilityGraphCacheClassCount() { return patchedVisibilityGraphCacheClasses; }
     public static int getPatchedVisibilityInvalidationClassCount() { return patchedVisibilityInvalidationClasses; }
+    public static int getPatchedNameTagProfileClassCount() { return patchedNameTagProfileClasses; }
+    public static int getPatchedFontWidthCacheClassCount() { return patchedFontWidthCacheClasses; }
     public static int getPatchedEntityProfileClassCount() { return patchedEntityProfileClasses; }
     public static int getPatchedBlockLayerProfileClassCount() { return patchedBlockLayerProfileClasses; }
     public static int getPatchedParticleProfileClassCount() { return patchedParticleProfileClasses; }
@@ -123,12 +133,18 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean terrainBreakdownPatched = false;
             boolean chunkUploadProfilePatched = false;
             boolean visibilityCachePatched = false;
+            boolean visibilityGraphCachePatched = false;
             boolean visibilityInvalidationPatched = false;
+            boolean nameTagProfilePatched = false;
+            boolean fontWidthCachePatched = false;
             boolean entityProfilePatched = false;
             boolean blockLayerProfilePatched = false;
             boolean particleProfilePatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
+            boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png");
+            boolean nameTagRenderClass = hasClassString(node, "deadmau5");
+            MethodNode fontUnicodeGetter = fontRendererClass ? findUnicodeGetter(node) : null;
             int visibilityGraphCandidates = 0;
             int blockLayerCandidates = 0;
             if (terrainClass) {
@@ -185,6 +201,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
                     if (terrainClass && visibilityGraphCandidates == 1 && !visibilityCachePatched
                         && isVisibilityGraphMethod(method)) {
+                        visibilityGraphCachePatched = injectVisibilityGraphCache(method);
+                        if (!visibilityGraphCachePatched) {
+                            throw new IllegalStateException("Could not safely locate the VisGraph snapshot injection points");
+                        }
                         injectVisibilityCache(method);
                         visibilityCachePatched = true;
                         changed = true;
@@ -198,9 +218,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
                     if (terrainClass && !entityProfilePatched
                         && hasMarkers(method, "entities", "blockentities")) {
-                        insertTimedSection(method, 3);
-                        entityProfilePatched = true;
-                        changed = true;
+                        entityProfilePatched = insertEntityRenderBreakdown(method);
+                        if (entityProfilePatched) changed = true;
                     }
 
                     if (terrainClass && blockLayerCandidates == 1 && !blockLayerProfilePatched
@@ -296,6 +315,26 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
+            if (fontRendererClass && fontUnicodeGetter != null) {
+                for (MethodNode method : node.methods) {
+                    if ((method.access & Opcodes.ACC_STATIC) == 0 && isStringWidthMethod(node, method)) {
+                        injectTextWidthCache(node, method, fontUnicodeGetter);
+                        fontWidthCachePatched = true;
+                        changed = true;
+                    }
+                }
+            }
+
+            if (nameTagRenderClass) {
+                for (MethodNode method : node.methods) {
+                    if ((method.access & Opcodes.ACC_STATIC) == 0 && isNameTagRenderMethod(method)) {
+                        insertTimedSection(method, 12);
+                        nameTagProfilePatched = true;
+                        changed = true;
+                    }
+                }
+            }
+
             if (particleManagerClass) {
                 for (MethodNode method : node.methods) {
                     if ((method.access & Opcodes.ACC_STATIC) == 0 && isParticleRenderMethod(method)) {
@@ -360,7 +399,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (chunkUploadProfilePatched) patchedChunkUploadProfileClasses++;
             if (viaRewindEquipmentPatched) patchedViaRewindEquipmentClasses++;
             if (visibilityCachePatched) patchedVisibilityCacheClasses++;
+            if (visibilityGraphCachePatched) patchedVisibilityGraphCacheClasses++;
             if (visibilityInvalidationPatched) patchedVisibilityInvalidationClasses++;
+            if (nameTagProfilePatched) patchedNameTagProfileClasses++;
+            if (fontWidthCachePatched) patchedFontWidthCacheClasses++;
             if (entityProfilePatched) patchedEntityProfileClasses++;
             if (blockLayerProfilePatched) patchedBlockLayerProfileClasses++;
             if (particleProfilePatched) patchedParticleProfileClasses++;
@@ -380,7 +422,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (chunkUploadProfilePatched) System.out.println("[Cylox] Opt-in chunk-upload profiler injected: " + node.name);
             if (viaRewindEquipmentPatched) System.out.println("[Cylox] ViaRewind local-player equipment guard injected: " + node.name);
             if (visibilityCachePatched) System.out.println("[Cylox] Terrain visibility cache injected: " + node.name);
+            if (visibilityGraphCachePatched) System.out.println("[Cylox] Terrain visibility graph snapshot cache injected: " + node.name);
             if (visibilityInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache invalidation injected: " + node.name);
+            if (nameTagProfilePatched) System.out.println("[Cylox] Opt-in floating nameplate profiler injected: " + node.name);
+            if (fontWidthCachePatched) System.out.println("[Cylox] Bounded FontRenderer string-width cache injected: " + node.name);
             if (entityProfilePatched) System.out.println("[Cylox] Opt-in entity renderer profiler injected: " + node.name);
             if (blockLayerProfilePatched) System.out.println("[Cylox] Opt-in block-layer profiler injected: " + node.name);
             if (particleProfilePatched) System.out.println("[Cylox] Opt-in particle profiler injected: " + node.name);
