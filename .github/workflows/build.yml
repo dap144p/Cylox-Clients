@@ -100,6 +100,7 @@ jobs:
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxPerformanceMonitor.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxTextWidthCache.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxGraphicsPreset.class'
           unzip -l "$JAR" | grep -q 'xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class'
           if unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxRenderHooks.class'; then
@@ -125,6 +126,7 @@ jobs:
               "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class",
               "xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class",
               "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks.class",
+              "dev/cylox/client/minecraft189/CyloxTextWidthCache.class",
           }
           checked = 0
           highest_major = 0
