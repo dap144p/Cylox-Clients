@@ -23,8 +23,8 @@ def viaJava8Libraries = [
         requiredClass: 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
     ],
     [
-        file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.1-SNAPSHOT-398-java8.jar').get().asFile,
-        url: 'https://ci.viaversion.com/view/ViaRewind/job/ViaRewind-Java8/40/artifact/build/libs/ViaRewind-4.2.1-SNAPSHOT-downgraded.jar',
+        file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.0-java8.jar').get().asFile,
+        url: 'https://ci.viaversion.com/view/ViaRewind/job/ViaRewind-Java8/39/artifact/build/libs/ViaRewind-4.2.0-downgraded.jar',
         requiredClass: 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
     ]
 ]
