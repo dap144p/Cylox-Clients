@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.3.9'
+version = '1.4.0'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -23,8 +23,8 @@ def viaJava8Libraries = [
         requiredClass: 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
     ],
     [
-        file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.0-java8.jar').get().asFile,
-        url: 'https://ci.viaversion.com/view/ViaRewind/job/ViaRewind-Java8/39/artifact/build/libs/ViaRewind-4.2.0-downgraded.jar',
+        file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.1-SNAPSHOT-398-java8.jar').get().asFile,
+        url: 'https://ci.viaversion.com/view/ViaRewind/job/ViaRewind-Java8/40/artifact/build/libs/ViaRewind-4.2.1-SNAPSHOT-downgraded.jar',
         requiredClass: 'com/viaversion/viarewind/api/ViaRewindPlatform.class'
     ]
 ]
@@ -46,7 +46,7 @@ tasks.register('downloadViaLibraries') {
                     java.net.URLConnection connection = new URL(artifact.url).openConnection()
                     connection.setConnectTimeout(15000)
                     connection.setReadTimeout(60000)
-                    connection.setRequestProperty('User-Agent', 'Cylox-Client-Build/1.3.9')
+                    connection.setRequestProperty('User-Agent', 'Cylox-Client-Build/1.4.0')
                     connection.getInputStream().withCloseable { input ->
                         temporary.withOutputStream { output -> output << input }
                     }
@@ -112,7 +112,6 @@ sourceSets {
             include '**/CyloxTweaker.java'
             include '**/CyloxClientTransformer.java'
             include '**/CyloxBackgroundHooks.java'
-            include '**/CyloxRenderHooks.java'
             include '**/CyloxProtocolBridge.java'
             include '**/CyloxUiHooks.java'
         }
@@ -178,7 +177,7 @@ tasks.register('minecraft189AdapterJar', Jar) {
             'Client-Developer': 'dapdev',
             'TweakClass': 'dev.cylox.client.minecraft189.CyloxTweaker',
             'Minecraft-Version': '1.8.9',
-            'Client-Architecture': 'Vanilla 1.8.9 Renderer + Terrain Scratch Reuse + Via 5.12.3 Java 8 Stack + Background Hooks + Cylox UI',
+            'Client-Architecture': 'Vanilla 1.8.9 Renderer + Native Terrain Traversal + Updated ViaRewind Equipment Handling + Background Hooks + Cylox UI',
             'Protocol-Selection': 'Manual UI',
             'Client-UI': 'Cylox Adaptive Translucent UI'
         )
