@@ -108,6 +108,6 @@ public final class CyloxPerformanceMonitor {
     }
 
     private static String oneDecimal(double value) {
-        return Long.toString(Math.round(value * 10.0D) / 10L);
+        return Double.toString(Math.round(value * 10.0D) / 10.0D);
     }
 }
