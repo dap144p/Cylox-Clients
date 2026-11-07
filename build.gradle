@@ -113,6 +113,7 @@ sourceSets {
             include '**/CyloxClientTransformer.java'
             include '**/CyloxBackgroundHooks.java'
             include '**/CyloxProtocolBridge.java'
+            include '**/CyloxViaRewindHooks.java'
             include '**/CyloxUiHooks.java'
         }
         compileClasspath += sourceSets.main.output
@@ -264,7 +265,11 @@ tasks.register('verifyVanilla189Hooks', JavaExec) {
     doFirst {
         def vanillaJar = providers.gradleProperty('vanilla189Jar').orNull
         if (vanillaJar == null) throw new GradleException('Pass -Pvanilla189Jar=/path/to/1.8.9.jar')
-        args = [vanillaJar]
+        def viaRewindJar = viaJava8Libraries.find { it.file.name.contains('ViaRewind') }?.file
+        if (viaRewindJar == null || !viaRewindJar.isFile()) {
+            throw new GradleException('The pinned Java 8 ViaRewind JAR is required to verify the equipment hook')
+        }
+        args = [vanillaJar, viaRewindJar.absolutePath]
     }
 }
 
