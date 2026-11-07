@@ -12,7 +12,7 @@ import java.util.Set;
  * the single-entry cache. All operations are synchronized because world
  * notifications can be delivered from different client task paths.
  */
-public final class CyloxRenderHooks {
+public final class CyloxVisibilityCacheHooks {
     private static Object cachedRenderGlobal;
     private static Object cachedBlockPosition;
     private static Set<?> cachedVisibleFacings;
