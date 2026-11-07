@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.1  
+**Version:** 1.4.2  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -17,6 +17,14 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 - Does not pause the Minecraft network stack deliberately and does not automate player actions.
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
+
+## Java 8 Via stub packaging (1.4.2)
+
+- Adds the JavaDowngrader 2.0.1 Java 8 API archive to the single Cylox JAR at its original `xyz/wagyourtail/jvmdg` package path.
+- The previous Java 8 ViaVersion and ViaBackwards archives carry private relocated copies under their own prefixes. Those copies do not satisfy ViaRewind bytecode references to the unprefixed stub package.
+- CI verifies that `J_L_Record.class` is present at the exact root package path and that the added API classes use Java 8-compatible bytecode.
+- Keeps Java 8 as the MJ Launcher runtime target; it does not change the selected Via protocol, Netty handshake, packet translation rules, or renderer.
+- This addresses the missing-class error in the supplied log. A successful connection and world join still require a device/server smoke test.
 
 ## Via decoder error propagation (1.3.9)
 
@@ -108,8 +116,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.4.1.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.4.1.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.4.2.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.4.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 

@@ -29,3 +29,12 @@ The Java 8 compatibility artifacts are pinned to these upstream CI builds:
 The CI build verifies each downloaded archive contains its required entry classes and that all ordinary (non-multi-release) class files use Java 8-compatible bytecode (class-file major version 52 or earlier).
 
 Minecraft, Java, LWJGL, native renderer binaries, game assets and base game libraries are not included.
+
+
+The Java 8 compatibility layer also bundles the JavaDowngrader Java API stubs:
+
+- JavaDowngrader Java API 2.0.1, classifier `downgraded-8`
+- Source: https://github.com/unimined/JvmDowngrader
+- Maven Central artifact: https://central.sonatype.com/artifact/xyz.wagyourtail.jvmdowngrader/jvmdowngrader-java-api/2.0.1
+- License: GNU Lesser General Public License v2.1 (LGPL-2.1): https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt
+- Only the already-downgraded Java API stub archive is bundled. The JavaDowngrader bytecode-processing tool and its ASM dependencies are not included in the client.
