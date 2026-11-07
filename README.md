@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.3.8  
+**Version:** 1.3.9  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -17,6 +17,12 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 - Does not pause the Minecraft network stack deliberately and does not automate player actions.
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
+
+## Via decoder error propagation (1.3.9)
+
+- Keeps normal `CancelCodecException` packet cancellation unchanged.
+- Forwards every other decoder/translation exception through Netty with `ctx.fireExceptionCaught(cause)` so Minecraft's `NetworkManager` can handle the failed connection instead of silently dropping the error.
+- This is an error-handling correction, not a claim that all Via packet translation bugs or scoreboard compatibility issues are fixed; retest the affected server and inspect the full stack trace if it still fails.
 
 ## Via compatibility update (1.3.8)
 

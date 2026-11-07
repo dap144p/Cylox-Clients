@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.8
+Version: 1.3.9
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
@@ -13,6 +13,7 @@ INSTALL
 8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
 
 RENDERER AND NETWORK CORE
+- Via decode handler now forwards unexpected packet/translation exceptions to Minecraft's NetworkManager; only Via's normal CancelCodecException cancellation is swallowed. This makes failed packet translations visible to the normal connection error path rather than silently ignoring them.
 - Keeps Minecraft 1.8.9's original chunk scheduler, WorldRenderer, culling, render layers and pooled RegionRenderCacheBuilder buffers.
 - Large chunk buffers continue to grow on demand. Cylox does not reserve multi-megabyte buffers for every layer at startup.
 - ViaVersion 5.12.3-SNAPSHOT and ViaBackwards 5.12.3-SNAPSHOT are bundled from upstream Java 8 compatibility builds #55 and #45. ViaRewind 4.2.0 is bundled from Java 8 compatibility build #39.
