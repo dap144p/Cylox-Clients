@@ -34,6 +34,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedMainMenuClasses;
     private static volatile int patchedFrameProfileClasses;
     private static volatile int patchedTerrainProfileClasses;
+    private static volatile int patchedTerrainBreakdownClasses;
     private static volatile int patchedChunkUploadProfileClasses;
     private static volatile int patchedViaRewindEquipmentClasses;
     private static volatile int patchedVisibilityCacheClasses;
@@ -66,6 +67,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedMainMenuClasses = 0;
         patchedFrameProfileClasses = 0;
         patchedTerrainProfileClasses = 0;
+        patchedTerrainBreakdownClasses = 0;
         patchedChunkUploadProfileClasses = 0;
         patchedViaRewindEquipmentClasses = 0;
         patchedVisibilityCacheClasses = 0;
@@ -88,6 +90,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
     public static int getPatchedFrameProfileClassCount() { return patchedFrameProfileClasses; }
     public static int getPatchedTerrainProfileClassCount() { return patchedTerrainProfileClasses; }
+    public static int getPatchedTerrainBreakdownClassCount() { return patchedTerrainBreakdownClasses; }
     public static int getPatchedChunkUploadProfileClassCount() { return patchedChunkUploadProfileClasses; }
     public static int getPatchedViaRewindEquipmentClassCount() { return patchedViaRewindEquipmentClasses; }
     public static int getPatchedVisibilityCacheClassCount() { return patchedVisibilityCacheClasses; }
@@ -117,6 +120,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean mainMenuPatched = false;
             boolean frameProfilePatched = false;
             boolean terrainProfilePatched = false;
+            boolean terrainBreakdownPatched = false;
             boolean chunkUploadProfilePatched = false;
             boolean visibilityCachePatched = false;
             boolean visibilityInvalidationPatched = false;
@@ -171,6 +175,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         insertTimedSection(method, 1);
                         terrainProfilePatched = true;
                         changed = true;
+                    }
+
+                    if (terrainClass && !terrainBreakdownPatched
+                        && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
+                        terrainBreakdownPatched = insertTerrainBreakdown(method);
+                        if (terrainBreakdownPatched) changed = true;
                     }
 
                     if (terrainClass && visibilityGraphCandidates == 1 && !visibilityCachePatched
@@ -346,6 +356,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (mainMenuPatched) patchedMainMenuClasses++;
             if (frameProfilePatched) patchedFrameProfileClasses++;
             if (terrainProfilePatched) patchedTerrainProfileClasses++;
+            if (terrainBreakdownPatched) patchedTerrainBreakdownClasses++;
             if (chunkUploadProfilePatched) patchedChunkUploadProfileClasses++;
             if (viaRewindEquipmentPatched) patchedViaRewindEquipmentClasses++;
             if (visibilityCachePatched) patchedVisibilityCacheClasses++;
@@ -736,6 +747,86 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
             "invalidateVisibilityCache", "(Ljava/lang/Object;)V", false));
         method.instructions.insert(hook);
+    }
+
+    /**
+     * Breaks RenderGlobal.setupTerrain into its existing vanilla profiler phases.
+     * Hooks are placed only at section transitions already present in 1.8.9;
+     * no traversal, chunk scheduling, or render decisions are changed.
+     */
+    private static boolean insertTerrainBreakdown(MethodNode method) {
+        MethodInsnNode cameraStart = findProfilerStringCall(method, "camera");
+        MethodInsnNode renderListStart = findProfilerStringCall(method, "renderlistcamera");
+        MethodInsnNode cullPrepStart = findProfilerStringCall(method, "cull");
+        MethodInsnNode cullingStart = findProfilerStringCall(method, "culling");
+        MethodInsnNode buildNearStart = findProfilerStringCall(method, "build near");
+        if (cameraStart == null || renderListStart == null || cullPrepStart == null
+            || cullingStart == null || buildNearStart == null) return false;
+
+        MethodInsnNode buildNearEnd = findFollowingProfilerEnd(method, buildNearStart, buildNearStart.owner, false);
+        MethodInsnNode cullingEnd = findFollowingProfilerEnd(method, cullingStart, cullingStart.owner, true);
+        if (buildNearEnd == null || cullingEnd == null || buildNearEnd == cullingEnd) return false;
+
+        insertTerrainSectionBeginAfter(method, cameraStart, 6);
+        insertTerrainSectionEndBefore(method, renderListStart, 6);
+        insertTerrainSectionBeginAfter(method, renderListStart, 7);
+        insertTerrainSectionEndBefore(method, cullPrepStart, 7);
+        insertTerrainSectionBeginAfter(method, cullPrepStart, 8);
+        insertTerrainSectionEndBefore(method, cullingStart, 8);
+        insertTerrainSectionBeginAfter(method, cullingStart, 9);
+        insertTerrainSectionBeginAfter(method, buildNearStart, 10);
+        insertTerrainSectionEndBefore(method, buildNearEnd, 10);
+        insertTerrainSectionEndBefore(method, cullingEnd, 9);
+        return true;
+    }
+
+    private static MethodInsnNode findProfilerStringCall(MethodNode method, String label) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)
+                || !"(Ljava/lang/String;)V".equals(((MethodInsnNode) instruction).desc)) continue;
+            AbstractInsnNode previous = instruction.getPrevious();
+            while (previous != null && previous.getOpcode() < 0) previous = previous.getPrevious();
+            if (previous instanceof LdcInsnNode && label.equals(((LdcInsnNode) previous).cst)) {
+                return (MethodInsnNode) instruction;
+            }
+        }
+        return null;
+    }
+
+    private static MethodInsnNode findFollowingProfilerEnd(MethodNode method, MethodInsnNode start,
+                                                            String profilerOwner, boolean last) {
+        MethodInsnNode found = null;
+        boolean afterStart = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction == start) {
+                afterStart = true;
+            } else if (afterStart && instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (profilerOwner.equals(call.owner) && "()V".equals(call.desc)) {
+                    if (!last) return call;
+                    found = call;
+                }
+            }
+        }
+        return found;
+    }
+
+    private static void insertTerrainSectionBeginAfter(MethodNode method, MethodInsnNode call, int section) {
+        InsnList hook = new InsnList();
+        hook.add(new LdcInsnNode(Integer.valueOf(section)));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
+        method.instructions.insert(call, hook);
+    }
+
+    private static void insertTerrainSectionEndBefore(MethodNode method, MethodInsnNode call, int section) {
+        InsnList hook = new InsnList();
+        hook.add(new LdcInsnNode(Integer.valueOf(section)));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
+        method.instructions.insertBefore(call, hook);
     }
 
     private static void insertTimedSection(MethodNode method, int section) {
