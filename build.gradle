@@ -50,7 +50,7 @@ tasks.register('downloadViaLibraries') {
                     java.net.URLConnection connection = new URL(artifact.url).openConnection()
                     connection.setConnectTimeout(15000)
                     connection.setReadTimeout(60000)
-                    connection.setRequestProperty('User-Agent', 'Cylox-Client-Build/1.4.0')
+                    connection.setRequestProperty('User-Agent', 'Cylox-Client-Build/1.4.2')
                     connection.getInputStream().withCloseable { input ->
                         temporary.withOutputStream { output -> output << input }
                     }
