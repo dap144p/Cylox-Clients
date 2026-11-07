@@ -3,6 +3,8 @@ package dev.cylox.client.minecraft189;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Method;
+import java.util.Iterator;
 import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -116,6 +118,8 @@ public final class CyloxVisibilityCacheHooks {
 
     private static final Map<Class<?>, GraphLayout> GRAPH_LAYOUTS =
         new HashMap<Class<?>, GraphLayout>();
+    private static final Map<Class<?>, Method> POSITION_PACKERS =
+        new HashMap<Class<?>, Method>();
 
     private static Object activeRenderGlobal;
     private static long cacheHits;
@@ -124,6 +128,9 @@ public final class CyloxVisibilityCacheHooks {
     private static long graphCacheHits;
     private static long graphCacheMisses;
     private static long graphCacheFailures;
+    private static long rangeInvalidations;
+    private static long rangeRemovedEntries;
+    private static long rangeFailures;
 
     private CyloxVisibilityCacheHooks() { }
 
@@ -208,6 +215,112 @@ public final class CyloxVisibilityCacheHooks {
         if (renderGlobal == null) activeRenderGlobal = null;
     }
 
+    /**
+     * Invalidates only cached visibility data for 16x16x16 sections intersecting
+     * the changed inclusive block range. Cache keys are immutable BlockPos values;
+     * their packed coordinates are decoded through the stable no-argument long
+     * accessor rather than relying on obfuscated field names.
+     */
+    public static synchronized void invalidateVisibilityRange(Object renderGlobal,
+            int x1, int y1, int z1, int x2, int y2, int z2) {
+        if (activeRenderGlobal == null || renderGlobal != activeRenderGlobal) return;
+
+        int minX = Math.min(x1, x2);
+        int minY = Math.min(y1, y2);
+        int minZ = Math.min(z1, z2);
+        int maxX = Math.max(x1, x2);
+        int maxY = Math.max(y1, y2);
+        int maxZ = Math.max(z1, z2);
+
+        int removed = 0;
+        try {
+            Iterator<Map.Entry<CacheKey, Set<?>>> visibility = VISIBILITY_CACHE.entrySet().iterator();
+            while (visibility.hasNext()) {
+                CacheKey key = visibility.next().getKey();
+                if (intersectsChangedSection(key.blockPosition, minX, minY, minZ, maxX, maxY, maxZ)) {
+                    visibility.remove();
+                    removed++;
+                }
+            }
+
+            Iterator<Map.Entry<CacheKey, GraphSnapshot>> graphs = VISIBILITY_GRAPH_CACHE.entrySet().iterator();
+            while (graphs.hasNext()) {
+                CacheKey key = graphs.next().getKey();
+                if (intersectsChangedSection(key.blockPosition, minX, minY, minZ, maxX, maxY, maxZ)) {
+                    graphs.remove();
+                    removed++;
+                }
+            }
+        } catch (Throwable error) {
+            // If packed coordinates cannot be decoded, clear both caches rather
+            // than risk reusing a snapshot after a block update.
+            if (!VISIBILITY_CACHE.isEmpty() || !VISIBILITY_GRAPH_CACHE.isEmpty()) {
+                removed += VISIBILITY_CACHE.size() + VISIBILITY_GRAPH_CACHE.size();
+                VISIBILITY_CACHE.clear();
+                VISIBILITY_GRAPH_CACHE.clear();
+            }
+            rangeFailures++;
+        }
+
+        if (removed > 0) {
+            cacheInvalidations++;
+            rangeInvalidations++;
+            rangeRemovedEntries += removed;
+        }
+    }
+
+    private static boolean intersectsChangedSection(Object blockPosition,
+            int minX, int minY, int minZ, int maxX, int maxY, int maxZ) throws Exception {
+        BlockCoordinates coordinates = decodeBlockPosition(blockPosition);
+        int sectionMinX = Math.floorDiv(coordinates.x, 16) << 4;
+        int sectionMinY = Math.floorDiv(coordinates.y, 16) << 4;
+        int sectionMinZ = Math.floorDiv(coordinates.z, 16) << 4;
+        return sectionMinX <= maxX && sectionMinX + 15 >= minX
+            && sectionMinY <= maxY && sectionMinY + 15 >= minY
+            && sectionMinZ <= maxZ && sectionMinZ + 15 >= minZ;
+    }
+
+    private static final class BlockCoordinates {
+        final int x;
+        final int y;
+        final int z;
+
+        BlockCoordinates(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+    }
+
+    private static BlockCoordinates decodeBlockPosition(Object position) throws Exception {
+        if (position == null) throw new IllegalArgumentException("Block position is null");
+        Method packer;
+        synchronized (POSITION_PACKERS) {
+            packer = POSITION_PACKERS.get(position.getClass());
+            if (packer == null) {
+                Method candidate = null;
+                for (Class<?> type = position.getClass(); type != null; type = type.getSuperclass()) {
+                    for (Method method : type.getDeclaredMethods()) {
+                        if (Modifier.isStatic(method.getModifiers()) || method.getParameterTypes().length != 0
+                            || method.getReturnType() != Long.TYPE) continue;
+                        if (candidate != null) throw new IllegalStateException("Ambiguous packed BlockPos accessor");
+                        candidate = method;
+                    }
+                }
+                if (candidate == null) throw new NoSuchMethodException("No packed BlockPos accessor");
+                candidate.setAccessible(true);
+                POSITION_PACKERS.put(position.getClass(), candidate);
+                packer = candidate;
+            }
+        }
+        long packed = ((Long) packer.invoke(position)).longValue();
+        // Minecraft 1.8.9 BlockPos packs signed 26-bit X, 12-bit Y and 26-bit Z.
+        int x = (int) (packed >> 38);
+        int y = (int) (packed << 26 >> 52);
+        int z = (int) (packed << 38 >> 38);
+        return new BlockCoordinates(x, y, z);
+    }
+
     private static void activateRenderGlobal(Object renderGlobal) {
         if (activeRenderGlobal != renderGlobal) {
             if (!VISIBILITY_CACHE.isEmpty() || !VISIBILITY_GRAPH_CACHE.isEmpty()) {
@@ -243,5 +356,8 @@ public final class CyloxVisibilityCacheHooks {
     public static synchronized long getVisibilityGraphCacheHits() { return graphCacheHits; }
     public static synchronized long getVisibilityGraphCacheMisses() { return graphCacheMisses; }
     public static synchronized long getVisibilityGraphCacheFailures() { return graphCacheFailures; }
+    public static synchronized long getVisibilityRangeInvalidations() { return rangeInvalidations; }
+    public static synchronized long getVisibilityRangeRemovedEntries() { return rangeRemovedEntries; }
+    public static synchronized long getVisibilityRangeFailures() { return rangeFailures; }
     public static synchronized int getVisibilityGraphCacheSize() { return VISIBILITY_GRAPH_CACHE.size(); }
 }
