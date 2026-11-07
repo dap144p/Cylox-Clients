@@ -748,6 +748,263 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         return forwardsBlockRange || replacesWorld;
     }
 
+    /**
+     * Reuses a pristine VisGraph opaque-block snapshot for camera positions in
+     * the same 16x16x16 section. A fresh graph is reconstructed on every hit
+     * because vanilla's flood-fill mutates the graph's BitSet.
+     */
+    private static boolean injectVisibilityGraphCache(MethodNode method) {
+        Type[] methodArguments = Type.getArgumentTypes(method.desc);
+        if (methodArguments.length != 1 || methodArguments[0].getSort() != Type.OBJECT) return false;
+        String blockPositionDescriptor = methodArguments[0].getDescriptor();
+
+        MethodInsnNode visibilityCall = null;
+        String graphOwner = null;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            if (arguments.length == 1 && arguments[0].getDescriptor().equals(blockPositionDescriptor)
+                && "Ljava/util/Set;".equals(Type.getReturnType(call.desc).getDescriptor())) {
+                visibilityCall = call;
+                graphOwner = call.owner;
+                break;
+            }
+        }
+        if (visibilityCall == null || graphOwner == null) return false;
+
+        int graphLocal = -1;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof TypeInsnNode) || instruction.getOpcode() != Opcodes.NEW
+                || !graphOwner.equals(((TypeInsnNode) instruction).desc)) continue;
+            AbstractInsnNode candidate = nextRealInstruction(instruction);
+            while (candidate != null) {
+                if (candidate instanceof MethodInsnNode) {
+                    MethodInsnNode call = (MethodInsnNode) candidate;
+                    if (graphOwner.equals(call.owner) && "<init>".equals(call.name)
+                        && "()V".equals(call.desc)) {
+                        AbstractInsnNode store = nextRealInstruction(candidate);
+                        if (store instanceof VarInsnNode && store.getOpcode() == Opcodes.ASTORE) {
+                            graphLocal = ((VarInsnNode) store).var;
+                        }
+                        break;
+                    }
+                }
+                candidate = nextRealInstruction(candidate);
+            }
+            if (graphLocal >= 0) break;
+        }
+        if (graphLocal < 0) return false;
+
+        int sectionLocal = -1;
+        AbstractInsnNode worldLoad = null;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            Type result = Type.getReturnType(call.desc);
+            if (arguments.length != 1 || !arguments[0].getDescriptor().equals(blockPositionDescriptor)
+                || result.getSort() != Type.OBJECT) continue;
+            AbstractInsnNode positionLoad = previousRealInstruction(instruction);
+            if (!(positionLoad instanceof VarInsnNode) || positionLoad.getOpcode() != Opcodes.ALOAD) continue;
+            AbstractInsnNode ownerLoad = previousRealInstruction(positionLoad);
+            if (!(ownerLoad instanceof VarInsnNode) || ownerLoad.getOpcode() != Opcodes.ALOAD) continue;
+            sectionLocal = ((VarInsnNode) positionLoad).var;
+            worldLoad = ownerLoad;
+            break;
+        }
+        if (sectionLocal < 0 || worldLoad == null) return false;
+
+        AbstractInsnNode graphLoad = previousRealInstruction(visibilityCall);
+        if (!(graphLoad instanceof VarInsnNode) || graphLoad.getOpcode() != Opcodes.ALOAD
+            || ((VarInsnNode) graphLoad).var != graphLocal) return false;
+
+        InsnList lookup = new InsnList();
+        LabelNode cacheMiss = new LabelNode();
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, sectionLocal));
+        lookup.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
+            "getCachedVisibilityGraph", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false));
+        lookup.add(new InsnNode(Opcodes.DUP));
+        lookup.add(new JumpInsnNode(Opcodes.IFNULL, cacheMiss));
+        lookup.add(new TypeInsnNode(Opcodes.CHECKCAST, graphOwner));
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        lookup.add(new MethodInsnNode(visibilityCall.getOpcode(), graphOwner,
+            visibilityCall.name, visibilityCall.desc, visibilityCall.itf));
+        lookup.add(new InsnNode(Opcodes.ARETURN));
+        lookup.add(cacheMiss);
+        lookup.add(new FrameNode(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Object"}));
+        lookup.add(new InsnNode(Opcodes.POP));
+        method.instructions.insertBefore(worldLoad, lookup);
+
+        InsnList snapshot = new InsnList();
+        snapshot.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        snapshot.add(new VarInsnNode(Opcodes.ALOAD, sectionLocal));
+        snapshot.add(new VarInsnNode(Opcodes.ALOAD, graphLocal));
+        snapshot.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
+            "cacheVisibilityGraph", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V", false));
+        method.instructions.insertBefore(graphLoad, snapshot);
+        return true;
+    }
+
+    private static AbstractInsnNode nextRealInstruction(AbstractInsnNode instruction) {
+        AbstractInsnNode current = instruction == null ? null : instruction.getNext();
+        while (current != null && current.getOpcode() < 0) current = current.getNext();
+        return current;
+    }
+
+    private static AbstractInsnNode previousRealInstruction(AbstractInsnNode instruction) {
+        AbstractInsnNode current = instruction == null ? null : instruction.getPrevious();
+        while (current != null && current.getOpcode() < 0) current = current.getPrevious();
+        return current;
+    }
+
+    private static boolean insertEntityRenderBreakdown(MethodNode method) {
+        MethodInsnNode entityStart = findProfilerStringCall(method, "entities");
+        MethodInsnNode tileEntityStart = findProfilerStringCall(method, "blockentities");
+        if (entityStart == null || tileEntityStart == null) return false;
+
+        java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) returns.add(instruction);
+        }
+
+        insertTerrainSectionBeginAfter(method, entityStart, 3);
+        insertTerrainSectionEndBefore(method, tileEntityStart, 3);
+        insertTerrainSectionBeginAfter(method, tileEntityStart, 11);
+        for (AbstractInsnNode instruction : returns) {
+            InsnList end = new InsnList();
+            end.add(new LdcInsnNode(Integer.valueOf(11)));
+            end.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+                "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
+            method.instructions.insertBefore(instruction, end);
+        }
+        return true;
+    }
+
+    private static boolean isNameTagRenderMethod(MethodNode method) {
+        if (Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        if (arguments.length != 6 || arguments[0].getSort() != Type.OBJECT
+            || !"Ljava/lang/String;".equals(arguments[1].getDescriptor())
+            || arguments[2].getSort() != Type.DOUBLE || arguments[3].getSort() != Type.DOUBLE
+            || arguments[4].getSort() != Type.DOUBLE || arguments[5].getSort() != Type.INT
+            || !hasMarkers(method, "deadmau5")) return false;
+        int stringWidthCalls = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode
+                && "(Ljava/lang/String;)I".equals(((MethodInsnNode) instruction).desc)) {
+                stringWidthCalls++;
+            }
+        }
+        return stringWidthCalls >= 3;
+    }
+
+    private static boolean isStringWidthMethod(ClassNode owner, MethodNode method) {
+        if (!"(Ljava/lang/String;)I".equals(method.desc)
+            || (method.access & Opcodes.ACC_STATIC) != 0) return false;
+        boolean length = false;
+        boolean charAt = false;
+        boolean charWidth = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if ("java/lang/String".equals(call.owner) && "length".equals(call.name)
+                && "()I".equals(call.desc)) length = true;
+            if ("java/lang/String".equals(call.owner) && "charAt".equals(call.name)
+                && "(I)C".equals(call.desc)) charAt = true;
+            if (owner.name.equals(call.owner) && "(C)I".equals(call.desc)) charWidth = true;
+        }
+        return length && charAt && charWidth;
+    }
+
+    private static MethodNode findUnicodeGetter(ClassNode owner) {
+        String unicodeField = null;
+        for (MethodNode method : owner.methods) {
+            if (!"(C)I".equals(method.desc)) continue;
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
+                    org.objectweb.asm.tree.FieldInsnNode field =
+                        (org.objectweb.asm.tree.FieldInsnNode) instruction;
+                    if (field.getOpcode() == Opcodes.GETFIELD && owner.name.equals(field.owner)
+                        && "Z".equals(field.desc)) {
+                        unicodeField = field.name;
+                        break;
+                    }
+                }
+            }
+            if (unicodeField != null) break;
+        }
+        if (unicodeField == null) return null;
+
+        for (MethodNode method : owner.methods) {
+            if ((method.access & Opcodes.ACC_STATIC) != 0 || !"()Z".equals(method.desc)) continue;
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
+                    org.objectweb.asm.tree.FieldInsnNode field =
+                        (org.objectweb.asm.tree.FieldInsnNode) instruction;
+                    if (field.getOpcode() == Opcodes.GETFIELD && owner.name.equals(field.owner)
+                        && unicodeField.equals(field.name) && "Z".equals(field.desc)) return method;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void injectTextWidthCache(ClassNode owner, MethodNode method, MethodNode unicodeGetter) {
+        java.util.List<AbstractInsnNode> originalReturns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.IRETURN) originalReturns.add(instruction);
+        }
+        if (originalReturns.isEmpty()) throw new IllegalStateException("FontRenderer width method has no IRETURN");
+
+        int resultLocal = method.maxLocals++;
+        int getterOpcode = (unicodeGetter.access & Opcodes.ACC_PRIVATE) != 0
+            ? Opcodes.INVOKESPECIAL : Opcodes.INVOKEVIRTUAL;
+        LabelNode cached = new LabelNode();
+        LabelNode original = new LabelNode();
+        InsnList lookup = new InsnList();
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        lookup.add(new MethodInsnNode(getterOpcode, owner.name, unicodeGetter.name, "()Z", false));
+        lookup.add(new MethodInsnNode(Opcodes.INVOKESTATIC, TEXT_WIDTH_CACHE,
+            "getCachedWidth", "(Ljava/lang/Object;Ljava/lang/String;Z)I", false));
+        lookup.add(new InsnNode(Opcodes.DUP));
+        lookup.add(new JumpInsnNode(Opcodes.IFGE, cached));
+        lookup.add(new InsnNode(Opcodes.POP));
+        lookup.add(new JumpInsnNode(Opcodes.GOTO, original));
+        lookup.add(cached);
+        lookup.add(new FrameNode(Opcodes.F_SAME1, 0, null, 1, new Object[] {Opcodes.INTEGER}));
+        lookup.add(new InsnNode(Opcodes.IRETURN));
+        lookup.add(original);
+        lookup.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        method.instructions.insert(lookup);
+
+        for (AbstractInsnNode instruction : originalReturns) {
+            InsnList store = new InsnList();
+            store.add(new VarInsnNode(Opcodes.ISTORE, resultLocal));
+            store.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            store.add(new VarInsnNode(Opcodes.ALOAD, 1));
+            store.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            store.add(new MethodInsnNode(getterOpcode, owner.name, unicodeGetter.name, "()Z", false));
+            store.add(new VarInsnNode(Opcodes.ILOAD, resultLocal));
+            store.add(new MethodInsnNode(Opcodes.INVOKESTATIC, TEXT_WIDTH_CACHE,
+                "cacheWidth", "(Ljava/lang/Object;Ljava/lang/String;ZI)V", false));
+            store.add(new VarInsnNode(Opcodes.ILOAD, resultLocal));
+            method.instructions.insertBefore(instruction, store);
+        }
+    }
+
     private static void injectVisibilityCache(MethodNode method) {
         LabelNode cached = new LabelNode();
         LabelNode original = new LabelNode();
