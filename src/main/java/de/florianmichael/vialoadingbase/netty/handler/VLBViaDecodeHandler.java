@@ -15,12 +15,9 @@
 
 package de.florianmichael.vialoadingbase.netty.handler;
 
-import com.viaversion.viaversion.api.Via;
 import com.viaversion.viaversion.api.connection.UserConnection;
-import com.viaversion.viaversion.api.protocol.packet.State;
 import com.viaversion.viaversion.exception.CancelCodecException;
 import com.viaversion.viaversion.exception.CancelDecoderException;
-import com.viaversion.viaversion.exception.InformativeException;
 import com.viaversion.viaversion.util.PipelineUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
@@ -57,12 +54,9 @@ public class VLBViaDecodeHandler extends MessageToMessageDecoder<ByteBuf> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        // Via cancellation is part of normal packet filtering. Every other failure
+        // must reach Minecraft's NetworkManager instead of being silently swallowed.
         if (PipelineUtil.containsCause(cause, CancelCodecException.class)) return;
-
-        if ((PipelineUtil.containsCause(cause, InformativeException.class)
-                && user.getProtocolInfo().getServerState() != State.HANDSHAKE)
-                || Via.getManager().debugHandler().enabled()) {
-            cause.printStackTrace();
-        }
+        ctx.fireExceptionCaught(cause);
     }
 }
