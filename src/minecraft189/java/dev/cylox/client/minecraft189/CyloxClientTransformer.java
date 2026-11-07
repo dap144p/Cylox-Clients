@@ -580,6 +580,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         }
     }
 
+    private static boolean hasMethodCallDescriptor(MethodNode method, String descriptor) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode
+                && descriptor.equals(((MethodInsnNode) instruction).desc)) return true;
+        }
+        return false;
+    }
+
     private static boolean hasMarkers(MethodNode method, String... markers) {
         Set<String> found = new HashSet<String>();
         for (AbstractInsnNode instruction = method.instructions.getFirst();
