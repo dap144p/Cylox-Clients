@@ -21,11 +21,13 @@ public final class CyloxPerformanceMonitor {
     private static final int TERRAIN_CULL_PREP = 8;
     private static final int TERRAIN_CULLING = 9;
     private static final int TERRAIN_BUILD_NEAR = 10;
+    private static final int TILE_ENTITIES = 11;
+    private static final int NAME_TAG = 12;
 
     private static final ThreadLocal<long[]> START_TIMES = new ThreadLocal<long[]>() {
         @Override
         protected long[] initialValue() {
-            return new long[11];
+            return new long[13];
         }
     };
     private static final long[] TERRAIN_DETAIL_COUNTS = new long[5];
@@ -51,6 +53,12 @@ public final class CyloxPerformanceMonitor {
     private static long particleCount;
     private static long particleTotalNanos;
     private static long particleMaxNanos;
+    private static long tileEntityCount;
+    private static long tileEntityTotalNanos;
+    private static long tileEntityMaxNanos;
+    private static long nameTagCount;
+    private static long nameTagTotalNanos;
+    private static long nameTagMaxNanos;
 
     private CyloxPerformanceMonitor() { }
 
@@ -78,7 +86,7 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void endSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > TERRAIN_BUILD_NEAR) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > NAME_TAG) return;
         long[] starts = START_TIMES.get();
         long start = starts[section];
         starts[section] = 0L;
@@ -104,6 +112,14 @@ public final class CyloxPerformanceMonitor {
             particleCount++;
             particleTotalNanos += elapsed;
             if (elapsed > particleMaxNanos) particleMaxNanos = elapsed;
+        } else if (section == TILE_ENTITIES) {
+            tileEntityCount++;
+            tileEntityTotalNanos += elapsed;
+            if (elapsed > tileEntityMaxNanos) tileEntityMaxNanos = elapsed;
+        } else if (section == NAME_TAG) {
+            nameTagCount++;
+            nameTagTotalNanos += elapsed;
+            if (elapsed > nameTagMaxNanos) nameTagMaxNanos = elapsed;
         } else {
             int detail = section - TERRAIN_CAMERA;
             if (detail < 0 || detail >= TERRAIN_DETAIL_COUNTS.length) return;
@@ -135,6 +151,10 @@ public final class CyloxPerformanceMonitor {
             + ", blockLayerMaxMs=" + oneDecimal(blockLayerMaxNanos / 1_000_000.0D)
             + ", particleAvgMs=" + oneDecimal(averageMillis(particleTotalNanos, particleCount))
             + ", particleMaxMs=" + oneDecimal(particleMaxNanos / 1_000_000.0D)
+            + ", tileEntityAvgMs=" + oneDecimal(averageMillis(tileEntityTotalNanos, tileEntityCount))
+            + ", tileEntityMaxMs=" + oneDecimal(tileEntityMaxNanos / 1_000_000.0D)
+            + ", nameTagAvgMs=" + oneDecimal(averageMillis(nameTagTotalNanos, nameTagCount))
+            + ", nameTagMaxMs=" + oneDecimal(nameTagMaxNanos / 1_000_000.0D)
             + ", terrainCameraAvgMs=" + detailAverage(0)
             + ", terrainCameraMaxMs=" + detailMaximum(0)
             + ", terrainCameraSamples=" + TERRAIN_DETAIL_COUNTS[0]
@@ -154,6 +174,14 @@ public final class CyloxPerformanceMonitor {
             + ", visibilityMisses=" + CyloxVisibilityCacheHooks.getVisibilityCacheMisses()
             + ", visibilityInvalidations=" + CyloxVisibilityCacheHooks.getVisibilityCacheInvalidations()
             + ", visibilityCacheEntries=" + CyloxVisibilityCacheHooks.getVisibilityCacheSize()
+            + ", visibilityGraphHits=" + CyloxVisibilityCacheHooks.getVisibilityGraphCacheHits()
+            + ", visibilityGraphMisses=" + CyloxVisibilityCacheHooks.getVisibilityGraphCacheMisses()
+            + ", visibilityGraphFailures=" + CyloxVisibilityCacheHooks.getVisibilityGraphCacheFailures()
+            + ", visibilityGraphEntries=" + CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize()
+            + ", textWidthHits=" + CyloxTextWidthCache.getHits()
+            + ", textWidthMisses=" + CyloxTextWidthCache.getMisses()
+            + ", textWidthInvalidations=" + CyloxTextWidthCache.getInvalidations()
+            + ", textWidthEntries=" + CyloxTextWidthCache.getSize()
             + ", frames=" + frameCount + ".");
 
         windowStartedAt = now;
@@ -175,6 +203,12 @@ public final class CyloxPerformanceMonitor {
         particleCount = 0L;
         particleTotalNanos = 0L;
         particleMaxNanos = 0L;
+        tileEntityCount = 0L;
+        tileEntityTotalNanos = 0L;
+        tileEntityMaxNanos = 0L;
+        nameTagCount = 0L;
+        nameTagTotalNanos = 0L;
+        nameTagMaxNanos = 0L;
         for (int i = 0; i < TERRAIN_DETAIL_COUNTS.length; i++) {
             TERRAIN_DETAIL_COUNTS[i] = 0L;
             TERRAIN_DETAIL_TOTAL_NANOS[i] = 0L;
