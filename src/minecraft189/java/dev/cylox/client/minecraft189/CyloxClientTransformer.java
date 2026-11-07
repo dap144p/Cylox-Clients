@@ -847,11 +847,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             return false;
         }
 
-        AbstractInsnNode graphLoad = previousRealInstruction(visibilityCall);
-        if (!(graphLoad instanceof VarInsnNode) || graphLoad.getOpcode() != Opcodes.ALOAD
+        AbstractInsnNode positionLoad = previousRealInstruction(visibilityCall);
+        AbstractInsnNode graphLoad = previousRealInstruction(positionLoad);
+        if (!(positionLoad instanceof VarInsnNode) || positionLoad.getOpcode() != Opcodes.ALOAD
+            || ((VarInsnNode) positionLoad).var != 1
+            || !(graphLoad instanceof VarInsnNode) || graphLoad.getOpcode() != Opcodes.ALOAD
             || ((VarInsnNode) graphLoad).var != graphLocal) {
-            System.err.println("[Cylox] VisGraph cache could not locate the graph local before flood-fill; found "
-                + instructionDescription(graphLoad) + ", expected ALOAD " + graphLocal);
+            System.err.println("[Cylox] VisGraph cache could not locate receiver/position loads before flood-fill; found "
+                + instructionDescription(graphLoad) + " and " + instructionDescription(positionLoad)
+                + ", expected ALOAD " + graphLocal + " then ALOAD 1");
             return false;
         }
 
