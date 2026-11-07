@@ -755,7 +755,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
      */
     private static boolean injectVisibilityGraphCache(MethodNode method) {
         Type[] methodArguments = Type.getArgumentTypes(method.desc);
-        if (methodArguments.length != 1 || methodArguments[0].getSort() != Type.OBJECT) return false;
+        if (methodArguments.length != 1 || methodArguments[0].getSort() != Type.OBJECT) {
+            System.err.println("[Cylox] VisGraph cache argument mismatch: " + method.desc);
+            return false;
+        }
         String blockPositionDescriptor = methodArguments[0].getDescriptor();
 
         MethodInsnNode visibilityCall = null;
@@ -772,7 +775,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 break;
             }
         }
-        if (visibilityCall == null || graphOwner == null) return false;
+        if (visibilityCall == null || graphOwner == null) {
+            System.err.println("[Cylox] VisGraph cache could not locate the Set-returning graph call in " + method.desc);
+            return false;
+        }
 
         int graphLocal = -1;
         for (AbstractInsnNode instruction = method.instructions.getFirst();
@@ -796,7 +802,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             }
             if (graphLocal >= 0) break;
         }
-        if (graphLocal < 0) return false;
+        if (graphLocal < 0) {
+            System.err.println("[Cylox] VisGraph cache could not locate the " + graphOwner + " local in " + method.desc);
+            return false;
+        }
 
         int sectionLocal = -1;
         AbstractInsnNode worldLoad = null;
@@ -820,11 +829,31 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             worldLoad = ownerLoad;
             break;
         }
-        if (sectionLocal < 0 || worldLoad == null) return false;
+        if (sectionLocal < 0 || worldLoad == null) {
+            System.err.println("[Cylox] VisGraph cache could not locate section local before the chunk lookup in " + method.desc);
+            for (AbstractInsnNode debug = method.instructions.getFirst(); debug != null; debug = debug.getNext()) {
+                if (debug instanceof MethodInsnNode) {
+                    MethodInsnNode call = (MethodInsnNode) debug;
+                    Type[] args = Type.getArgumentTypes(call.desc);
+                    if (args.length == 1 && args[0].getDescriptor().equals(blockPositionDescriptor)) {
+                        AbstractInsnNode previous = previousRealInstruction(debug);
+                        AbstractInsnNode beforePrevious = previousRealInstruction(previous);
+                        System.err.println("[Cylox] Candidate lookup: " + call.owner + "." + call.name + call.desc
+                            + ", previous=" + instructionDescription(previous)
+                            + ", beforePrevious=" + instructionDescription(beforePrevious));
+                    }
+                }
+            }
+            return false;
+        }
 
         AbstractInsnNode graphLoad = previousRealInstruction(visibilityCall);
         if (!(graphLoad instanceof VarInsnNode) || graphLoad.getOpcode() != Opcodes.ALOAD
-            || ((VarInsnNode) graphLoad).var != graphLocal) return false;
+            || ((VarInsnNode) graphLoad).var != graphLocal) {
+            System.err.println("[Cylox] VisGraph cache could not locate the graph local before flood-fill; found "
+                + instructionDescription(graphLoad) + ", expected ALOAD " + graphLocal);
+            return false;
+        }
 
         InsnList lookup = new InsnList();
         LabelNode cacheMiss = new LabelNode();
@@ -852,6 +881,23 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             "cacheVisibilityGraph", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V", false));
         method.instructions.insertBefore(graphLoad, snapshot);
         return true;
+    }
+
+    private static String instructionDescription(AbstractInsnNode instruction) {
+        if (instruction == null) return "null";
+        if (instruction instanceof VarInsnNode) {
+            VarInsnNode variable = (VarInsnNode) instruction;
+            return "var-opcode-" + instruction.getOpcode() + "-local-" + variable.var;
+        }
+        if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
+            org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
+            return "field-opcode-" + instruction.getOpcode() + "-" + field.owner + "." + field.name + field.desc;
+        }
+        if (instruction instanceof MethodInsnNode) {
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            return "method-" + call.owner + "." + call.name + call.desc;
+        }
+        return "opcode-" + instruction.getOpcode() + "-" + instruction.getClass().getSimpleName();
     }
 
     private static AbstractInsnNode nextRealInstruction(AbstractInsnNode instruction) {
