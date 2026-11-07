@@ -5,6 +5,7 @@ import dev.cylox.client.minecraft189.CyloxVisibilityCacheHooks;
 import dev.cylox.client.minecraft189.CyloxGraphicsPreset;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.BitSet;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -60,11 +61,16 @@ public final class Vanilla189Verifier {
         require("opt-in chunk-upload profiler", CyloxClientTransformer.getPatchedChunkUploadProfileClassCount());
         require("terrain visibility cache", CyloxClientTransformer.getPatchedVisibilityCacheClassCount());
         require("terrain visibility cache invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
+        require("terrain visibility graph snapshot cache", CyloxClientTransformer.getPatchedVisibilityGraphCacheClassCount());
         require("opt-in entity renderer profiler", CyloxClientTransformer.getPatchedEntityProfileClassCount());
+        require("opt-in floating nameplate profiler", CyloxClientTransformer.getPatchedNameTagProfileClassCount());
+        require("FontRenderer text-width cache", CyloxClientTransformer.getPatchedFontWidthCacheClassCount());
         require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
         require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
         verifyVisibilityCacheBehavior();
+        verifyVisibilityGraphSnapshotBehavior();
+        verifyTextWidthCacheBehavior();
         verifyGraphicsPresetBehavior();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
@@ -107,6 +113,88 @@ public final class Vanilla189Verifier {
             throw new IllegalStateException("Visibility cache did not clear on invalidation");
         }
         System.out.println("[Cylox] Verified bounded 64-entry LRU visibility cache, defensive copies and invalidation.");
+    }
+
+    private static final class FakeVisGraph {
+        private final BitSet opaqueBlocks = new BitSet(4096);
+        private int remainingCount = 4096;
+
+        void markOpaque(int index) {
+            opaqueBlocks.set(index);
+            remainingCount--;
+        }
+
+        boolean isOpaque(int index) {
+            return opaqueBlocks.get(index);
+        }
+
+        int getRemainingCount() {
+            return remainingCount;
+        }
+    }
+
+    private static void verifyVisibilityGraphSnapshotBehavior() {
+        Object renderGlobal = new Object();
+        Object sectionPosition = Integer.valueOf(256);
+        FakeVisGraph source = new FakeVisGraph();
+        source.markOpaque(5);
+        source.markOpaque(4090);
+
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal, sectionPosition, source);
+        FakeVisGraph first = (FakeVisGraph) CyloxVisibilityCacheHooks.getCachedVisibilityGraph(
+            renderGlobal, sectionPosition);
+        if (first == null || first == source || !first.isOpaque(5) || !first.isOpaque(4090)
+            || first.getRemainingCount() != 4094) {
+            throw new IllegalStateException("Visibility graph snapshot did not restore the opaque BitSet and counter");
+        }
+
+        first.markOpaque(7);
+        FakeVisGraph second = (FakeVisGraph) CyloxVisibilityCacheHooks.getCachedVisibilityGraph(
+            renderGlobal, sectionPosition);
+        if (second == null || second.isOpaque(7) || !second.isOpaque(5) || !second.isOpaque(4090)
+            || second.getRemainingCount() != 4094) {
+            throw new IllegalStateException("Mutating a cached graph copy changed its pristine snapshot");
+        }
+        if (CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 1) {
+            throw new IllegalStateException("Visibility graph snapshot cache size is incorrect");
+        }
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
+        if (CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 0) {
+            throw new IllegalStateException("Visibility graph snapshots were not cleared on invalidation");
+        }
+        System.out.println("[Cylox] Verified pristine VisGraph snapshots, isolated flood-fill copies and invalidation.");
+    }
+
+    private static void verifyTextWidthCacheBehavior() {
+        Object renderer = new Object();
+        String text = "\u00a7aLeaderboard";
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, false) != -1) {
+            throw new IllegalStateException("Text-width cache should miss before the first measurement");
+        }
+        CyloxTextWidthCache.cacheWidth(renderer, text, false, 73);
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, false) != 73) {
+            throw new IllegalStateException("Text-width cache did not return the stored width");
+        }
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, true) != -1) {
+            throw new IllegalStateException("Text-width cache reused a width across Unicode-font modes");
+        }
+        CyloxTextWidthCache.cacheWidth(renderer, text, true, 81);
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, true) != 81) {
+            throw new IllegalStateException("Text-width cache did not retain the Unicode-mode width");
+        }
+        if (CyloxTextWidthCache.getCachedWidth(new Object(), text, false) != -1) {
+            throw new IllegalStateException("Text-width cache reused measurements across FontRenderer instances");
+        }
+
+        Object boundedRenderer = new Object();
+        for (int i = 0; i < 513; i++) {
+            CyloxTextWidthCache.cacheWidth(boundedRenderer, "label-" + i, false, i);
+        }
+        if (CyloxTextWidthCache.getSize() > 512) {
+            throw new IllegalStateException("Text-width cache exceeded its 512-entry bound");
+        }
+        System.out.println("[Cylox] Verified FontRenderer-scoped text widths, Unicode isolation and 512-entry LRU bound.");
     }
 
     private static void verifyGraphicsPresetBehavior() throws Exception {
