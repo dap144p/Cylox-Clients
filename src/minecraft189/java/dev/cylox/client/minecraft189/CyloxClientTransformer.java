@@ -662,6 +662,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     }
 
     private static boolean isTerrainCacheInvalidationMethod(ClassNode owner, MethodNode method) {
+        // A constructor may store its world argument and call an instance refresh method,
+        // which resembles the world-replacement pattern. Never inject before super() or this().
+        if ("<init>".equals(method.name) || "<clinit>".equals(method.name)) return false;
         if ((method.access & Opcodes.ACC_STATIC) != 0 || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
         if ("(IIIIII)V".equals(method.desc)) return true;
 
