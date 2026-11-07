@@ -99,6 +99,7 @@ jobs:
           unzip -l "$JAR" | grep -q 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxPerformanceMonitor.class'
+          unzip -l "$JAR" | grep -q 'xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class'
           if unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxRenderHooks.class'; then
             echo "Unexpected custom terrain scratch hook in Cylox JAR"
             exit 1
@@ -120,6 +121,7 @@ jobs:
               "com/viaversion/viabackwards/api/ViaBackwardsPlatform.class",
               "com/viaversion/viarewind/api/ViaRewindPlatform.class",
               "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class",
+              "xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class",
           }
           checked = 0
           highest_major = 0
@@ -168,6 +170,7 @@ jobs:
           Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla terrain traversal and Via equipment handling.
 
           - Bundles ViaVersion 5.12.3-SNAPSHOT (upstream Java 8 CI build #55), ViaBackwards 5.12.3-SNAPSHOT (build #45), and the established ViaRewind 4.2.0 Java 8 compatibility build #39 inside the single Cylox client JAR.
+          - Includes the JavaDowngrader 2.0.1 Java 8 API stubs at their required root package path so ViaRewind's Java 8-transformed classes can resolve them; CI checks the J_L_Record class and Java 8 bytecode compatibility.
           - Applies ViaRewind commit f6424ddb565b9350cc347ce43f67c7e608767499 to the embedded 4.2.0 class at load time, cancelling redundant local-player equipment packets in the 1.9-to-1.8 translation.
           - The Via decoder preserves normal CancelCodecException cancellation but forwards every other decoder/translation exception to Minecraft's NetworkManager instead of silently swallowing it.
           - This is an error-path correction; it does not claim that every 1.13 packet or scoreboard compatibility issue is fixed.
