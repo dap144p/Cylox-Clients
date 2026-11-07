@@ -20,7 +20,7 @@ public final class CyloxVisibilityCacheHooks {
     private static long cacheMisses;
     private static long cacheInvalidations;
 
-    private CyloxRenderHooks() { }
+    private CyloxVisibilityCacheHooks() { }
 
     public static synchronized Object getCachedVisibleFacings(Object renderGlobal, Object blockPosition) {
         if (renderGlobal == cachedRenderGlobal && blockPosition != null
