@@ -38,6 +38,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
+    private static final String VIA_REWIND_EQUIPMENT_HANDLER_PREFIX = VIA_REWIND_EQUIPMENT_REWRITER + "$";
 
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
@@ -198,7 +199,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             }
 
             boolean viaRewindEquipmentPatched = false;
-            if (VIA_REWIND_EQUIPMENT_REWRITER.equals(node.name)) {
+            // ViaRewind registers SET_EQUIPPED_ITEM inside an anonymous
+            // PacketHandlers class, so its handler lambda lives in an inner
+            // class rather than EntityPacketRewriter1_9 itself.
+            if (node.name.startsWith(VIA_REWIND_EQUIPMENT_HANDLER_PREFIX)) {
                 viaRewindEquipmentPatched = injectViaRewindEquipmentGuard(node);
                 if (viaRewindEquipmentPatched) changed = true;
             }
@@ -267,7 +271,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     /**
      * Adds the upstream ViaRewind local-player equipment cancellation to the
-     * Java 8 compatibility artifact without replacing the pinned library.
+     * anonymous SET_EQUIPPED_ITEM PacketHandlers class in the Java 8 artifact.
      */
     private static boolean injectViaRewindEquipmentGuard(ClassNode node) {
         MethodNode target = null;
