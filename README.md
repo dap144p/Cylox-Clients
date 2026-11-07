@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.5  
+**Version:** 1.4.6  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -85,6 +85,17 @@ This is not an Android background service. The launcher must keep the game proce
 - Backs up an existing `options.txt` to `cylox/options-before-graphics-preset.txt` before changing it. The preset marker prevents repeated overwrites, so later changes made in Minecraft's own Settings menu are preserved.
 - The maximum graphics preset is intentionally a stress test, not a recommended low-end daily profile. Restore the backup or lower settings in Video Settings after profiling.
 
+## Spawn-lobby render optimization — phase 2 (1.4.6)
+
+- Extends terrain visibility caching beyond the camera-block result: Cylox snapshots the opaque-block BitSet and remaining-cell counter from vanilla's VisGraph after the 16×16×16 scan, keyed by RenderGlobal and section origin.
+- On a cache hit, it reconstructs a fresh VisGraph from the pristine snapshot before running vanilla's flood-fill. This is required because vanilla mutates the VisGraph BitSet while computing visible directions. The cache is bounded to 32 section snapshots and is cleared with the existing world/render-range invalidation path.
+- The existing camera-block visibility Set cache remains bounded to 64 entries and now preserves EnumSet's compact representation when copying cached directions.
+- Adds a 512-entry LRU FontRenderer width cache keyed by renderer instance, Unicode-font mode and exact formatted string. Repeated nameplate/armor-stand hologram width measurements can be reused without changing text, color codes, draw order or visibility.
+- Splits the opt-in RenderGlobal profile into entity rendering and tile-entity rendering. Adds separate name-tag timing, with name-tag time nested inside entity rendering; do not add the nested timings together.
+- New report fields include terrain visibility-graph cache hits/misses/failures, text-width cache hits/misses/invalidations, entity time, tile-entity time and name-tag time.
+- Preserves vanilla BFS traversal, frustum decisions, render queues, chunk scheduling, chunk uploads, entity drawing, tile-entity drawing, scoreboard teams, hologram text and Via/network behavior. No entities or holograms are hidden, skipped or distance-limited.
+- These are conservative CPU-side reuse optimizations. They do not claim a measured FPS increase; compare logs on the same device, server location, renderer and scene before judging the result.
+
 ## Cylox adaptive lightweight UI
 
 - Uses one consistent dark navy, cyan and orange visual system across the main menu, standard menu backgrounds, vanilla buttons and the protocol selector.
@@ -142,8 +153,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.4.5.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.4.5.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.4.6.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.4.6.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
