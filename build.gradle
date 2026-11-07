@@ -25,7 +25,7 @@ def viaJava8Libraries = [
     [
         file: layout.buildDirectory.file('via-libs/Cylox-ViaRewind-4.2.1-SNAPSHOT-398-java8.jar').get().asFile,
         url: 'https://ci.viaversion.com/view/ViaRewind/job/ViaRewind-Java8/40/artifact/build/libs/ViaRewind-4.2.1-SNAPSHOT-downgraded.jar',
-        requiredClass: 'com/viaversion/viarewind/api/ViaRewindPlatform.class'
+        requiredClass: 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
     ]
 ]
 def viaLibraryFiles = files(viaJava8Libraries.collect { it.file })
