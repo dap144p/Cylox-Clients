@@ -60,24 +60,43 @@ public final class Vanilla189Verifier {
         }
         String className = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
         String entryName = className + ".class";
-        byte[] original;
+        int patchedHandlers = 0;
+        boolean foundRewriter = false;
         try (JarFile jar = new JarFile(viaRewindJar)) {
-            JarEntry entry = jar.getJarEntry(entryName);
-            if (entry == null) throw new IllegalStateException("ViaRewind equipment rewriter is missing: " + entryName);
-            try (InputStream input = jar.getInputStream(entry);
-                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-                byte[] buffer = new byte[8192];
-                int count;
-                while ((count = input.read(buffer)) >= 0) output.write(buffer, 0, count);
-                original = output.toByteArray();
+            JarEntry rewriterEntry = jar.getJarEntry(entryName);
+            if (rewriterEntry == null) {
+                throw new IllegalStateException("ViaRewind equipment rewriter is missing: " + entryName);
+            }
+            foundRewriter = true;
+
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (entry.isDirectory() || !name.endsWith(".class")
+                    || !name.startsWith(className + "$")) {
+                    continue;
+                }
+                String internalName = name.substring(0, name.length() - 6);
+                byte[] original;
+                try (InputStream input = jar.getInputStream(entry);
+                     ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = input.read(buffer)) >= 0) output.write(buffer, 0, count);
+                    original = output.toByteArray();
+                }
+                byte[] transformed = new CyloxClientTransformer().transform(internalName, internalName, original);
+                if (transformed != null && !Arrays.equals(original, transformed)) {
+                    patchedHandlers += CyloxClientTransformer.getPatchedViaRewindEquipmentClassCount();
+                }
             }
         }
-        byte[] transformed = new CyloxClientTransformer().transform(className, className, original);
-        if (transformed == null || Arrays.equals(original, transformed)
-            || CyloxClientTransformer.getPatchedViaRewindEquipmentClassCount() != 1) {
-            throw new IllegalStateException("Cylox did not inject the ViaRewind local-player equipment guard");
+        if (!foundRewriter || patchedHandlers != 1) {
+            throw new IllegalStateException("Expected exactly one ViaRewind equipment-handler patch, found "
+                + patchedHandlers);
         }
-        System.out.println("[Cylox] Verified ViaRewind local-player equipment guard against pinned Java 8 artifact.");
+        System.out.println("[Cylox] Verified ViaRewind local-player equipment guard in its PacketHandlers inner class.");
     }
 
     private static void require(String hook, int count) {
