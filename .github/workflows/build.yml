@@ -2,7 +2,7 @@ name: Build Cylox Client — 1.8.9
 
 on:
   push:
-    branches: [main]
+    branches: [main, perf/low-end-diagnostics-1.4.1]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -98,6 +98,7 @@ jobs:
           unzip -l "$JAR" | grep -q 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
           unzip -l "$JAR" | grep -q 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxPerformanceMonitor.class'
           if unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxRenderHooks.class'; then
             echo "Unexpected custom terrain scratch hook in Cylox JAR"
             exit 1
