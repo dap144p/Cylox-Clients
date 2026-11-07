@@ -50,6 +50,9 @@ public final class Vanilla189Verifier {
         require("Cylox themed vanilla buttons", CyloxClientTransformer.getPatchedButtonThemeClassCount());
         require("Cylox menu background", CyloxClientTransformer.getPatchedScreenBackgroundClassCount());
         require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
+        require("opt-in frame profiler", CyloxClientTransformer.getPatchedFrameProfileClassCount());
+        require("opt-in terrain profiler", CyloxClientTransformer.getPatchedTerrainProfileClassCount());
+        require("opt-in chunk-upload profiler", CyloxClientTransformer.getPatchedChunkUploadProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }

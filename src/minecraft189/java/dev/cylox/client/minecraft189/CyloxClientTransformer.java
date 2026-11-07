@@ -31,6 +31,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedButtonThemeClasses;
     private static volatile int patchedScreenBackgroundClasses;
     private static volatile int patchedMainMenuClasses;
+    private static volatile int patchedFrameProfileClasses;
+    private static volatile int patchedTerrainProfileClasses;
+    private static volatile int patchedChunkUploadProfileClasses;
     private static volatile int patchedViaRewindEquipmentClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
@@ -54,6 +57,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedButtonThemeClasses = 0;
         patchedScreenBackgroundClasses = 0;
         patchedMainMenuClasses = 0;
+        patchedFrameProfileClasses = 0;
+        patchedTerrainProfileClasses = 0;
+        patchedChunkUploadProfileClasses = 0;
         patchedViaRewindEquipmentClasses = 0;
     }
 
@@ -68,6 +74,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedButtonThemeClassCount() { return patchedButtonThemeClasses; }
     public static int getPatchedScreenBackgroundClassCount() { return patchedScreenBackgroundClasses; }
     public static int getPatchedMainMenuClassCount() { return patchedMainMenuClasses; }
+    public static int getPatchedFrameProfileClassCount() { return patchedFrameProfileClasses; }
+    public static int getPatchedTerrainProfileClassCount() { return patchedTerrainProfileClasses; }
+    public static int getPatchedChunkUploadProfileClassCount() { return patchedChunkUploadProfileClasses; }
     public static int getPatchedViaRewindEquipmentClassCount() { return patchedViaRewindEquipmentClasses; }
 
     @Override
@@ -89,6 +98,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean buttonThemePatched = false;
             boolean screenBackgroundPatched = false;
             boolean mainMenuPatched = false;
+            boolean frameProfilePatched = false;
+            boolean terrainProfilePatched = false;
+            boolean chunkUploadProfilePatched = false;
+            boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean buttonWidgetClass = hasClassString(node, "textures/gui/widgets.png");
             boolean guiScreenBaseClass = isMinecraftGuiClass(name, transformedName, "GuiScreen")
                 || (hasMethodDescriptor(node, "(IIF)V") && hasMethodDescriptor(node, "(I)V"));
@@ -118,6 +131,21 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         && hasMarkers(method, "mouse", "level", "gui")) {
                         insertRenderGuard(method);
                         renderPatched = true;
+                        frameProfilePatched = true;
+                        changed = true;
+                    }
+
+                    if (terrainClass && !terrainProfilePatched
+                        && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
+                        insertTimedSection(method, 1);
+                        terrainProfilePatched = true;
+                        changed = true;
+                    }
+
+                    if (terrainClass && !chunkUploadProfilePatched
+                        && "(J)V".equals(method.desc) && hasMethodCallDescriptor(method, "(J)Z")) {
+                        insertTimedSection(method, 2);
+                        chunkUploadProfilePatched = true;
                         changed = true;
                     }
 
@@ -248,6 +276,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) patchedButtonThemeClasses++;
             if (screenBackgroundPatched) patchedScreenBackgroundClasses++;
             if (mainMenuPatched) patchedMainMenuClasses++;
+            if (frameProfilePatched) patchedFrameProfileClasses++;
+            if (terrainProfilePatched) patchedTerrainProfileClasses++;
+            if (chunkUploadProfilePatched) patchedChunkUploadProfileClasses++;
             if (viaRewindEquipmentPatched) patchedViaRewindEquipmentClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
@@ -260,6 +291,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (buttonThemePatched) System.out.println("[Cylox] Cylox button theme injected: " + node.name);
             if (screenBackgroundPatched) System.out.println("[Cylox] Cylox menu background injected: " + node.name);
             if (mainMenuPatched) System.out.println("[Cylox] Cylox main menu renderer injected: " + node.name);
+            if (frameProfilePatched) System.out.println("[Cylox] Opt-in frame profiler injected: " + node.name);
+            if (terrainProfilePatched) System.out.println("[Cylox] Opt-in terrain profiler injected: " + node.name);
+            if (chunkUploadProfilePatched) System.out.println("[Cylox] Opt-in chunk-upload profiler injected: " + node.name);
             if (viaRewindEquipmentPatched) System.out.println("[Cylox] ViaRewind local-player equipment guard injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
@@ -487,14 +521,50 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     }
 
     private static void insertRenderGuard(MethodNode method) {
+        java.util.List<AbstractInsnNode> originalReturns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) originalReturns.add(instruction);
+        }
+
         LabelNode foreground = new LabelNode();
+        InsnNode backgroundReturn = new InsnNode(Opcodes.RETURN);
         InsnList guard = new InsnList();
         guard.add(new MethodInsnNode(Opcodes.INVOKESTATIC, BACKGROUND, "shouldRender", "()Z", false));
         guard.add(new JumpInsnNode(Opcodes.IFNE, foreground));
-        guard.add(new InsnNode(Opcodes.RETURN));
+        guard.add(backgroundReturn);
         guard.add(foreground);
         guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        guard.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginFrame", "()V", false));
         method.instructions.insert(guard);
+
+        for (AbstractInsnNode instruction : originalReturns) {
+            method.instructions.insertBefore(instruction, new MethodInsnNode(Opcodes.INVOKESTATIC,
+                "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endFrame", "()V", false));
+        }
+    }
+
+    private static void insertTimedSection(MethodNode method, int section) {
+        java.util.List<AbstractInsnNode> originalReturns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) originalReturns.add(instruction);
+        }
+
+        InsnList begin = new InsnList();
+        begin.add(new LdcInsnNode(Integer.valueOf(section)));
+        begin.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
+        method.instructions.insert(begin);
+
+        for (AbstractInsnNode instruction : originalReturns) {
+            InsnList end = new InsnList();
+            end.add(new LdcInsnNode(Integer.valueOf(section)));
+            end.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+                "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
+            method.instructions.insertBefore(instruction, end);
+        }
     }
 
     private static void insertBeforeReturns(MethodNode method, String owner, String name,
@@ -508,6 +578,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 method.instructions.insertBefore(instruction, hook);
             }
         }
+    }
+
+    private static boolean hasMethodCallDescriptor(MethodNode method, String descriptor) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode
+                && descriptor.equals(((MethodInsnNode) instruction).desc)) return true;
+        }
+        return false;
     }
 
     private static boolean hasMarkers(MethodNode method, String... markers) {

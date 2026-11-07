@@ -2,7 +2,7 @@ name: Build Cylox Client — 1.8.9
 
 on:
   push:
-    branches: [main]
+    branches: [main, perf/low-end-diagnostics-1.4.1]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -98,6 +98,7 @@ jobs:
           unzip -l "$JAR" | grep -q 'com/viaversion/viabackwards/api/ViaBackwardsPlatform.class'
           unzip -l "$JAR" | grep -q 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxPerformanceMonitor.class'
           if unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxRenderHooks.class'; then
             echo "Unexpected custom terrain scratch hook in Cylox JAR"
             exit 1
@@ -181,6 +182,8 @@ jobs:
           - Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads.
           - Preserves Minecraft 1.8.9's native near/far chunk-update scheduling; Cylox does not add a custom chunk queue or renderer.
           - Does not inject a custom terrain list or queue into RenderGlobal.setupTerrain; no renderer FPS gain is claimed without device measurements.
+          - Adds opt-in profiling for rendered-frame time, terrain setup/culling time and chunk-upload time; it is disabled by default and can be enabled with -Dcylox.profile=true.
+          - Profiling is diagnostic only: it does not change renderer scheduling, gameplay ticks or network handling, and this build does not claim an FPS increase.
           - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Video Settings and options.txt are unchanged.
           - Sizes Via's temporary packet buffers from the incoming packet length (minimum 256 bytes) to avoid unnecessary initial buffer growth; translated packets can still expand when required.
           - Java 8 compatibility builds are an upstream fallback and may continue to log that Java 8 is outside normal support. Real MJ Launcher testing is still required to confirm server packet compatibility.
