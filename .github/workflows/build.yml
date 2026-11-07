@@ -100,6 +100,7 @@ jobs:
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxPerformanceMonitor.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxGraphicsPreset.class'
           unzip -l "$JAR" | grep -q 'xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class'
           if unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxRenderHooks.class'; then
             echo "Unexpected custom terrain scratch hook in Cylox JAR"
