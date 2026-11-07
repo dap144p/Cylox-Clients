@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.4.4'
+version = '1.4.5'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -114,6 +114,7 @@ sourceSets {
         java {
             srcDir 'src/minecraft189/java'
             include '**/CyloxTweaker.java'
+            include '**/CyloxGraphicsPreset.java'
             include '**/CyloxClientTransformer.java'
             include '**/CyloxBackgroundHooks.java'
             include '**/CyloxProtocolBridge.java'
