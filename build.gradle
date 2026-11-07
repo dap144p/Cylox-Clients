@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.4.0'
+version = '1.4.1'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -114,6 +114,7 @@ sourceSets {
             include '**/CyloxBackgroundHooks.java'
             include '**/CyloxProtocolBridge.java'
             include '**/CyloxViaRewindHooks.java'
+            include '**/CyloxPerformanceMonitor.java'
             include '**/CyloxUiHooks.java'
         }
         compileClasspath += sourceSets.main.output
