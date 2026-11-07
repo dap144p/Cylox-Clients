@@ -55,7 +55,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
     private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks";
     private static final String TEXT_WIDTH_CACHE = "dev/cylox/client/minecraft189/CyloxTextWidthCache";
-    private static final String ENTITY_RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxEntityRenderHooks";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
     // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
     // PacketHandlers class is the SET_EQUIPPED_ITEM registration.
@@ -1018,26 +1017,35 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
      * memoize the boolean and skip repeated getter/virtual-call work without
      * changing entity visibility or draw decisions.
      */
+    /**
+     * RenderGlobal queries the same render-view player's sleeping state from two
+     * separate entity loops. Cache that state once from the render-view argument
+     * for this invocation and replace only the two matching vanilla getter chains.
+     * No entity visibility, frustum or draw decisions are altered.
+     */
     private static boolean insertViewEntitySleepingCache(MethodNode method) {
         if (Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
         Type[] arguments = Type.getArgumentTypes(method.desc);
-        if (arguments.length != 3 || arguments[2].getSort() != Type.FLOAT) return false;
+        if (arguments.length != 3 || arguments[0].getSort() != Type.OBJECT
+            || arguments[1].getSort() != Type.OBJECT || arguments[2].getSort() != Type.FLOAT) return false;
 
         java.util.Map<String, java.util.List<MethodInsnNode>> groups =
             new java.util.HashMap<String, java.util.List<MethodInsnNode>>();
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null; instruction = instruction.getNext()) {
             if (!(instruction instanceof MethodInsnNode) || instruction.getOpcode() != Opcodes.INVOKEVIRTUAL
-                || !"()Z".equals(((MethodInsnNode) instruction).desc)) continue;
-            AbstractInsnNode cast = previousRealInstruction(instruction);
-            if (!(cast instanceof TypeInsnNode) || cast.getOpcode() != Opcodes.CHECKCAST) continue;
-            AbstractInsnNode getterInstruction = previousRealInstruction(cast);
-            if (!(getterInstruction instanceof MethodInsnNode)) continue;
+                || ! "()Z".equals(((MethodInsnNode) instruction).desc)) continue;
+            AbstractInsnNode castInstruction = previousRealInstruction(instruction);
+            AbstractInsnNode getterInstruction = previousRealInstruction(castInstruction);
+            if (!(castInstruction instanceof TypeInsnNode) || castInstruction.getOpcode() != Opcodes.CHECKCAST
+                || !(getterInstruction instanceof MethodInsnNode)) continue;
             MethodInsnNode getter = (MethodInsnNode) getterInstruction;
             if (Type.getArgumentTypes(getter.desc).length != 0
                 || Type.getReturnType(getter.desc).getSort() != Type.OBJECT) continue;
             String key = getter.owner + "." + getter.name + getter.desc
-                + "|" + ((TypeInsnNode) cast).desc;
+                + "|" + ((TypeInsnNode) castInstruction).desc
+                + "|" + ((MethodInsnNode) instruction).owner + "." + ((MethodInsnNode) instruction).name
+                + ((MethodInsnNode) instruction).desc;
             java.util.List<MethodInsnNode> calls = groups.get(key);
             if (calls == null) {
                 calls = new java.util.ArrayList<MethodInsnNode>();
@@ -1048,56 +1056,78 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
         java.util.List<MethodInsnNode> targets = null;
         for (java.util.List<MethodInsnNode> calls : groups.values()) {
-            if (calls.size() > 2) return false;
             if (calls.size() == 2) {
                 if (targets != null) return false;
                 targets = calls;
+            } else if (calls.size() > 2) {
+                return false;
             }
         }
         if (targets == null) return false;
 
-        java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
-        for (AbstractInsnNode instruction = method.instructions.getFirst();
-             instruction != null; instruction = instruction.getNext()) {
-            if (instruction.getOpcode() == Opcodes.RETURN) returns.add(instruction);
-        }
+        MethodInsnNode sampleCall = targets.get(0);
+        AbstractInsnNode sampleCast = previousRealInstruction(sampleCall);
+        AbstractInsnNode sampleGetterNode = previousRealInstruction(sampleCast);
+        if (!(sampleCast instanceof TypeInsnNode) || !(sampleGetterNode instanceof MethodInsnNode)) return false;
+        TypeInsnNode cast = (TypeInsnNode) sampleCast;
+        MethodInsnNode getter = (MethodInsnNode) sampleGetterNode;
+        AbstractInsnNode sampleFieldNode = previousRealInstruction(sampleGetterNode);
+        AbstractInsnNode sampleThisNode = previousRealInstruction(sampleFieldNode);
+        if (!(sampleFieldNode instanceof org.objectweb.asm.tree.FieldInsnNode)
+            || sampleFieldNode.getOpcode() != Opcodes.GETFIELD
+            || !(sampleThisNode instanceof VarInsnNode) || sampleThisNode.getOpcode() != Opcodes.ALOAD
+            || ((VarInsnNode) sampleThisNode).var != 0
+            || getter.getOpcode() != Opcodes.INVOKEVIRTUAL
+            || Type.getArgumentTypes(getter.desc).length != 0
+            || Type.getReturnType(getter.desc).getSort() != Type.OBJECT) return false;
 
-        InsnList begin = new InsnList();
-        begin.add(new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS,
-            "beginRenderPass", "()V", false));
-        method.instructions.insert(begin);
+        int sleepingLocal = method.maxLocals++;
+        LabelNode notLiving = new LabelNode();
+        LabelNode storeSleeping = new LabelNode();
+        InsnList initialize = new InsnList();
+        initialize.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        initialize.add(new TypeInsnNode(Opcodes.INSTANCEOF, cast.desc));
+        initialize.add(new InsnNode(Opcodes.DUP));
+        initialize.add(new JumpInsnNode(Opcodes.IFEQ, notLiving));
+        initialize.add(new InsnNode(Opcodes.POP));
+        initialize.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        initialize.add(new TypeInsnNode(Opcodes.CHECKCAST, cast.desc));
+        initialize.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, sampleCall.owner,
+            sampleCall.name, sampleCall.desc, sampleCall.itf));
+        initialize.add(new JumpInsnNode(Opcodes.GOTO, storeSleeping));
+        initialize.add(notLiving);
+        initialize.add(new FrameNode(Opcodes.F_SAME1, 0, null, 1, new Object[] {Opcodes.INTEGER}));
+        initialize.add(new InsnNode(Opcodes.POP));
+        initialize.add(new InsnNode(Opcodes.ICONST_0));
+        initialize.add(storeSleeping);
+        initialize.add(new FrameNode(Opcodes.F_SAME1, 0, null, 1, new Object[] {Opcodes.INTEGER}));
+        initialize.add(new VarInsnNode(Opcodes.ISTORE, sleepingLocal));
+
+        AbstractInsnNode firstReal = nextRealInstruction(method.instructions.getFirst());
+        if (firstReal == null) return false;
+        method.instructions.insertBefore(firstReal, initialize);
 
         for (MethodInsnNode call : targets) {
-            int receiverLocal = method.maxLocals++;
-            LabelNode cacheMiss = new LabelNode();
-            LabelNode cacheReady = new LabelNode();
-            InsnList lookup = new InsnList();
-            lookup.add(new VarInsnNode(Opcodes.ASTORE, receiverLocal));
-            lookup.add(new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS,
-                "getCachedPlayerSleeping", "()I", false));
-            lookup.add(new InsnNode(Opcodes.DUP));
-            lookup.add(new JumpInsnNode(Opcodes.IFLT, cacheMiss));
-            lookup.add(new JumpInsnNode(Opcodes.GOTO, cacheReady));
-            lookup.add(cacheMiss);
-            lookup.add(new FrameNode(Opcodes.F_APPEND, 1, new Object[] {call.owner},
-                1, new Object[] {Opcodes.INTEGER}));
-            lookup.add(new InsnNode(Opcodes.POP));
-            lookup.add(new VarInsnNode(Opcodes.ALOAD, receiverLocal));
-            method.instructions.insertBefore(call, lookup);
-
-            InsnList store = new InsnList();
-            store.add(new InsnNode(Opcodes.DUP));
-            store.add(new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS,
-                "cachePlayerSleeping", "(Z)V", false));
-            store.add(cacheReady);
-            store.add(new FrameNode(Opcodes.F_APPEND, 1, new Object[] {call.owner},
-                1, new Object[] {Opcodes.INTEGER}));
-            method.instructions.insert(call, store);
-        }
-
-        for (AbstractInsnNode instruction : returns) {
-            method.instructions.insertBefore(instruction,
-                new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS, "endRenderPass", "()V", false));
+            AbstractInsnNode castNode = previousRealInstruction(call);
+            AbstractInsnNode getterNode = previousRealInstruction(castNode);
+            AbstractInsnNode fieldNode = previousRealInstruction(getterNode);
+            AbstractInsnNode thisNode = previousRealInstruction(fieldNode);
+            if (!(castNode instanceof TypeInsnNode) || castNode.getOpcode() != Opcodes.CHECKCAST
+                || !(getterNode instanceof MethodInsnNode)
+                || !(fieldNode instanceof org.objectweb.asm.tree.FieldInsnNode)
+                || fieldNode.getOpcode() != Opcodes.GETFIELD
+                || !(thisNode instanceof VarInsnNode) || thisNode.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) thisNode).var != 0) {
+                throw new IllegalStateException("Render-view sleeping getter chain changed in " + method.desc);
+            }
+            InsnList cachedValue = new InsnList();
+            cachedValue.add(new VarInsnNode(Opcodes.ILOAD, sleepingLocal));
+            method.instructions.insertBefore(thisNode, cachedValue);
+            method.instructions.remove(thisNode);
+            method.instructions.remove(fieldNode);
+            method.instructions.remove(getterNode);
+            method.instructions.remove(castNode);
+            method.instructions.remove(call);
         }
         return true;
     }
