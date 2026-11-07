@@ -86,9 +86,11 @@ public final class Vanilla189Verifier {
                     while ((count = input.read(buffer)) >= 0) output.write(buffer, 0, count);
                     original = output.toByteArray();
                 }
+                int before = CyloxClientTransformer.getPatchedViaRewindEquipmentClassCount();
                 byte[] transformed = new CyloxClientTransformer().transform(internalName, internalName, original);
+                int after = CyloxClientTransformer.getPatchedViaRewindEquipmentClassCount();
                 if (transformed != null && !Arrays.equals(original, transformed)) {
-                    patchedHandlers += CyloxClientTransformer.getPatchedViaRewindEquipmentClassCount();
+                    patchedHandlers += after - before;
                 }
             }
         }
