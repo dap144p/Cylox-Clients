@@ -40,6 +40,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedVisibilityCacheClasses;
     private static volatile int patchedVisibilityGraphCacheClasses;
     private static volatile int patchedVisibilityInvalidationClasses;
+    private static volatile int patchedVisibilityRangeInvalidationClasses;
+    private static volatile int patchedEntitySleepingCacheClasses;
+    private static volatile int patchedPlayerEquipmentGuardClasses;
     private static volatile int patchedNameTagProfileClasses;
     private static volatile int patchedFontWidthCacheClasses;
     private static volatile int patchedEntityProfileClasses;
@@ -52,6 +55,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
     private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks";
     private static final String TEXT_WIDTH_CACHE = "dev/cylox/client/minecraft189/CyloxTextWidthCache";
+    private static final String ENTITY_RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxEntityRenderHooks";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
     // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
     // PacketHandlers class is the SET_EQUIPPED_ITEM registration.
@@ -77,6 +81,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedVisibilityCacheClasses = 0;
         patchedVisibilityGraphCacheClasses = 0;
         patchedVisibilityInvalidationClasses = 0;
+        patchedVisibilityRangeInvalidationClasses = 0;
+        patchedEntitySleepingCacheClasses = 0;
+        patchedPlayerEquipmentGuardClasses = 0;
         patchedNameTagProfileClasses = 0;
         patchedFontWidthCacheClasses = 0;
         patchedEntityProfileClasses = 0;
@@ -103,6 +110,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedVisibilityCacheClassCount() { return patchedVisibilityCacheClasses; }
     public static int getPatchedVisibilityGraphCacheClassCount() { return patchedVisibilityGraphCacheClasses; }
     public static int getPatchedVisibilityInvalidationClassCount() { return patchedVisibilityInvalidationClasses; }
+    public static int getPatchedVisibilityRangeInvalidationClassCount() { return patchedVisibilityRangeInvalidationClasses; }
+    public static int getPatchedEntitySleepingCacheClassCount() { return patchedEntitySleepingCacheClasses; }
+    public static int getPatchedPlayerEquipmentGuardClassCount() { return patchedPlayerEquipmentGuardClasses; }
     public static int getPatchedNameTagProfileClassCount() { return patchedNameTagProfileClasses; }
     public static int getPatchedFontWidthCacheClassCount() { return patchedFontWidthCacheClasses; }
     public static int getPatchedEntityProfileClassCount() { return patchedEntityProfileClasses; }
@@ -135,6 +145,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean visibilityCachePatched = false;
             boolean visibilityGraphCachePatched = false;
             boolean visibilityInvalidationPatched = false;
+            boolean visibilityRangeInvalidationPatched = false;
+            boolean entitySleepingCachePatched = false;
+            boolean playerEquipmentGuardPatched = false;
             boolean nameTagProfilePatched = false;
             boolean fontWidthCachePatched = false;
             boolean entityProfilePatched = false;
@@ -162,6 +175,13 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
             for (MethodNode method : node.methods) {
                 if ((method.access & Opcodes.ACC_STATIC) == 0) {
+                    if (!playerEquipmentGuardPatched && isDirectPlayerEquipmentSetter(node, method)) {
+                        insertPlayerEquipmentBoundsGuard(method);
+                        playerEquipmentGuardPatched = true;
+                        changed = true;
+                        System.out.println("[Cylox] Player equipment-slot bounds guard injected: " + node.name + ".");
+                    }
+
                     if (!buttonThemePatched && buttonWidgetClass && isButtonDrawMethod(method)) {
                         insertButtonTheme(method);
                         buttonThemePatched = true;
@@ -211,7 +231,13 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         changed = true;
                     }
 
-                    if (terrainClass && isTerrainCacheInvalidationMethod(node, method)) {
+                    if (terrainClass && isTerrainCacheRangeInvalidationMethod(node, method)) {
+                        insertVisibilityCacheRangeInvalidation(method);
+                        visibilityRangeInvalidationPatched = true;
+                        changed = true;
+                    }
+
+                    if (terrainClass && isTerrainWorldReplacementMethod(node, method)) {
                         insertVisibilityCacheInvalidation(method);
                         visibilityInvalidationPatched = true;
                         changed = true;
@@ -221,6 +247,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         && hasMarkers(method, "entities", "blockentities")) {
                         entityProfilePatched = insertEntityRenderBreakdown(method);
                         if (entityProfilePatched) changed = true;
+                    }
+
+                    if (terrainClass && !entitySleepingCachePatched
+                        && hasMarkers(method, "entities", "blockentities")) {
+                        entitySleepingCachePatched = insertViewEntitySleepingCache(method);
+                        if (entitySleepingCachePatched) changed = true;
                     }
 
                     if (terrainClass && blockLayerCandidates == 1 && !blockLayerProfilePatched
@@ -402,6 +434,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (visibilityCachePatched) patchedVisibilityCacheClasses++;
             if (visibilityGraphCachePatched) patchedVisibilityGraphCacheClasses++;
             if (visibilityInvalidationPatched) patchedVisibilityInvalidationClasses++;
+            if (visibilityRangeInvalidationPatched) patchedVisibilityRangeInvalidationClasses++;
+            if (entitySleepingCachePatched) patchedEntitySleepingCacheClasses++;
+            if (playerEquipmentGuardPatched) patchedPlayerEquipmentGuardClasses++;
             if (nameTagProfilePatched) patchedNameTagProfileClasses++;
             if (fontWidthCachePatched) patchedFontWidthCacheClasses++;
             if (entityProfilePatched) patchedEntityProfileClasses++;
@@ -424,7 +459,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (viaRewindEquipmentPatched) System.out.println("[Cylox] ViaRewind local-player equipment guard injected: " + node.name);
             if (visibilityCachePatched) System.out.println("[Cylox] Terrain visibility cache injected: " + node.name);
             if (visibilityGraphCachePatched) System.out.println("[Cylox] Terrain visibility graph snapshot cache injected: " + node.name);
-            if (visibilityInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache invalidation injected: " + node.name);
+            if (visibilityInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache world-reset invalidation injected: " + node.name);
+            if (visibilityRangeInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache section-range invalidation injected: " + node.name);
+            if (entitySleepingCachePatched) System.out.println("[Cylox] Reused render-view sleeping state across entity loops: " + node.name);
             if (nameTagProfilePatched) System.out.println("[Cylox] Opt-in floating nameplate profiler injected: " + node.name);
             if (fontWidthCachePatched) System.out.println("[Cylox] Bounded FontRenderer string-width cache injected: " + node.name);
             if (entityProfilePatched) System.out.println("[Cylox] Opt-in entity renderer profiler injected: " + node.name);
@@ -718,35 +755,93 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             && arguments[1].getSort() == Type.FLOAT;
     }
 
-    private static boolean isTerrainCacheInvalidationMethod(ClassNode owner, MethodNode method) {
+    private static boolean isTerrainCacheRangeInvalidationMethod(ClassNode owner, MethodNode method) {
+        if ("<init>".equals(method.name) || "<clinit>".equals(method.name)
+            || (method.access & Opcodes.ACC_STATIC) != 0
+            || !"(IIIIII)V".equals(method.desc)) return false;
+
+        // Only hook the backing markBlocksForUpdate method that delegates to
+        // ViewFrustum. Its public range wrapper calls back into RenderGlobal and
+        // must not clear the cache a second time.
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if ("(IIIIII)V".equals(call.desc) && !owner.name.equals(call.owner)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isTerrainWorldReplacementMethod(ClassNode owner, MethodNode method) {
         // A constructor may store its world argument and call an instance refresh method,
         // which resembles the world-replacement pattern. Never inject before super() or this().
         if ("<init>".equals(method.name) || "<clinit>".equals(method.name)) return false;
-        if ((method.access & Opcodes.ACC_STATIC) != 0 || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
-        if ("(IIIIII)V".equals(method.desc)) return true;
+        if ((method.access & Opcodes.ACC_STATIC) != 0
+            || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
 
         Type[] arguments = Type.getArgumentTypes(method.desc);
-        boolean forwardsBlockRange = arguments.length == 1
-            && arguments[0].getSort() == Type.OBJECT
-            && hasMethodCallDescriptor(method, "(IIIIII)V");
-        boolean replacesWorld = false;
-        if (arguments.length == 1 && arguments[0].getSort() == Type.OBJECT) {
-            boolean writesWorldField = false;
-            boolean callsOwnNoArgMethod = false;
-            for (AbstractInsnNode instruction = method.instructions.getFirst();
-                 instruction != null; instruction = instruction.getNext()) {
-                if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
-                    org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
-                    if (field.getOpcode() == Opcodes.PUTFIELD && owner.name.equals(field.owner)
-                        && arguments[0].getDescriptor().equals(field.desc)) writesWorldField = true;
-                } else if (instruction instanceof MethodInsnNode) {
-                    MethodInsnNode call = (MethodInsnNode) instruction;
-                    if (owner.name.equals(call.owner) && "()V".equals(call.desc)) callsOwnNoArgMethod = true;
-                }
+        if (arguments.length != 1 || arguments[0].getSort() != Type.OBJECT) return false;
+        boolean writesWorldField = false;
+        boolean callsOwnNoArgMethod = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
+                org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
+                if (field.getOpcode() == Opcodes.PUTFIELD && owner.name.equals(field.owner)
+                    && arguments[0].getDescriptor().equals(field.desc)) writesWorldField = true;
+            } else if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (owner.name.equals(call.owner) && "()V".equals(call.desc)) callsOwnNoArgMethod = true;
             }
-            replacesWorld = writesWorldField && callsOwnNoArgMethod;
         }
-        return forwardsBlockRange || replacesWorld;
+        return writesWorldField && callsOwnNoArgMethod;
+    }
+
+    private static boolean isDirectPlayerEquipmentSetter(ClassNode owner, MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0
+            || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        if (arguments.length != 2 || arguments[0].getSort() != Type.INT
+            || arguments[1].getSort() != Type.OBJECT) return false;
+
+        int arrayStores = 0;
+        boolean readsSlot = false;
+        org.objectweb.asm.tree.FieldInsnNode inventoryField = null;
+        org.objectweb.asm.tree.FieldInsnNode armorArrayField = null;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.AASTORE) arrayStores++;
+            if (instruction instanceof VarInsnNode && instruction.getOpcode() == Opcodes.ILOAD
+                && ((VarInsnNode) instruction).var == 1) readsSlot = true;
+            if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode
+                && instruction.getOpcode() == Opcodes.GETFIELD) {
+                org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
+                if (owner.name.equals(field.owner) && field.desc.startsWith("L")) inventoryField = field;
+                if (field.desc.startsWith("[L")) armorArrayField = field;
+            }
+        }
+        return arrayStores == 1 && readsSlot && inventoryField != null && armorArrayField != null
+            && Type.getType(inventoryField.desc).getInternalName().equals(armorArrayField.owner)
+            && ("[" + arguments[1].getDescriptor()).equals(armorArrayField.desc);
+    }
+
+    private static void insertPlayerEquipmentBoundsGuard(MethodNode method) {
+        LabelNode nonNegative = new LabelNode();
+        LabelNode validSlot = new LabelNode();
+        InsnList guard = new InsnList();
+        guard.add(new VarInsnNode(Opcodes.ILOAD, 1));
+        guard.add(new JumpInsnNode(Opcodes.IFGE, nonNegative));
+        guard.add(new InsnNode(Opcodes.RETURN));
+        guard.add(nonNegative);
+        guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        guard.add(new VarInsnNode(Opcodes.ILOAD, 1));
+        guard.add(new InsnNode(Opcodes.ICONST_4));
+        guard.add(new JumpInsnNode(Opcodes.IF_ICMPLT, validSlot));
+        guard.add(new InsnNode(Opcodes.RETURN));
+        guard.add(validSlot);
+        guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        method.instructions.insert(guard);
     }
 
     /**
@@ -915,6 +1010,96 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         AbstractInsnNode current = instruction == null ? null : instruction.getPrevious();
         while (current != null && current.getOpcode() < 0) current = current.getPrevious();
         return current;
+    }
+
+    /**
+     * RenderGlobal checks the render-view player's sleeping state inside both
+     * entity loops. That state is constant during one renderEntities call, so
+     * memoize the boolean and skip repeated getter/virtual-call work without
+     * changing entity visibility or draw decisions.
+     */
+    private static boolean insertViewEntitySleepingCache(MethodNode method) {
+        if (Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        if (arguments.length != 3 || arguments[2].getSort() != Type.FLOAT) return false;
+
+        java.util.Map<String, java.util.List<MethodInsnNode>> groups =
+            new java.util.HashMap<String, java.util.List<MethodInsnNode>>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode) || instruction.getOpcode() != Opcodes.INVOKEVIRTUAL
+                || !"()Z".equals(((MethodInsnNode) instruction).desc)) continue;
+            AbstractInsnNode cast = previousRealInstruction(instruction);
+            if (!(cast instanceof TypeInsnNode) || cast.getOpcode() != Opcodes.CHECKCAST) continue;
+            AbstractInsnNode getterInstruction = previousRealInstruction(cast);
+            if (!(getterInstruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode getter = (MethodInsnNode) getterInstruction;
+            if (Type.getArgumentTypes(getter.desc).length != 0
+                || Type.getReturnType(getter.desc).getSort() != Type.OBJECT) continue;
+            String key = getter.owner + "." + getter.name + getter.desc
+                + "|" + ((TypeInsnNode) cast).desc;
+            java.util.List<MethodInsnNode> calls = groups.get(key);
+            if (calls == null) {
+                calls = new java.util.ArrayList<MethodInsnNode>();
+                groups.put(key, calls);
+            }
+            calls.add((MethodInsnNode) instruction);
+        }
+
+        java.util.List<MethodInsnNode> targets = null;
+        for (java.util.List<MethodInsnNode> calls : groups.values()) {
+            if (calls.size() > 2) return false;
+            if (calls.size() == 2) {
+                if (targets != null) return false;
+                targets = calls;
+            }
+        }
+        if (targets == null) return false;
+
+        java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) returns.add(instruction);
+        }
+
+        InsnList begin = new InsnList();
+        begin.add(new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS,
+            "beginRenderPass", "()V", false));
+        method.instructions.insert(begin);
+
+        for (MethodInsnNode call : targets) {
+            int receiverLocal = method.maxLocals++;
+            LabelNode cacheMiss = new LabelNode();
+            LabelNode cacheReady = new LabelNode();
+            InsnList lookup = new InsnList();
+            lookup.add(new VarInsnNode(Opcodes.ASTORE, receiverLocal));
+            lookup.add(new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS,
+                "getCachedPlayerSleeping", "()I", false));
+            lookup.add(new InsnNode(Opcodes.DUP));
+            lookup.add(new JumpInsnNode(Opcodes.IFLT, cacheMiss));
+            lookup.add(new JumpInsnNode(Opcodes.GOTO, cacheReady));
+            lookup.add(cacheMiss);
+            lookup.add(new FrameNode(Opcodes.F_APPEND, 1, new Object[] {call.owner},
+                1, new Object[] {Opcodes.INTEGER}));
+            lookup.add(new InsnNode(Opcodes.POP));
+            lookup.add(new VarInsnNode(Opcodes.ALOAD, receiverLocal));
+            method.instructions.insertBefore(call, lookup);
+
+            InsnList store = new InsnList();
+            store.add(new InsnNode(Opcodes.DUP));
+            store.add(new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS,
+                "cachePlayerSleeping", "(Z)V", false));
+            store.add(cacheReady);
+            store.add(new FrameNode(Opcodes.F_APPEND, 1, new Object[] {call.owner},
+                1, new Object[] {Opcodes.INTEGER}));
+            method.instructions.insert(call, store);
+        }
+
+        for (AbstractInsnNode instruction : returns) {
+            method.instructions.insertBefore(instruction,
+                new MethodInsnNode(Opcodes.INVOKESTATIC, ENTITY_RENDER_HOOKS, "endRenderPass", "()V", false));
+        }
+        return true;
     }
 
     private static boolean insertEntityRenderBreakdown(MethodNode method) {
@@ -1091,6 +1276,17 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
         hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
             "invalidateVisibilityCache", "(Ljava/lang/Object;)V", false));
+        method.instructions.insert(hook);
+    }
+
+    private static void insertVisibilityCacheRangeInvalidation(MethodNode method) {
+        InsnList hook = new InsnList();
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        for (int local = 1; local <= 6; local++) {
+            hook.add(new VarInsnNode(Opcodes.ILOAD, local));
+        }
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
+            "invalidateVisibilityRange", "(Ljava/lang/Object;IIIIII)V", false));
         method.instructions.insert(hook);
     }
 
