@@ -119,7 +119,7 @@ sourceSets {
             include '**/CyloxProtocolBridge.java'
             include '**/CyloxViaRewindHooks.java'
             include '**/CyloxPerformanceMonitor.java'
-            include '**/CyloxRenderHooks.java'
+            include '**/CyloxVisibilityCacheHooks.java'
             include '**/CyloxUiHooks.java'
         }
         compileClasspath += sourceSets.main.output
