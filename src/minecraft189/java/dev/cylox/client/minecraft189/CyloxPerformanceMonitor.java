@@ -119,9 +119,9 @@ public final class CyloxPerformanceMonitor {
             + ", blockLayerMaxMs=" + oneDecimal(blockLayerMaxNanos / 1_000_000.0D)
             + ", particleAvgMs=" + oneDecimal(averageMillis(particleTotalNanos, particleCount))
             + ", particleMaxMs=" + oneDecimal(particleMaxNanos / 1_000_000.0D)
-            + ", visibilityHits=" + CyloxRenderHooks.getVisibilityCacheHits()
-            + ", visibilityMisses=" + CyloxRenderHooks.getVisibilityCacheMisses()
-            + ", visibilityInvalidations=" + CyloxRenderHooks.getVisibilityCacheInvalidations()
+            + ", visibilityHits=" + CyloxVisibilityCacheHooks.getVisibilityCacheHits()
+            + ", visibilityMisses=" + CyloxVisibilityCacheHooks.getVisibilityCacheMisses()
+            + ", visibilityInvalidations=" + CyloxVisibilityCacheHooks.getVisibilityCacheInvalidations()
             + ", frames=" + frameCount + ".");
 
         windowStartedAt = now;
