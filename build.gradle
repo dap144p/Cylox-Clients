@@ -1,10 +1,14 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.4.1'
+version = '1.4.2'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
+
+configurations {
+    jvmdgApi
+}
 
 repositories {
     maven { url 'https://libraries.minecraft.net/' }
@@ -133,6 +137,11 @@ sourceSets {
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
+    // ViaRewind's Java 8 build references JavaDowngrader stubs in the root package.
+    // The ViaVersion/ViaBackwards copies are privately relocated inside their own namespaces.
+    jvmdgApi('xyz.wagyourtail.jvmdowngrader:jvmdowngrader-java-api:2.0.1:downgraded-8') {
+        transitive = false
+    }
     compileOnly viaLibraryFiles
     compileOnly 'io.netty:netty-all:4.0.23.Final'
     compileOnly 'org.apache.logging.log4j:log4j-api:2.0-beta9'
@@ -142,6 +151,51 @@ dependencies {
     minecraft189CompileOnly 'org.ow2.asm:asm-debug-all:5.0.3'
     minecraft189CompileOnly 'org.lwjgl.lwjgl:lwjgl:2.9.1'
     minecraft189CompileOnly 'io.netty:netty-all:4.0.23.Final'
+}
+
+tasks.register('verifyJvmdgApi') {
+    inputs.files(configurations.jvmdgApi)
+    doLast {
+        def apiFiles = configurations.jvmdgApi.files
+        if (apiFiles.size() != 1) {
+            throw new GradleException("Expected exactly one JavaDowngrader Java 8 API archive, found ${apiFiles.size()}")
+        }
+        def apiArchive = new java.util.zip.ZipFile(apiFiles.iterator().next())
+        try {
+            def required = 'xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class'
+            if (apiArchive.getEntry(required) == null) {
+                throw new GradleException("JavaDowngrader Java 8 API is missing required stub: ${required}")
+            }
+            def entries = apiArchive.entries()
+            int checked = 0
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                if (entry.isDirectory() || !entry.name.endsWith('.class')) continue
+                apiArchive.getInputStream(entry).withCloseable { input ->
+                    byte[] header = new byte[8]
+                    int offset = 0
+                    while (offset < header.length) {
+                        int count = input.read(header, offset, header.length - offset)
+                        if (count < 0) break
+                        offset += count
+                    }
+                    if (offset != 8 || header[0] != (byte) 0xCA || header[1] != (byte) 0xFE
+                        || header[2] != (byte) 0xBA || header[3] != (byte) 0xBE) {
+                        throw new GradleException("Invalid JavaDowngrader API class: ${entry.name}")
+                    }
+                    int major = ((header[6] & 0xFF) << 8) | (header[7] & 0xFF)
+                    if (major > 52) {
+                        throw new GradleException("JavaDowngrader API is not Java 8 compatible (class major ${major}): ${entry.name}")
+                    }
+                    checked++
+                }
+            }
+            if (checked == 0) throw new GradleException('JavaDowngrader API archive contains no classes')
+            println("[Cylox] Verified ${checked} JavaDowngrader Java 8 API classes and J_L_Record stub.")
+        } finally {
+            apiArchive.close()
+        }
+    }
 }
 
 tasks.named('compileMinecraft189Java') {
@@ -159,13 +213,23 @@ tasks.named('compileTestJava') {
 }
 
 tasks.register('minecraft189AdapterJar', Jar) {
-    dependsOn tasks.named('minecraft189Classes'), tasks.named('downloadViaLibraries')
+    dependsOn tasks.named('minecraft189Classes'), tasks.named('downloadViaLibraries'), tasks.named('verifyJvmdgApi')
     archiveBaseName = 'Cylox-Client-1.8.9'
     archiveVersion = project.version
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from sourceSets.main.output
     from sourceSets.minecraft189.output
     from({ viaLibraryFiles.collect { zipTree(it) } }) {
+        exclude 'META-INF/MANIFEST.MF'
+        exclude 'META-INF/INDEX.LIST'
+        exclude 'META-INF/*.SF'
+        exclude 'META-INF/*.RSA'
+        exclude 'META-INF/*.DSA'
+    }
+    // These are already Java 8-downgraded API stubs. Merge them at the original
+    // xyz/wagyourtail/jvmdg path; do not keep the private ViaVersion/ViaBackwards
+    // relocation prefixes, which do not satisfy ViaRewind's bytecode references.
+    from({ configurations.jvmdgApi.files.collect { zipTree(it) } }) {
         exclude 'META-INF/MANIFEST.MF'
         exclude 'META-INF/INDEX.LIST'
         exclude 'META-INF/*.SF'
