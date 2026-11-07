@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.3.9
+Version: 1.4.6 Beta 1
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
@@ -23,6 +23,7 @@ RENDERER AND NETWORK CORE
 - The downloaded libraries are the upstream Java 8 compatibility builds, not the normal Java 17+ artifacts. Upstream still treats Java 8 builds as an unsupported compatibility fallback, so the Java 8 warning may remain in the log.
 - CI checks the downloaded archive contents and confirms ordinary bundled class files are Java 8 bytecode (major version 52 or earlier).
 - This dependency update is intended to improve legacy protocol handling, but it is not yet proof that the exact packet exceptions seen on the test server are fixed. Retest on MJ Launcher before treating the Via issue as resolved.
+- The vanilla player equipment setter now checks slot bounds before indexing the four-entry armor array. This guards the observed slot-4 ArrayIndexOutOfBoundsException path without swallowing general Via packet failures; retest the same server before treating the issue as fully resolved.
 - Test actual world loading, frame pacing, memory use and server connection stability on MJ Launcher.
 
 CYLOX UI
