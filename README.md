@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.2  
+**Version:** 1.4.3  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -58,6 +58,15 @@ This is not an Android background service. The launcher must keep the game proce
 - Reports include average FPS, average/maximum frame time, average/maximum terrain-setup time, and average/maximum chunk-upload time.
 - Use the report to identify whether a low-end device is limited by frame rendering, terrain visibility traversal, or chunk uploads before introducing a renderer change.
 - This diagnostic build does not claim an FPS improvement by itself. Actual optimization requires comparing measurements on the same device, world, render distance, renderer, and scene.
+
+## Low-end render engine — phase 1 (1.4.3)
+
+- Caches the current camera block's `getVisibleFacings` result in `RenderGlobal`. When only yaw/pitch changes while the camera remains in the same block, Cylox can reuse the six-direction visibility result instead of rebuilding the opaque-block graph across the 16×16×16 block section.
+- The cache is single-entry, keyed by the `RenderGlobal` instance and immutable `BlockPos`, invalidated by render-range block updates and world replacement, and returns a defensive Set copy because vanilla mutates the result in its spectator/visibility branch.
+- Does not cache frustum decisions, replace vanilla BFS traversal, change chunk scheduling, hide chunks, reduce render distance, or alter gameplay/network behavior.
+- Extends opt-in profiling to entity rendering, block-layer rendering and particle rendering. The five-second report includes average/maximum time for each area plus visibility-cache hits, misses and invalidations.
+- Enable the report with `-Dcylox.profile=true`. The profiler is disabled by default.
+- This is a conservative first optimization, not a complete Sodium-equivalent renderer. Further entity, block-layer, particle and render-state optimizations will be selected from the new measurements and tested independently to avoid chunk-visibility regressions.
 
 ## Cylox adaptive lightweight UI
 
@@ -117,7 +126,7 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 Outputs:
 
 - `build/libs/Cylox-Client-1.8.9-1.4.2.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.4.2.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/distributions/Cylox-Client-1.8.9-1.4.3.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
