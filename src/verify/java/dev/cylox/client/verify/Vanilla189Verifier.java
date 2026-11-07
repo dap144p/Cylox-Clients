@@ -3,6 +3,7 @@ package dev.cylox.client.verify;
 import dev.cylox.client.minecraft189.CyloxClientTransformer;
 import dev.cylox.client.minecraft189.CyloxVisibilityCacheHooks;
 import dev.cylox.client.minecraft189.CyloxGraphicsPreset;
+import dev.cylox.client.minecraft189.CyloxTextWidthCache;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.BitSet;
