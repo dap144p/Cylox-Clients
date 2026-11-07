@@ -52,6 +52,7 @@ public final class Vanilla189Verifier {
         require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
         require("opt-in frame profiler", CyloxClientTransformer.getPatchedFrameProfileClassCount());
         require("opt-in terrain profiler", CyloxClientTransformer.getPatchedTerrainProfileClassCount());
+        require("opt-in terrain phase profiler", CyloxClientTransformer.getPatchedTerrainBreakdownClassCount());
         require("opt-in chunk-upload profiler", CyloxClientTransformer.getPatchedChunkUploadProfileClassCount());
         require("terrain visibility cache", CyloxClientTransformer.getPatchedVisibilityCacheClassCount());
         require("terrain visibility cache invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
