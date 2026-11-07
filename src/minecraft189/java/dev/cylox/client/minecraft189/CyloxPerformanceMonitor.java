@@ -70,7 +70,7 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void endSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > CHUNK_UPLOAD) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > PARTICLE_RENDER) return;
         long[] starts = START_TIMES.get();
         long start = starts[section];
         starts[section] = 0L;
