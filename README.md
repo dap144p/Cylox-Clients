@@ -26,12 +26,13 @@ This is not an Android background service. The launcher must keep the game proce
 
 ## Via compatibility and equipment handling (1.4.0)
 
-- Keeps the bundled ViaVersion 5.12.3-SNAPSHOT Java 8 compatibility build #55 and ViaBackwards 5.12.3-SNAPSHOT Java 8 compatibility build #45.
-- Updates ViaRewind from 4.2.0 Java 8 compatibility build #39 to the 4.2.1-SNAPSHOT Java 8 compatibility build #40.
-- Includes the upstream ViaRewind fix from commit `f6424ddb565b9350cc347ce43f67c7e608767499`: for the 1.9-to-1.8 equipment translation, it cancels equipment packets for the local player (and the unsupported off-hand slot). A 1.8 client already receives its own equipment through window-0 slot updates, and the legacy armor inventory uses different slot indexing.
+- Keeps the established ViaVersion 5.12.3-SNAPSHOT Java 8 compatibility build #55, ViaBackwards 5.12.3-SNAPSHOT Java 8 compatibility build #45, and ViaRewind 4.2.0 Java 8 compatibility build #39.
+- Applies the upstream ViaRewind fix from commit `f6424ddb565b9350cc347ce43f67c7e608767499` to the embedded 4.2.0 class at load time. The hook cancels redundant equipment packets for the local player in the 1.9-to-1.8 translation; it leaves other entities and the existing off-hand handling unchanged.
+- A 1.8 client already receives its own equipment through window-0 slot updates, and its legacy armor inventory uses different slot indexing. The local-player guard prevents the redundant translated equipment packet from reaching that legacy inventory handler.
+- Registers the Cylox transformer before ViaLoadingBase initializes protocol classes, ensuring the ViaRewind equipment rewriter is transformed on first load.
 - Keeps the manual selector, target resolver, per-channel Netty pipeline and outgoing handshake logic unchanged.
 - Keeps the 1.3.9 decoder behavior: normal `CancelCodecException` cancellation is preserved; other decoder/translation exceptions are forwarded to Minecraft's network manager.
-- CI validates the pinned downloads, required equipment-rewriter class and Java 8 bytecode. Java 8 compatibility artifacts remain upstream compatibility builds, not a guarantee that every server plugin or custom packet is supported.
+- CI checks the exact pinned ViaRewind Java 8 JAR, verifies the expected rewriter class, and confirms that Cylox injects the local-player guard. Java 8 compatibility artifacts remain upstream compatibility builds, not a guarantee that every server plugin or custom packet is supported.
 
 ## Vanilla terrain rendering (1.4.0)
 
