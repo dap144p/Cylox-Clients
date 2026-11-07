@@ -144,7 +144,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
             boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png");
             boolean nameTagRenderClass = hasClassString(node, "deadmau5");
-            MethodNode fontUnicodeGetter = fontRendererClass ? findUnicodeGetter(node) : null;
+            String fontUnicodeField = fontRendererClass ? findUnicodeField(node) : null;
             int visibilityGraphCandidates = 0;
             int blockLayerCandidates = 0;
             if (terrainClass) {
@@ -315,10 +315,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
-            if (fontRendererClass && fontUnicodeGetter != null) {
+            if (fontRendererClass && fontUnicodeField != null) {
                 for (MethodNode method : node.methods) {
                     if ((method.access & Opcodes.ACC_STATIC) == 0 && isStringWidthMethod(node, method)) {
-                        injectTextWidthCache(node, method, fontUnicodeGetter);
+                        injectTextWidthCache(node, method, fontUnicodeField);
                         fontWidthCachePatched = true;
                         changed = true;
                     }
@@ -978,8 +978,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         return length && charAt && charWidth;
     }
 
-    private static MethodNode findUnicodeGetter(ClassNode owner) {
-        String unicodeField = null;
+    private static String findUnicodeField(ClassNode owner) {
         for (MethodNode method : owner.methods) {
             if (!"(C)I".equals(method.desc)) continue;
             for (AbstractInsnNode instruction = method.instructions.getFirst();
@@ -988,32 +987,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     org.objectweb.asm.tree.FieldInsnNode field =
                         (org.objectweb.asm.tree.FieldInsnNode) instruction;
                     if (field.getOpcode() == Opcodes.GETFIELD && owner.name.equals(field.owner)
-                        && "Z".equals(field.desc)) {
-                        unicodeField = field.name;
-                        break;
-                    }
-                }
-            }
-            if (unicodeField != null) break;
-        }
-        if (unicodeField == null) return null;
-
-        for (MethodNode method : owner.methods) {
-            if ((method.access & Opcodes.ACC_STATIC) != 0 || !"()Z".equals(method.desc)) continue;
-            for (AbstractInsnNode instruction = method.instructions.getFirst();
-                 instruction != null; instruction = instruction.getNext()) {
-                if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
-                    org.objectweb.asm.tree.FieldInsnNode field =
-                        (org.objectweb.asm.tree.FieldInsnNode) instruction;
-                    if (field.getOpcode() == Opcodes.GETFIELD && owner.name.equals(field.owner)
-                        && unicodeField.equals(field.name) && "Z".equals(field.desc)) return method;
+                        && "Z".equals(field.desc)) return field.name;
                 }
             }
         }
         return null;
     }
 
-    private static void injectTextWidthCache(ClassNode owner, MethodNode method, MethodNode unicodeGetter) {
+    private static void injectTextWidthCache(ClassNode owner, MethodNode method, String unicodeField) {
         java.util.List<AbstractInsnNode> originalReturns = new java.util.ArrayList<AbstractInsnNode>();
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null; instruction = instruction.getNext()) {
@@ -1022,15 +1003,13 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         if (originalReturns.isEmpty()) throw new IllegalStateException("FontRenderer width method has no IRETURN");
 
         int resultLocal = method.maxLocals++;
-        int getterOpcode = (unicodeGetter.access & Opcodes.ACC_PRIVATE) != 0
-            ? Opcodes.INVOKESPECIAL : Opcodes.INVOKEVIRTUAL;
         LabelNode cached = new LabelNode();
         LabelNode original = new LabelNode();
         InsnList lookup = new InsnList();
         lookup.add(new VarInsnNode(Opcodes.ALOAD, 0));
         lookup.add(new VarInsnNode(Opcodes.ALOAD, 1));
         lookup.add(new VarInsnNode(Opcodes.ALOAD, 0));
-        lookup.add(new MethodInsnNode(getterOpcode, owner.name, unicodeGetter.name, "()Z", false));
+        lookup.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD, owner.name, unicodeField, "Z"));
         lookup.add(new MethodInsnNode(Opcodes.INVOKESTATIC, TEXT_WIDTH_CACHE,
             "getCachedWidth", "(Ljava/lang/Object;Ljava/lang/String;Z)I", false));
         lookup.add(new InsnNode(Opcodes.DUP));
@@ -1050,7 +1029,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             store.add(new VarInsnNode(Opcodes.ALOAD, 0));
             store.add(new VarInsnNode(Opcodes.ALOAD, 1));
             store.add(new VarInsnNode(Opcodes.ALOAD, 0));
-            store.add(new MethodInsnNode(getterOpcode, owner.name, unicodeGetter.name, "()Z", false));
+            store.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD, owner.name, unicodeField, "Z"));
             store.add(new VarInsnNode(Opcodes.ILOAD, resultLocal));
             store.add(new MethodInsnNode(Opcodes.INVOKESTATIC, TEXT_WIDTH_CACHE,
                 "cacheWidth", "(Ljava/lang/Object;Ljava/lang/String;ZI)V", false));
