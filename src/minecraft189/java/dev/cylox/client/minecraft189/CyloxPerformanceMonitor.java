@@ -13,11 +13,14 @@ public final class CyloxPerformanceMonitor {
     private static final int FRAME = 0;
     private static final int TERRAIN_SETUP = 1;
     private static final int CHUNK_UPLOAD = 2;
+    private static final int ENTITY_RENDER = 3;
+    private static final int BLOCK_LAYER = 4;
+    private static final int PARTICLE_RENDER = 5;
 
     private static final ThreadLocal<long[]> START_TIMES = new ThreadLocal<long[]>() {
         @Override
         protected long[] initialValue() {
-            return new long[3];
+            return new long[6];
         }
     };
 
@@ -31,6 +34,15 @@ public final class CyloxPerformanceMonitor {
     private static long uploadCount;
     private static long uploadTotalNanos;
     private static long uploadMaxNanos;
+    private static long entityCount;
+    private static long entityTotalNanos;
+    private static long entityMaxNanos;
+    private static long blockLayerCount;
+    private static long blockLayerTotalNanos;
+    private static long blockLayerMaxNanos;
+    private static long particleCount;
+    private static long particleTotalNanos;
+    private static long particleMaxNanos;
 
     private CyloxPerformanceMonitor() { }
 
@@ -53,7 +65,7 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void beginSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > CHUNK_UPLOAD) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > PARTICLE_RENDER) return;
         START_TIMES.get()[section] = System.nanoTime();
     }
 
@@ -68,10 +80,22 @@ public final class CyloxPerformanceMonitor {
             terrainCount++;
             terrainTotalNanos += elapsed;
             if (elapsed > terrainMaxNanos) terrainMaxNanos = elapsed;
-        } else {
+        } else if (section == CHUNK_UPLOAD) {
             uploadCount++;
             uploadTotalNanos += elapsed;
             if (elapsed > uploadMaxNanos) uploadMaxNanos = elapsed;
+        } else if (section == ENTITY_RENDER) {
+            entityCount++;
+            entityTotalNanos += elapsed;
+            if (elapsed > entityMaxNanos) entityMaxNanos = elapsed;
+        } else if (section == BLOCK_LAYER) {
+            blockLayerCount++;
+            blockLayerTotalNanos += elapsed;
+            if (elapsed > blockLayerMaxNanos) blockLayerMaxNanos = elapsed;
+        } else {
+            particleCount++;
+            particleTotalNanos += elapsed;
+            if (elapsed > particleMaxNanos) particleMaxNanos = elapsed;
         }
     }
 
@@ -89,6 +113,15 @@ public final class CyloxPerformanceMonitor {
             + ", terrainMaxMs=" + oneDecimal(terrainMaxNanos / 1_000_000.0D)
             + ", chunkUploadAvgMs=" + oneDecimal(averageMillis(uploadTotalNanos, uploadCount))
             + ", chunkUploadMaxMs=" + oneDecimal(uploadMaxNanos / 1_000_000.0D)
+            + ", entityAvgMs=" + oneDecimal(averageMillis(entityTotalNanos, entityCount))
+            + ", entityMaxMs=" + oneDecimal(entityMaxNanos / 1_000_000.0D)
+            + ", blockLayerAvgMs=" + oneDecimal(averageMillis(blockLayerTotalNanos, blockLayerCount))
+            + ", blockLayerMaxMs=" + oneDecimal(blockLayerMaxNanos / 1_000_000.0D)
+            + ", particleAvgMs=" + oneDecimal(averageMillis(particleTotalNanos, particleCount))
+            + ", particleMaxMs=" + oneDecimal(particleMaxNanos / 1_000_000.0D)
+            + ", visibilityHits=" + CyloxRenderHooks.getVisibilityCacheHits()
+            + ", visibilityMisses=" + CyloxRenderHooks.getVisibilityCacheMisses()
+            + ", visibilityInvalidations=" + CyloxRenderHooks.getVisibilityCacheInvalidations()
             + ", frames=" + frameCount + ".");
 
         windowStartedAt = now;
@@ -101,6 +134,15 @@ public final class CyloxPerformanceMonitor {
         uploadCount = 0L;
         uploadTotalNanos = 0L;
         uploadMaxNanos = 0L;
+        entityCount = 0L;
+        entityTotalNanos = 0L;
+        entityMaxNanos = 0L;
+        blockLayerCount = 0L;
+        blockLayerTotalNanos = 0L;
+        blockLayerMaxNanos = 0L;
+        particleCount = 0L;
+        particleTotalNanos = 0L;
+        particleMaxNanos = 0L;
     }
 
     private static double averageMillis(long totalNanos, long count) {
