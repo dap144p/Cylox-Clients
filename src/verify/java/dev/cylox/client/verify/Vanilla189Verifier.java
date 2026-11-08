@@ -114,7 +114,14 @@ public final class Vanilla189Verifier {
             throw new IllegalStateException("Mutating a returned visibility set changed the cached value");
         }
 
-        CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
+        Object replacementRenderGlobal = new Object();
+        if (CyloxVisibilityCacheHooks.getCachedVisibleFacings(replacementRenderGlobal,
+                Integer.valueOf(0)) != null
+            || CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 0) {
+            throw new IllegalStateException("Visibility cache leaked entries across RenderGlobal instances");
+        }
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(replacementRenderGlobal);
         if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 0) {
             throw new IllegalStateException("Visibility cache did not clear on invalidation");
         }
