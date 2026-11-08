@@ -96,6 +96,14 @@ This is not an Android background service. The launcher must keep the game proce
 - Preserves vanilla BFS traversal, frustum decisions, render queues, chunk scheduling, chunk uploads, entity drawing, tile-entity drawing, scoreboard teams, hologram text and Via/network behavior. No entities or holograms are hidden, skipped or distance-limited.
 - These are conservative CPU-side reuse optimizations. They do not claim a measured FPS increase; compare logs on the same device, server location, renderer and scene before judging the result.
 
+## Low-stall nearby chunk rebuilds — beta follow-up
+
+- Narrows vanilla's synchronous near-build predicate from 16 to 8 blocks on each axis. Since render-section origins are 16 blocks apart, only the section containing the player can use the blocking `updateChunkNow` path.
+- Dirty neighboring sections are not dropped or marked clean. They remain in the existing `chunksToUpdate` set and are dispatched through vanilla `updateChunks` / `updateChunkLater` scheduling.
+- This reduces render-thread stalls from rebuilding several adjacent sections synchronously. Updated geometry in neighboring sections may appear later while the existing worker queue processes those rebuilds.
+- Leaves VisGraph flood-fill, BFS traversal, frustum checks, visible chunk selection, chunk upload behavior, render distance, and network handling unchanged.
+- The bytecode patch applies only when the official 1.8.9 near-build predicate matches the verified three-axis distance-check shape; otherwise verification fails closed.
+
 ## Cylox adaptive lightweight UI
 
 - Uses one consistent dark navy, cyan and orange visual system across the main menu, standard menu backgrounds, vanilla buttons and the protocol selector.

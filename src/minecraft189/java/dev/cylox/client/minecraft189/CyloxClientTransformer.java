@@ -41,6 +41,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedVisibilityGraphCacheClasses;
     private static volatile int patchedVisibilityInvalidationClasses;
     private static volatile int patchedVisibilityRangeInvalidationClasses;
+    private static volatile int patchedNearBuildRadiusClasses;
     private static volatile int patchedEntitySleepingCacheClasses;
     private static volatile int patchedPlayerEquipmentGuardClasses;
     private static volatile int patchedNameTagProfileClasses;
@@ -81,6 +82,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedVisibilityGraphCacheClasses = 0;
         patchedVisibilityInvalidationClasses = 0;
         patchedVisibilityRangeInvalidationClasses = 0;
+        patchedNearBuildRadiusClasses = 0;
         patchedEntitySleepingCacheClasses = 0;
         patchedPlayerEquipmentGuardClasses = 0;
         patchedNameTagProfileClasses = 0;
@@ -110,6 +112,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedVisibilityGraphCacheClassCount() { return patchedVisibilityGraphCacheClasses; }
     public static int getPatchedVisibilityInvalidationClassCount() { return patchedVisibilityInvalidationClasses; }
     public static int getPatchedVisibilityRangeInvalidationClassCount() { return patchedVisibilityRangeInvalidationClasses; }
+    public static int getPatchedNearBuildRadiusClassCount() { return patchedNearBuildRadiusClasses; }
     public static int getPatchedEntitySleepingCacheClassCount() { return patchedEntitySleepingCacheClasses; }
     public static int getPatchedPlayerEquipmentGuardClassCount() { return patchedPlayerEquipmentGuardClasses; }
     public static int getPatchedNameTagProfileClassCount() { return patchedNameTagProfileClasses; }
@@ -145,6 +148,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean visibilityGraphCachePatched = false;
             boolean visibilityInvalidationPatched = false;
             boolean visibilityRangeInvalidationPatched = false;
+            boolean nearBuildRadiusPatched = false;
             boolean entitySleepingCachePatched = false;
             boolean playerEquipmentGuardPatched = false;
             boolean nameTagProfilePatched = false;
@@ -217,6 +221,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
                         terrainBreakdownPatched = insertTerrainBreakdown(method);
                         if (terrainBreakdownPatched) changed = true;
+                    }
+
+                    if (terrainClass && !nearBuildRadiusPatched
+                        && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
+                        nearBuildRadiusPatched = patchNearBuildSyncRadius(node, method);
+                        if (!nearBuildRadiusPatched) {
+                            throw new IllegalStateException("Could not safely locate the near-chunk synchronous build predicate");
+                        }
+                        changed = true;
                     }
 
                     if (terrainClass && visibilityGraphCandidates == 1 && !visibilityCachePatched
@@ -434,6 +447,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (visibilityGraphCachePatched) patchedVisibilityGraphCacheClasses++;
             if (visibilityInvalidationPatched) patchedVisibilityInvalidationClasses++;
             if (visibilityRangeInvalidationPatched) patchedVisibilityRangeInvalidationClasses++;
+            if (nearBuildRadiusPatched) patchedNearBuildRadiusClasses++;
             if (entitySleepingCachePatched) patchedEntitySleepingCacheClasses++;
             if (playerEquipmentGuardPatched) patchedPlayerEquipmentGuardClasses++;
             if (nameTagProfilePatched) patchedNameTagProfileClasses++;
@@ -460,6 +474,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (visibilityGraphCachePatched) System.out.println("[Cylox] Terrain visibility graph snapshot cache injected: " + node.name);
             if (visibilityInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache world-reset invalidation injected: " + node.name);
             if (visibilityRangeInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache section-range invalidation injected: " + node.name);
+            if (nearBuildRadiusPatched) System.out.println("[Cylox] Near synchronous chunk-build radius reduced to the current section: " + node.name);
             if (entitySleepingCachePatched) System.out.println("[Cylox] Reused render-view sleeping state across entity loops: " + node.name);
             if (nameTagProfilePatched) System.out.println("[Cylox] Opt-in floating nameplate profiler injected: " + node.name);
             if (fontWidthCachePatched) System.out.println("[Cylox] Bounded FontRenderer string-width cache injected: " + node.name);
@@ -752,6 +767,78 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         Type[] arguments = Type.getArgumentTypes(method.desc);
         return arguments.length == 2 && arguments[0].getSort() == Type.OBJECT
             && arguments[1].getSort() == Type.FLOAT;
+    }
+
+    private static boolean patchNearBuildSyncRadius(ClassNode owner, MethodNode terrainMethod) {
+        MethodNode predicate = null;
+        for (AbstractInsnNode instruction = terrainMethod.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (!owner.name.equals(call.owner)
+                || Type.getReturnType(call.desc).getSort() != Type.BOOLEAN) continue;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            if (arguments.length != 2 || arguments[0].getSort() != Type.OBJECT
+                || arguments[1].getSort() != Type.OBJECT) continue;
+            for (MethodNode candidate : owner.methods) {
+                if (candidate.name.equals(call.name) && candidate.desc.equals(call.desc)) {
+                    if (predicate != null) return false;
+                    predicate = candidate;
+                }
+            }
+        }
+        if (predicate == null) return false;
+
+        int integerDistanceOperations = 0;
+        String distanceMathOwner = null;
+        java.util.List<AbstractInsnNode> radiusConstants = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = predicate.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (call.getOpcode() == Opcodes.INVOKESTATIC && "(I)I".equals(call.desc)) {
+                    if (distanceMathOwner == null) distanceMathOwner = call.owner;
+                    if (!distanceMathOwner.equals(call.owner)) return false;
+                    integerDistanceOperations++;
+                }
+            }
+            if (Integer.valueOf(16).equals(readIntegerConstant(instruction))) {
+                radiusConstants.add(instruction);
+            }
+        }
+
+        // Vanilla 1.8.9 tests absolute X/Y/Z section-origin distances against 16.
+        // Fail closed if the verified three-axis bytecode pattern ever changes.
+        if (integerDistanceOperations != 3 || radiusConstants.size() != 3) return false;
+        for (AbstractInsnNode instruction : radiusConstants) {
+            replaceIntegerConstant(instruction, 8);
+        }
+        return true;
+    }
+
+    private static Integer readIntegerConstant(AbstractInsnNode instruction) {
+        if (instruction instanceof org.objectweb.asm.tree.IntInsnNode) {
+            org.objectweb.asm.tree.IntInsnNode value = (org.objectweb.asm.tree.IntInsnNode) instruction;
+            if (value.getOpcode() == Opcodes.BIPUSH || value.getOpcode() == Opcodes.SIPUSH) {
+                return Integer.valueOf(value.operand);
+            }
+        }
+        if (instruction instanceof LdcInsnNode) {
+            Object value = ((LdcInsnNode) instruction).cst;
+            if (value instanceof Integer) return (Integer) value;
+        }
+        return null;
+    }
+
+    private static void replaceIntegerConstant(AbstractInsnNode instruction, int value) {
+        if (instruction instanceof org.objectweb.asm.tree.IntInsnNode) {
+            ((org.objectweb.asm.tree.IntInsnNode) instruction).operand = value;
+        } else if (instruction instanceof LdcInsnNode) {
+            ((LdcInsnNode) instruction).cst = Integer.valueOf(value);
+        } else {
+            throw new IllegalArgumentException("Unsupported integer constant instruction: "
+                + instruction.getClass().getName());
+        }
     }
 
     private static boolean isTerrainCacheRangeInvalidationMethod(ClassNode owner, MethodNode method) {
