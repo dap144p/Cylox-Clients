@@ -926,19 +926,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         }
         if (sectionLocal < 0 || worldLoad == null) {
             System.err.println("[Cylox] VisGraph cache could not locate section local before the chunk lookup in " + method.desc);
-            for (AbstractInsnNode debug = method.instructions.getFirst(); debug != null; debug = debug.getNext()) {
-                if (debug instanceof MethodInsnNode) {
-                    MethodInsnNode call = (MethodInsnNode) debug;
-                    Type[] args = Type.getArgumentTypes(call.desc);
-                    if (args.length == 1 && args[0].getDescriptor().equals(blockPositionDescriptor)) {
-                        AbstractInsnNode previous = previousRealInstruction(debug);
-                        AbstractInsnNode beforePrevious = previousRealInstruction(previous);
-                        System.err.println("[Cylox] Candidate lookup: " + call.owner + "." + call.name + call.desc
-                            + ", previous=" + instructionDescription(previous)
-                            + ", beforePrevious=" + instructionDescription(beforePrevious));
-                    }
-                }
-            }
             return false;
         }
 
@@ -958,18 +945,18 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         LabelNode cacheMiss = new LabelNode();
         lookup.add(new VarInsnNode(Opcodes.ALOAD, 0));
         lookup.add(new VarInsnNode(Opcodes.ALOAD, sectionLocal));
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, graphLocal));
         lookup.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
-            "getCachedVisibilityGraph", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false));
-        lookup.add(new InsnNode(Opcodes.DUP));
-        lookup.add(new JumpInsnNode(Opcodes.IFNULL, cacheMiss));
-        lookup.add(new TypeInsnNode(Opcodes.CHECKCAST, graphOwner));
+            "restoreCachedVisibilityGraph",
+            "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z", false));
+        lookup.add(new JumpInsnNode(Opcodes.IFEQ, cacheMiss));
+        lookup.add(new VarInsnNode(Opcodes.ALOAD, graphLocal));
         lookup.add(new VarInsnNode(Opcodes.ALOAD, 1));
         lookup.add(new MethodInsnNode(visibilityCall.getOpcode(), graphOwner,
             visibilityCall.name, visibilityCall.desc, visibilityCall.itf));
         lookup.add(new InsnNode(Opcodes.ARETURN));
         lookup.add(cacheMiss);
-        lookup.add(new FrameNode(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Object"}));
-        lookup.add(new InsnNode(Opcodes.POP));
+        lookup.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
         method.instructions.insertBefore(worldLoad, lookup);
 
         InsnList snapshot = new InsnList();
@@ -981,7 +968,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         method.instructions.insertBefore(graphLoad, snapshot);
         return true;
     }
-
     private static String instructionDescription(AbstractInsnNode instruction) {
         if (instruction == null) return "null";
         if (instruction instanceof VarInsnNode) {
