@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.6  
+**Version:** 1.4.7  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -96,6 +96,14 @@ This is not an Android background service. The launcher must keep the game proce
 - New report fields include terrain visibility-graph cache hits/misses/failures, text-width cache hits/misses/invalidations, entity time, tile-entity time and name-tag time.
 - Preserves vanilla BFS traversal, frustum decisions, render queues, chunk scheduling, chunk uploads, entity drawing, tile-entity drawing, scoreboard teams, hologram text and Via/network behavior. No entities or holograms are hidden, skipped or distance-limited.
 - These are conservative CPU-side reuse optimizations. They do not claim a measured FPS increase; compare logs on the same device, server location, renderer and scene before judging the result.
+
+## Opt-in heap diagnostics (1.4.7)
+
+- Extends the existing five-second `[Cylox Perf]` report with average and peak used Java heap, current committed heap, peak committed heap, and the runtime's maximum heap.
+- Samples heap usage approximately once every 16 rendered frames and once when each report is emitted. Sampling is active only when `-Dcylox.profile=true` is enabled.
+- Does not change the garbage collector, heap allocation limit, chunk workers, renderer scheduling, graphics settings, gameplay ticks, or network behavior.
+- Use these measurements alongside tile-entity and block-layer timings to distinguish heap pressure from render-thread work.
+- Diagnostics only; no FPS or RAM reduction is claimed. Confirm memory and stability on MJ Launcher and the target Android device.
 
 ## Low-stall nearby chunk rebuilds — beta follow-up
 

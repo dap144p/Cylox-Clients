@@ -59,6 +59,10 @@ public final class CyloxPerformanceMonitor {
     private static long nameTagCount;
     private static long nameTagTotalNanos;
     private static long nameTagMaxNanos;
+    private static long heapSampleCount;
+    private static long heapTotalUsedBytes;
+    private static long heapPeakUsedBytes;
+    private static long heapPeakCommittedBytes;
 
     private CyloxPerformanceMonitor() { }
 
@@ -77,6 +81,7 @@ public final class CyloxPerformanceMonitor {
         frameCount++;
         frameTotalNanos += elapsed;
         if (elapsed > frameMaxNanos) frameMaxNanos = elapsed;
+        if ((frameCount & 15L) == 0L) sampleHeap();
         reportIfDue();
     }
 
@@ -135,6 +140,12 @@ public final class CyloxPerformanceMonitor {
         long now = System.nanoTime();
         if (now - windowStartedAt < REPORT_INTERVAL_NANOS) return;
 
+        sampleHeap();
+        Runtime runtime = Runtime.getRuntime();
+        long currentUsedHeapBytes = Math.max(0L, runtime.totalMemory() - runtime.freeMemory());
+        long currentCommittedHeapBytes = runtime.totalMemory();
+        double averageHeapUsedBytes = heapSampleCount == 0L
+            ? 0.0D : heapTotalUsedBytes / (double) heapSampleCount;
         double averageFrameMs = averageMillis(frameTotalNanos, frameCount);
         double averageFps = frameTotalNanos <= 0L ? 0.0D
             : frameCount * 1_000_000_000.0D / frameTotalNanos;
@@ -155,6 +166,13 @@ public final class CyloxPerformanceMonitor {
             + ", tileEntityMaxMs=" + oneDecimal(tileEntityMaxNanos / 1_000_000.0D)
             + ", nameTagAvgMs=" + oneDecimal(averageMillis(nameTagTotalNanos, nameTagCount))
             + ", nameTagMaxMs=" + oneDecimal(nameTagMaxNanos / 1_000_000.0D)
+            + ", heapUsedAvgMB=" + oneDecimal(averageHeapUsedBytes / 1048576.0D)
+            + ", heapUsedPeakMB=" + oneDecimal(heapPeakUsedBytes / 1048576.0D)
+            + ", heapUsedCurrentMB=" + oneDecimal(currentUsedHeapBytes / 1048576.0D)
+            + ", heapCommittedCurrentMB=" + oneDecimal(currentCommittedHeapBytes / 1048576.0D)
+            + ", heapCommittedPeakMB=" + oneDecimal(heapPeakCommittedBytes / 1048576.0D)
+            + ", heapMaxMB=" + oneDecimal(runtime.maxMemory() / 1048576.0D)
+            + ", heapSamples=" + heapSampleCount
             + ", terrainCameraAvgMs=" + detailAverage(0)
             + ", terrainCameraMaxMs=" + detailMaximum(0)
             + ", terrainCameraSamples=" + TERRAIN_DETAIL_COUNTS[0]
@@ -212,11 +230,25 @@ public final class CyloxPerformanceMonitor {
         nameTagCount = 0L;
         nameTagTotalNanos = 0L;
         nameTagMaxNanos = 0L;
+        heapSampleCount = 0L;
+        heapTotalUsedBytes = 0L;
+        heapPeakUsedBytes = 0L;
+        heapPeakCommittedBytes = 0L;
         for (int i = 0; i < TERRAIN_DETAIL_COUNTS.length; i++) {
             TERRAIN_DETAIL_COUNTS[i] = 0L;
             TERRAIN_DETAIL_TOTAL_NANOS[i] = 0L;
             TERRAIN_DETAIL_MAX_NANOS[i] = 0L;
         }
+    }
+
+    private static void sampleHeap() {
+        Runtime runtime = Runtime.getRuntime();
+        long committedBytes = runtime.totalMemory();
+        long usedBytes = Math.max(0L, committedBytes - runtime.freeMemory());
+        heapSampleCount++;
+        heapTotalUsedBytes += usedBytes;
+        if (usedBytes > heapPeakUsedBytes) heapPeakUsedBytes = usedBytes;
+        if (committedBytes > heapPeakCommittedBytes) heapPeakCommittedBytes = committedBytes;
     }
 
     private static String detailAverage(int index) {
