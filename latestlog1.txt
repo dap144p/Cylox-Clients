@@ -1,0 +1,721 @@
+--------- Starting game with Launcher Debug!
+Info: Launcher version: justicia-20261028-[f6c5ae4]-v3_openjdk
+Info: Build type: pubRelease
+Info: Architecture: arm
+Info: Device model: Xiaomi M2006C3MG
+Info: API version: 29
+Info: Selected game version: Cylox-1.8.9
+Info: Custom Java arguments: "-Dcylox.profile=true"
+Info: Total RAM on device: 2772 Mb
+Info: RAM allocated: 512 Mb
+Info: Graphics device: Imagination Technologies PowerVR Rogue GE8320 (OpenGL ES 3)
+Info: Selected renderer: opengles2 (Holy GL4ES)
+Info: Selected runtime: null
+--------- beginning of main
+
+Added renderer env: LIBGL_EGL=libEGL.so
+Added renderer env: force_glsl_extensions_warn=true
+Added renderer env: LIBGL_NOERROR=1
+Added renderer env: allow_higher_compat_version=true
+V/jrelog  ( 8263): Log starts here
+
+Added renderer env: allow_glsl_extension_directive_midshader=true
+Added renderer env: LIBGL_GLES=libGLESv2.so
+Added custom env: MOD_ANDROID_RUNTIME=/data/user/0/git.artdeell.mjlaunch.modified/cache/sessions/A/app_runtime_mod
+Initialising gl4es
+v1.1.5 built on Jun  7 2026 11:31:37
+Using GLES 2.0 backend
+LIBGL:loaded: libGLESv2.so
+LIBGL:loaded: libEGL.so
+Using GLES 2.0 backend
+Hardware Full NPOT detected and used
+Extension GL_EXT_blend_minmax  detected and used
+Extension GL_EXT_draw_buffers  detected and used
+FBO are in core, and so used
+PointSprite are in core, and so used
+CubeMap are in core, and so used
+BlendColor is in core, and so used
+Blend Subtract is in core, and so used
+Blend Function and Equation Separation is in core, and so used
+Texture Mirrored Repeat is in core, and so used
+Extension GL_OES_mapbuffer  detected
+Extension GL_OES_element_index_uint  detected and used
+Extension GL_OES_packed_depth_stencil  detected and used
+Extension GL_OES_depth24  detected and used
+Extension GL_OES_rgb8_rgba8  detected and used
+Extension GL_EXT_multi_draw_arrays  detected
+Extension GL_EXT_texture_format_BGRA8888  detected and used
+Extension GL_OES_depth_texture  detected and used
+Extension GL_OES_texture_stencil8  detected and used
+Extension GL_EXT_texture_rg  detected and used
+Extension GL_OES_texture_float  detected and used
+Extension GL_OES_texture_half_float  detected and used
+Extension GL_EXT_color_buffer_float  detected and used
+Extension GL_EXT_color_buffer_half_float  detected and used
+Extension GL_OES_fragment_precision_high  detected and used
+Extension GL_EXT_shader_texture_lod detected and used
+Max vertex attrib: 16
+Extension GL_OES_standard_derivatives  detected and used
+Extension GL_OES_get_program_binary  detected and used
+Number of supported Program Binary Format: 1
+Max texture size: 4096
+Max Varying Vector: 15
+Texture Units: 16/16 (hardware: 16), Max lights: 8, Max planes: 6
+Hardware vendor is Imagination Technologies
+GLSL 300 es supported
+GLSL 310 es supported and used
+GLSL 320 es supported
+Max Color Attachments: 8 / Draw buffers: 8
+sRGB surface supported
+EGLImage to Texture2D supported
+EGLImage to RenderBuffer supported
+glGetError() always return GL_NOERROR
+Targeting OpenGL 2.1
+Not trying to batch small subsequent glDrawXXXX
+try to use VBO
+FBO workaround for using binded texture enabled
+Force texture for Attachment color0 on FBO
+Hack to trigger a SwapBuffers when a Full Framebuffer Blit on default FBO is done
+glX Will try to recycle EGL Surface
+Current folder is:/storage/emulated/0/Android/data/git.artdeell.mjlaunch.modified/files/multisessions/A/a7c356e8-47fe-4478-9b75-a098822c353f
+MojoExec: Loaded EGL libgl4es_114.so (mojoexec namespace: b)
+I/jrelog  ( 8263): updateLdLibPath: 0xf16ac039
+
+allocated array 0xc3e1a4c0 length 41
+allocated array 0xc3dc6540 length 20
+[NoBlocklist] Now, the blocked server list should not be available
+[MJ AFK] Built-in engine active; no mod loader required.
+Registered forkAndExec
+2026-11-08 16:20:23,515 ERROR appender Console has no parameter that matches element Policies
+[16:20:23] [main/INFO]: Loading tweak class name dev.cylox.client.minecraft189.CyloxTweaker
+[16:20:23] [main/INFO]: Using primary tweak class name dev.cylox.client.minecraft189.CyloxTweaker
+[16:20:23] [main/INFO]: Calling tweak class dev.cylox.client.minecraft189.CyloxTweaker
+[Cylox] Netty package parent delegation enabled: io.netty.
+[16:20:27] [Via-Mappingloader-1/INFO]: Loading block connection mappings ...
+[16:20:28] [main/INFO]: Loaded Platform ViaVersion
+[16:20:28] [main/INFO]: Loading translations...
+[16:20:28] [main/INFO]: Registering protocols...
+[16:20:29] [main/INFO]: Loaded Platform ViaBackwards
+[16:20:29] [main/INFO]: Registering protocols...
+[16:20:29] [main/INFO]: Loaded Platform ViaRewind
+[16:20:29] [main/INFO]: ViaVersion detected lowest supported version by the proxy: 1.7.2-1.7.5 (4)
+[16:20:29] [main/INFO]: Highest supported version by the proxy: 26.3 (777)
+[16:20:29] [main/WARN]: You are running an outdated Java version, please update it to at least Java 21 (your version is 8).
+[16:20:29] [main/WARN]: ViaVersion no longer officially supports this version of Java, only offering unsupported compatibility builds.
+[16:20:29] [main/WARN]: See https://github.com/ViaVersion/ViaVersion/releases/tag/5.0.0 for more information.
+[16:20:29] [main/INFO]: ViaLoadingBase has loaded 3/3 platforms
+[Cylox] Via target applied: 1.14 (protocol 477), route steps=13.
+[Cylox] Embedded Via bridge ready. Manual target: 1.14x.
+[Cylox] Via stack: versions=50, ViaBackwards=true, ViaRewind=true.
+[Cylox] Route audit 1.8.9 (47) -> 1.13 (393): 10 translation steps.
+[Cylox] Background client 1.8.9 initialized.
+[Cylox] Added missing required Minecraft argument: --version Cylox-1.8.9
+[Cylox] Minecraft version argument: Cylox-1.8.9
+[16:20:30] [Via Async Scheduler 0/INFO]: Finished mapping loading, shutting down loader executor.
+[16:20:30] [main/INFO]: Launching wrapped minecraft {net.minecraft.client.main.Main}
+[Cylox] Background frame limit injected: ave
+[Cylox] Protocol selector mouse-wheel hook injected: ave
+[Cylox] Player equipment-slot bounds guard injected: wn.
+[Cylox] Cylox menu background injected: axu
+[Cylox] Protocol selector mouse-wheel hook injected: awv
+[Cylox] Cylox main menu renderer injected: aya
+2026-11-08 16:20:31,235 ERROR appender Console has no parameter that matches element Policies
+[16:20:31] [Via Async Task 1/INFO]: You are running a development version of the plugin, please report any bugs to GitHub.
+[16:20:32] [Client thread/ERROR]: Can't find the resource index file: ./assets/indexes/1.8.json
+[16:20:32] [Client thread/INFO]: Setting user: dapid07
+[16:20:41] [Client thread/INFO]: LWJGL Version: 2.9.4
+[MJ AFK] presentation=normal, background=false
+[16:20:42] [Client thread/INFO]: Reloading ResourceManager: Default
+If on Windows, make sure to provide all of the necessary dll's as specified in the twitchsdk README. Also, make sure to set the PATH environment variable to point to the directory containing the dll's.
+[16:20:43] [Client thread/ERROR]: Couldn't initialize twitch stream
+[Cylox] Bounded FontRenderer string-width cache injected: avn
+[16:20:43] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[16:20:44] [Thread-7/INFO]: Initializing LWJGL OpenAL
+[16:20:44] [Thread-7/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[16:20:44] [Thread-7/INFO]: OpenAL initialized.
+[16:20:44] [Sound Library Loader/INFO]: Sound engine started
+[16:20:52] [Client thread/INFO]: Created: 512x512 textures-atlas
+[Cylox] Opt-in floating nameplate profiler injected: biv
+[Cylox] Background render suppression injected: bfk
+[Cylox] Opt-in frame profiler injected: bfk
+[Cylox] Opt-in terrain profiler injected: bfr
+[Cylox] Opt-in chunk-upload profiler injected: bfr
+[Cylox] Terrain visibility cache injected: bfr
+[Cylox] Terrain visibility graph snapshot cache injected: bfr
+[Cylox] Terrain visibility cache world-reset invalidation injected: bfr
+[Cylox] Terrain visibility cache section-range invalidation injected: bfr
+[Cylox] Near synchronous chunk-build radius reduced to the current section: bfr
+[Cylox] Reused render-view sleeping state across entity loops: bfr
+[Cylox] Opt-in entity renderer profiler injected: bfr
+[Cylox] Opt-in block-layer profiler injected: bfr
+[Cylox] Opt-in particle profiler injected: bec
+[Cylox] Manual Via selector button injected: azh
+[Cylox] Manual Via selector action injected: azh
+[Cylox] Modern protocol selector panel injected: azh
+[Cylox] Cylox button theme injected: avs
+[Cylox] Via compression hook injected: ek
+[16:20:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:gui.button.press
+[Cylox] Protocol selector mouse-wheel hook injected: awi
+[Cylox] Multiplayer Cancel preserved at (337,212); Select placed at (416,212), width 95.
+[Cylox Perf] avgFPS=9.7, frameAvgMs=103.5, frameMaxMs=899.3, terrainAvgMs=0.0, terrainMaxMs=0.0, chunkUploadAvgMs=0.0, chunkUploadMaxMs=0.0, entityAvgMs=0.0, entityMaxMs=0.0, blockLayerAvgMs=0.0, blockLayerMaxMs=0.0, particleAvgMs=0.0, particleMaxMs=0.0, tileEntityAvgMs=0.0, tileEntityMaxMs=0.0, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.0, terrainCameraMaxMs=0.0, terrainCameraSamples=0, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=0, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=0, terrainCullingAvgMs=0.0, terrainCullingMaxMs=0.0, terrainCullingSamples=0, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=0, visibilityMisses=0, visibilityInvalidations=0, visibilityRangeInvalidations=0, visibilityRangeRemovedEntries=0, visibilityRangeFailures=0, visibilityCacheEntries=0, visibilityGraphHits=0, visibilityGraphMisses=0, visibilityGraphFailures=0, visibilityGraphEntries=0, textWidthHits=398, textWidthMisses=24, textWidthInvalidations=1, textWidthEntries=24, frames=35.
+[16:21:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:music.menu
+OpenJDK Client VM warning: You have loaded library /data/data/git.artdeell.mjlaunch.modified/cache/sessions/A/libnetty-transport-native-epoll8111669209313659591.so which might have disabled stack guard. The VM will try to fix the stack guard now.
+It's highly recommended that you fix the library with 'execstack -c <libfile>', or link it with '-z noexecstack'.
+[Cylox] Via initializer hook configured: ek$5.initChannel(Lio/netty/channel/Channel;)V, channelLocal=1.
+[Cylox] Via protocol pipeline hook injected: ek$5
+[Cylox] Via initializer reached: available=true, candidate=io.netty.channel.socket.nio.NioSocketChannel
+[Cylox] Netty channel type verified: io.netty.channel.socket.nio.NioSocketChannel is instance of io.netty.channel.Channel.
+[Cylox] Vanilla Netty pipeline: [ek$5#0, timeout, splitter, decoder, prepender, encoder, packet_handler, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via Netty handlers active: [ek$5#0, timeout, splitter, via-decoder, decoder, prepender, via-encoder, encoder, packet_handler, MCPVLBPipeline#0, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via pipeline attached before initial handshake: 1.8.9 (protocol 47) -> 1.14 (protocol 477).
+[Cylox] Active Netty pipeline: [ek$5#0, timeout, splitter, via-decoder, decoder, prepender, via-encoder, encoder, packet_handler, MCPVLBPipeline#0, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via handshake decision: client=1.8.x (47), target=1.14 (477), route=13 steps.
+[Cylox] OUTGOING HANDSHAKE AFTER VIA: protocol=477, target=1.14 (477).
+[Cylox] HANDSHAKE VERIFIED: selected protocol was written to the outgoing packet.
+[Cylox] Via handshake decision: client=1.8.x (47), target=1.14 (477), route=13 steps.
+[Cylox Perf] avgFPS=70.2, frameAvgMs=14.2, frameMaxMs=104.5, terrainAvgMs=0.0, terrainMaxMs=0.0, chunkUploadAvgMs=0.0, chunkUploadMaxMs=0.0, entityAvgMs=0.0, entityMaxMs=0.0, blockLayerAvgMs=0.0, blockLayerMaxMs=0.0, particleAvgMs=0.0, particleMaxMs=0.0, tileEntityAvgMs=0.0, tileEntityMaxMs=0.0, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.0, terrainCameraMaxMs=0.0, terrainCameraSamples=0, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=0, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=0, terrainCullingAvgMs=0.0, terrainCullingMaxMs=0.0, terrainCullingSamples=0, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=0, visibilityMisses=0, visibilityInvalidations=0, visibilityRangeInvalidations=0, visibilityRangeRemovedEntries=0, visibilityRangeFailures=0, visibilityCacheEntries=0, visibilityGraphHits=0, visibilityGraphMisses=0, visibilityGraphFailures=0, visibilityGraphEntries=0, textWidthHits=1824, textWidthMisses=26, textWidthInvalidations=1, textWidthEntries=26, frames=119.
+[16:21:06] [Client thread/INFO]: Connecting to java.alwination.id., 25565
+[Cylox] Via initializer reached: available=true, candidate=io.netty.channel.socket.nio.NioSocketChannel
+[Cylox] Netty channel type verified: io.netty.channel.socket.nio.NioSocketChannel is instance of io.netty.channel.Channel.
+[Cylox] Vanilla Netty pipeline: [ek$5#0, timeout, splitter, decoder, prepender, encoder, packet_handler, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via Netty handlers active: [ek$5#0, timeout, splitter, via-decoder, decoder, prepender, via-encoder, encoder, packet_handler, MCPVLBPipeline#0, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via pipeline attached before initial handshake: 1.8.9 (protocol 47) -> 1.14 (protocol 477).
+[Cylox] Active Netty pipeline: [ek$5#0, timeout, splitter, via-decoder, decoder, prepender, via-encoder, encoder, packet_handler, MCPVLBPipeline#0, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via handshake decision: client=1.8.x (47), target=1.14 (477), route=13 steps.
+[Cylox] OUTGOING HANDSHAKE AFTER VIA: protocol=477, target=1.14 (477).
+[Cylox] HANDSHAKE VERIFIED: selected protocol was written to the outgoing packet.
+[Cylox Perf] avgFPS=21.9, frameAvgMs=45.8, frameMaxMs=810.2, terrainAvgMs=121.9, terrainMaxMs=191.8, chunkUploadAvgMs=1.3, chunkUploadMaxMs=2.4, entityAvgMs=0.0, entityMaxMs=0.0, blockLayerAvgMs=1.0, blockLayerMaxMs=4.6, particleAvgMs=0.3, particleMaxMs=1.2, tileEntityAvgMs=0.0, tileEntityMaxMs=0.0, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=27.2, terrainCameraMaxMs=32.4, terrainCameraSamples=2, terrainRenderListAvgMs=0.1, terrainRenderListMaxMs=0.1, terrainRenderListSamples=2, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=2, terrainCullingAvgMs=94.6, terrainCullingMaxMs=169.6, terrainCullingSamples=2, terrainBuildNearAvgMs=29.0, terrainBuildNearMaxMs=57.4, terrainBuildNearSamples=2, visibilityHits=0, visibilityMisses=2, visibilityInvalidations=1, visibilityRangeInvalidations=0, visibilityRangeRemovedEntries=0, visibilityRangeFailures=0, visibilityCacheEntries=1, visibilityGraphHits=0, visibilityGraphMisses=2, visibilityGraphFailures=0, visibilityGraphEntries=1, textWidthHits=1933, textWidthMisses=60, textWidthInvalidations=1, textWidthEntries=60, frames=26.
+[16:21:12] [Client thread/INFO]: [CHAT] Don't forget to vote for us! You currently have 0 votes.
+[16:21:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.levelup
+[16:21:15] [Client thread/INFO]: [CHAT] Account » ⚠ Your account has no email address, so you cannot recover it. Add one with /changeemailaddress <password> <email>.
+[16:21:15] [Client thread/INFO]: [CHAT] Account » ⚠ Two-factor authentication is off. Turn it on with /requestsecondfactor.
+[Cylox Perf] avgFPS=5.9, frameAvgMs=170.4, frameMaxMs=505.0, terrainAvgMs=30.6, terrainMaxMs=204.2, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.8, entityAvgMs=82.6, entityMaxMs=242.2, blockLayerAvgMs=3.8, blockLayerMaxMs=146.8, particleAvgMs=6.7, particleMaxMs=130.9, tileEntityAvgMs=0.1, tileEntityMaxMs=0.2, nameTagAvgMs=1.1, nameTagMaxMs=107.9, terrainCameraAvgMs=2.4, terrainCameraMaxMs=21.8, terrainCameraSamples=10, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=10, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=10, terrainCullingAvgMs=28.1, terrainCullingMaxMs=201.7, terrainCullingSamples=10, terrainBuildNearAvgMs=86.0, terrainBuildNearMaxMs=195.4, terrainBuildNearSamples=3, visibilityHits=7, visibilityMisses=5, visibilityInvalidations=4, visibilityRangeInvalidations=2, visibilityRangeRemovedEntries=4, visibilityRangeFailures=0, visibilityCacheEntries=1, visibilityGraphHits=0, visibilityGraphMisses=5, visibilityGraphFailures=0, visibilityGraphEntries=1, textWidthHits=2922, textWidthMisses=122, textWidthInvalidations=1, textWidthEntries=122, frames=10.
+[16:21:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.gravel
+[16:21:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.cloth
+[16:21:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.gravel
+[16:21:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:22] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=6.9, frameAvgMs=144.1, frameMaxMs=325.0, terrainAvgMs=2.1, terrainMaxMs=7.6, chunkUploadAvgMs=1.0, chunkUploadMaxMs=5.1, entityAvgMs=91.8, entityMaxMs=290.4, blockLayerAvgMs=0.6, blockLayerMaxMs=5.0, particleAvgMs=0.3, particleMaxMs=3.0, tileEntityAvgMs=0.2, tileEntityMaxMs=0.5, nameTagAvgMs=0.5, nameTagMaxMs=8.0, terrainCameraAvgMs=0.5, terrainCameraMaxMs=5.0, terrainCameraSamples=23, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=23, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=23, terrainCullingAvgMs=1.5, terrainCullingMaxMs=4.4, terrainCullingSamples=23, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=19, visibilityMisses=16, visibilityInvalidations=4, visibilityRangeInvalidations=2, visibilityRangeRemovedEntries=4, visibilityRangeFailures=0, visibilityCacheEntries=12, visibilityGraphHits=11, visibilityGraphMisses=5, visibilityGraphFailures=0, visibilityGraphEntries=1, textWidthHits=7079, textWidthMisses=143, textWidthInvalidations=1, textWidthEntries=143, frames=23.
+[16:21:24] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:music.game
+[Cylox Perf] avgFPS=6.2, frameAvgMs=160.8, frameMaxMs=365.0, terrainAvgMs=3.1, terrainMaxMs=58.4, chunkUploadAvgMs=1.0, chunkUploadMaxMs=3.8, entityAvgMs=88.0, entityMaxMs=161.6, blockLayerAvgMs=1.7, blockLayerMaxMs=109.3, particleAvgMs=2.8, particleMaxMs=115.7, tileEntityAvgMs=3.6, tileEntityMaxMs=14.0, nameTagAvgMs=0.3, nameTagMaxMs=3.3, terrainCameraAvgMs=0.0, terrainCameraMaxMs=0.0, terrainCameraSamples=22, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=22, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=22, terrainCullingAvgMs=3.1, terrainCullingMaxMs=58.4, terrainCullingSamples=22, terrainBuildNearAvgMs=54.0, terrainBuildNearMaxMs=54.0, terrainBuildNearSamples=1, visibilityHits=40, visibilityMisses=17, visibilityInvalidations=5, visibilityRangeInvalidations=3, visibilityRangeRemovedEntries=17, visibilityRangeFailures=0, visibilityCacheEntries=1, visibilityGraphHits=11, visibilityGraphMisses=6, visibilityGraphFailures=0, visibilityGraphEntries=1, textWidthHits=14948, textWidthMisses=164, textWidthInvalidations=1, textWidthEntries=164, frames=22.
+[Cylox] Protocol selector mouse-wheel hook injected: ayu
+[16:21:29] [Client thread/INFO]: [CHAT] Sending you to theoneblock now..
+[16:21:32] [Client thread/INFO]: [CHAT] + dapid07 is connected. (Java)
+[Cylox Perf] avgFPS=8.4, frameAvgMs=119.7, frameMaxMs=171.6, terrainAvgMs=4.8, terrainMaxMs=30.5, chunkUploadAvgMs=0.7, chunkUploadMaxMs=2.7, entityAvgMs=77.2, entityMaxMs=102.0, blockLayerAvgMs=0.5, blockLayerMaxMs=3.1, particleAvgMs=0.1, particleMaxMs=0.8, tileEntityAvgMs=5.3, tileEntityMaxMs=31.1, nameTagAvgMs=0.3, nameTagMaxMs=1.8, terrainCameraAvgMs=2.9, terrainCameraMaxMs=24.0, terrainCameraSamples=15, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=15, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=15, terrainCullingAvgMs=1.8, terrainCullingMaxMs=8.6, terrainCullingSamples=15, terrainBuildNearAvgMs=0.6, terrainBuildNearMaxMs=1.2, terrainBuildNearSamples=3, visibilityHits=52, visibilityMisses=20, visibilityInvalidations=6, visibilityRangeInvalidations=3, visibilityRangeRemovedEntries=17, visibilityRangeFailures=0, visibilityCacheEntries=3, visibilityGraphHits=11, visibilityGraphMisses=9, visibilityGraphFailures=0, visibilityGraphEntries=3, textWidthHits=20310, textWidthMisses=192, textWidthInvalidations=1, textWidthEntries=192, frames=15.
+[16:21:33] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [HOLIGANS] MasWily » ini gimna sih main nya ._.
+[16:21:34] [Client thread/INFO]: [CHAT]  [][Citizen] .dvnntsy » kak kok ditempatku ga muncul mob gmna caranya ya?
+[16:21:36] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:note.harp
+[16:21:36] [Client thread/INFO]: [CHAT]  
+[16:21:36] [Client thread/INFO]: [CHAT] Hey dapid07, you have 1 unclaimed reward(s). ► Click ◄
+[16:21:36] [Client thread/INFO]: [CHAT]  
+[16:21:36] [Client thread/INFO]: [CHAT] + .PinkPlains36252 is connected. (Bedrock)
+[16:21:37] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:37] [Client thread/INFO]: [CHAT]  [][Noble] .Azril9986 » @Zirconist
+[16:21:37] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:37] [Client thread/INFO]: [CHAT]  [][Citizen] Notpro1333 » scam ga
+[Cylox Perf] avgFPS=21.1, frameAvgMs=47.5, frameMaxMs=239.9, terrainAvgMs=6.7, terrainMaxMs=87.3, chunkUploadAvgMs=0.4, chunkUploadMaxMs=1.1, entityAvgMs=0.0, entityMaxMs=0.2, blockLayerAvgMs=0.3, blockLayerMaxMs=2.6, particleAvgMs=0.2, particleMaxMs=2.4, tileEntityAvgMs=0.8, tileEntityMaxMs=2.4, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.1, terrainCameraMaxMs=3.0, terrainCameraSamples=61, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=61, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=61, terrainCullingAvgMs=6.6, terrainCullingMaxMs=84.5, terrainCullingSamples=61, terrainBuildNearAvgMs=62.3, terrainBuildNearMaxMs=77.2, terrainBuildNearSamples=4, visibilityHits=98, visibilityMisses=35, visibilityInvalidations=11, visibilityRangeInvalidations=8, visibilityRangeRemovedEntries=28, visibilityRangeFailures=0, visibilityCacheEntries=12, visibilityGraphHits=21, visibilityGraphMisses=14, visibilityGraphFailures=0, visibilityGraphEntries=3, textWidthHits=24029, textWidthMisses=233, textWidthInvalidations=1, textWidthEntries=233, frames=61.
+[16:21:38] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:38] [Client thread/INFO]: [CHAT]  [👒 The Queen 👒] [Scout] .Clarissa8528 » naon @XyoNick
+[16:21:38] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:40] [Client thread/INFO]: [CHAT]  [][Monarch] Mintkoala » gada minion @.xenomm4089
+[16:21:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:41] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [Eternal] KoplingSelip » garuk garuk doang
+[16:21:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:41] [Client thread/INFO]: [CHAT]  [][ALLFAKE] Piinokio » nunggu copper dulu baru unlock semua
+[16:21:42] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:42] [Client thread/INFO]: [CHAT]  [ꜱᴛᴀꜰꜰ] [J-Helper] XyoNick » @.xenomm4089 gak ada minion bang
+[Cylox Perf] avgFPS=19.0, frameAvgMs=52.7, frameMaxMs=198.6, terrainAvgMs=5.6, terrainMaxMs=109.4, chunkUploadAvgMs=0.5, chunkUploadMaxMs=3.0, entityAvgMs=0.1, entityMaxMs=0.1, blockLayerAvgMs=0.4, blockLayerMaxMs=2.4, particleAvgMs=0.2, particleMaxMs=0.7, tileEntityAvgMs=4.4, tileEntityMaxMs=71.6, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.3, terrainCameraMaxMs=4.9, terrainCameraSamples=67, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=67, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=67, terrainCullingAvgMs=5.3, terrainCullingMaxMs=109.3, terrainCullingSamples=67, terrainBuildNearAvgMs=56.7, terrainBuildNearMaxMs=101.6, terrainBuildNearSamples=4, visibilityHits=140, visibilityMisses=60, visibilityInvalidations=14, visibilityRangeInvalidations=11, visibilityRangeRemovedEntries=57, visibilityRangeFailures=0, visibilityCacheEntries=12, visibilityGraphHits=41, visibilityGraphMisses=19, visibilityGraphFailures=0, visibilityGraphEntries=4, textWidthHits=36041, textWidthMisses=284, textWidthInvalidations=1, textWidthEntries=284, frames=67.
+[16:21:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:21:46] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [Eternal] KoplingSelip » cari duit
+[Cylox Perf] avgFPS=14.6, frameAvgMs=68.5, frameMaxMs=396.8, terrainAvgMs=5.0, terrainMaxMs=51.3, chunkUploadAvgMs=0.3, chunkUploadMaxMs=1.4, entityAvgMs=0.1, entityMaxMs=0.2, blockLayerAvgMs=0.3, blockLayerMaxMs=2.7, particleAvgMs=0.2, particleMaxMs=2.0, tileEntityAvgMs=0.5, tileEntityMaxMs=2.2, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.1, terrainCameraMaxMs=3.1, terrainCameraSamples=54, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.1, terrainRenderListSamples=54, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=54, terrainCullingAvgMs=4.9, terrainCullingMaxMs=51.3, terrainCullingSamples=54, terrainBuildNearAvgMs=45.9, terrainBuildNearMaxMs=47.5, terrainBuildNearSamples=5, visibilityHits=187, visibilityMisses=67, visibilityInvalidations=19, visibilityRangeInvalidations=16, visibilityRangeRemovedEntries=70, visibilityRangeFailures=0, visibilityCacheEntries=11, visibilityGraphHits=43, visibilityGraphMisses=24, visibilityGraphFailures=0, visibilityGraphEntries=4, textWidthHits=38519, textWidthMisses=285, textWidthInvalidations=1, textWidthEntries=285, frames=54.
+[Cylox Perf] avgFPS=12.9, frameAvgMs=77.7, frameMaxMs=132.6, terrainAvgMs=1.6, terrainMaxMs=49.9, chunkUploadAvgMs=0.4, chunkUploadMaxMs=1.4, entityAvgMs=0.6, entityMaxMs=2.2, blockLayerAvgMs=0.8, blockLayerMaxMs=3.0, particleAvgMs=0.2, particleMaxMs=0.7, tileEntityAvgMs=1.4, tileEntityMaxMs=3.0, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.0, terrainCameraMaxMs=0.0, terrainCameraSamples=42, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=42, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=42, terrainCullingAvgMs=1.6, terrainCullingMaxMs=49.8, terrainCullingSamples=42, terrainBuildNearAvgMs=45.8, terrainBuildNearMaxMs=45.8, terrainBuildNearSamples=1, visibilityHits=228, visibilityMisses=68, visibilityInvalidations=20, visibilityRangeInvalidations=17, visibilityRangeRemovedEntries=72, visibilityRangeFailures=0, visibilityCacheEntries=11, visibilityGraphHits=43, visibilityGraphMisses=25, visibilityGraphFailures=0, visibilityGraphEntries=4, textWidthHits=44914, textWidthMisses=467, textWidthInvalidations=1, textWidthEntries=467, frames=42.
+[16:21:54] [Client thread/INFO]: [CHAT] Kiy00_, KitsuneMC_, kulut, Kidz26, Kheysa, kennotnice, KIAMAAAA, KazuoAsMaou, KingNuril, kielll7, Kuhaku921
+[16:21:54] [Client thread/INFO]: [CHAT]  [][Monarch] Mintkoala » ada nya pets bisa disuruh mining ob nya
+[16:21:55] [Client thread/INFO]: [CHAT] + lukyyplrch is connected. (Java)
+[16:21:57] [Client thread/INFO]: [CHAT] + .CreeperSantai is connected. (Bedrock)
+[16:21:57] [Client thread/INFO]: [CHAT]  [][Adventurer] .Fiyyo » main one block biasa mas @.Maswily22
+[Cylox Perf] avgFPS=13.6, frameAvgMs=73.8, frameMaxMs=148.2, terrainAvgMs=3.4, terrainMaxMs=75.1, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.4, entityAvgMs=0.6, entityMaxMs=1.0, blockLayerAvgMs=1.1, blockLayerMaxMs=3.9, particleAvgMs=0.2, particleMaxMs=1.2, tileEntityAvgMs=1.6, tileEntityMaxMs=4.6, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.0, terrainCameraMaxMs=0.0, terrainCameraSamples=45, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.1, terrainRenderListSamples=45, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=45, terrainCullingAvgMs=3.3, terrainCullingMaxMs=75.0, terrainCullingSamples=45, terrainBuildNearAvgMs=58.2, terrainBuildNearMaxMs=68.2, terrainBuildNearSamples=2, visibilityHits=271, visibilityMisses=70, visibilityInvalidations=22, visibilityRangeInvalidations=19, visibilityRangeRemovedEntries=76, visibilityRangeFailures=0, visibilityCacheEntries=11, visibilityGraphHits=43, visibilityGraphMisses=27, visibilityGraphFailures=0, visibilityGraphEntries=4, textWidthHits=49164, textWidthMisses=483, textWidthInvalidations=1, textWidthEntries=483, frames=45.
+[16:21:58] [Client thread/INFO]: [CHAT]  [][Citizen] .xenomm4089 » makasih
+[16:22:02] [Client thread/INFO]: [CHAT]  [ꜱᴛᴀꜰꜰ] [J-Helper] XyoNick » gak naon-naon @.Clarissa8528
+[Cylox Perf] avgFPS=17.7, frameAvgMs=56.4, frameMaxMs=137.3, terrainAvgMs=0.6, terrainMaxMs=1.4, chunkUploadAvgMs=0.5, chunkUploadMaxMs=2.8, entityAvgMs=0.5, entityMaxMs=1.1, blockLayerAvgMs=1.1, blockLayerMaxMs=3.7, particleAvgMs=0.1, particleMaxMs=0.6, tileEntityAvgMs=1.5, tileEntityMaxMs=5.8, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.0, terrainCameraMaxMs=0.0, terrainCameraSamples=57, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=57, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=57, terrainCullingAvgMs=0.5, terrainCullingMaxMs=1.3, terrainCullingSamples=57, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=328, visibilityMisses=70, visibilityInvalidations=22, visibilityRangeInvalidations=19, visibilityRangeRemovedEntries=76, visibilityRangeFailures=0, visibilityCacheEntries=11, visibilityGraphHits=43, visibilityGraphMisses=27, visibilityGraphFailures=0, visibilityGraphEntries=4, textWidthHits=54524, textWidthMisses=492, textWidthInvalidations=1, textWidthEntries=492, frames=57.
+[16:22:03] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:04] [Client thread/INFO]: [CHAT] - .MAls_genz is disconnected. (Bedrock)
+[16:22:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:05] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:05] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:05] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:06] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:06] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:07] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:07] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=19.2, frameAvgMs=52.1, frameMaxMs=170.1, terrainAvgMs=4.7, terrainMaxMs=91.1, chunkUploadAvgMs=0.5, chunkUploadMaxMs=2.5, entityAvgMs=0.1, entityMaxMs=0.2, blockLayerAvgMs=0.5, blockLayerMaxMs=3.2, particleAvgMs=0.3, particleMaxMs=3.9, tileEntityAvgMs=10.5, tileEntityMaxMs=96.4, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.5, terrainCameraMaxMs=7.6, terrainCameraSamples=64, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=64, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=64, terrainCullingAvgMs=4.2, terrainCullingMaxMs=91.0, terrainCullingSamples=64, terrainBuildNearAvgMs=59.6, terrainBuildNearMaxMs=87.2, terrainBuildNearSamples=3, visibilityHits=360, visibilityMisses=102, visibilityInvalidations=23, visibilityRangeInvalidations=20, visibilityRangeRemovedEntries=88, visibilityRangeFailures=0, visibilityCacheEntries=32, visibilityGraphHits=72, visibilityGraphMisses=30, visibilityGraphFailures=0, visibilityGraphEntries=6, textWidthHits=79885, textWidthMisses=495, textWidthInvalidations=1, textWidthEntries=495, frames=64.
+[16:22:08] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:08] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:08] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:09] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:09] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:22:10] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:10] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:10] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:10] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:12] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=25.9, frameAvgMs=38.7, frameMaxMs=79.5, terrainAvgMs=1.8, terrainMaxMs=9.6, chunkUploadAvgMs=0.6, chunkUploadMaxMs=4.4, entityAvgMs=0.1, entityMaxMs=0.4, blockLayerAvgMs=0.4, blockLayerMaxMs=5.1, particleAvgMs=0.3, particleMaxMs=3.5, tileEntityAvgMs=3.8, tileEntityMaxMs=20.9, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.4, terrainCameraMaxMs=5.9, terrainCameraSamples=73, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=73, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=73, terrainCullingAvgMs=1.3, terrainCullingMaxMs=5.2, terrainCullingSamples=73, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=398, visibilityMisses=137, visibilityInvalidations=23, visibilityRangeInvalidations=20, visibilityRangeRemovedEntries=88, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=104, visibilityGraphMisses=33, visibilityGraphFailures=0, visibilityGraphEntries=9, textWidthHits=94082, textWidthMisses=495, textWidthInvalidations=1, textWidthEntries=495, frames=73.
+[16:22:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:13] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [Eternal] KoplingSelip » nanti ada pickaxe modul itu bisa di pake ke pickaxe ajaib
+[16:22:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:14] [Client thread/INFO]: [CHAT] - .Jedankeren is disconnected. (Bedrock)
+[16:22:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:15] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [HOLIGANS] MasWily » itu pet permanen gak
+[16:22:15] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:15] [Client thread/INFO]: [CHAT]  [👒 The Queen 👒] [Scout] .Clarissa8528 » cara dapet pet gimana?@XyoNick
+[16:22:15] [Client thread/INFO]: [CHAT]  [][Governor] .SyaaXHound » MasWily22 hancurin blocknyandlu aja
+[16:22:15] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:15] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [Adventurer] gxlexs » bang .xyonick jual apa yang lumayan buat nambah balance?
+[16:22:15] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:18] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=18.7, frameAvgMs=53.5, frameMaxMs=108.3, terrainAvgMs=2.0, terrainMaxMs=38.9, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.1, entityAvgMs=0.1, entityMaxMs=0.3, blockLayerAvgMs=0.3, blockLayerMaxMs=2.3, particleAvgMs=0.3, particleMaxMs=2.3, tileEntityAvgMs=2.5, tileEntityMaxMs=20.8, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.4, terrainCameraMaxMs=5.5, terrainCameraSamples=59, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=59, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=59, terrainCullingAvgMs=1.6, terrainCullingMaxMs=38.9, terrainCullingSamples=59, terrainBuildNearAvgMs=35.3, terrainBuildNearMaxMs=35.3, terrainBuildNearSamples=1, visibilityHits=428, visibilityMisses=166, visibilityInvalidations=24, visibilityRangeInvalidations=21, visibilityRangeRemovedEntries=100, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=131, visibilityGraphMisses=35, visibilityGraphFailures=0, visibilityGraphEntries=10, textWidthHits=100952, textWidthMisses=512, textWidthInvalidations=1, textWidthEntries=512, frames=59.
+[16:22:18] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:18] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:19] [Client thread/INFO]: [CHAT]  [][Guardian] .HardHD8259 » module corrosion tu buat apa bg? @here
+[16:22:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:22] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:22] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=11.8, frameAvgMs=85.1, frameMaxMs=914.2, terrainAvgMs=2.6, terrainMaxMs=11.6, chunkUploadAvgMs=0.5, chunkUploadMaxMs=6.2, entityAvgMs=0.1, entityMaxMs=0.2, blockLayerAvgMs=0.3, blockLayerMaxMs=2.4, particleAvgMs=0.5, particleMaxMs=4.5, tileEntityAvgMs=1.0, tileEntityMaxMs=3.8, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.7, terrainCameraMaxMs=7.5, terrainCameraSamples=44, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=44, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=44, terrainCullingAvgMs=1.9, terrainCullingMaxMs=7.1, terrainCullingSamples=44, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=437, visibilityMisses=201, visibilityInvalidations=24, visibilityRangeInvalidations=21, visibilityRangeRemovedEntries=100, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=164, visibilityGraphMisses=37, visibilityGraphFailures=0, visibilityGraphEntries=12, textWidthHits=103954, textWidthMisses=517, textWidthInvalidations=1, textWidthEntries=512, frames=44.
+[16:22:23] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:24] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:24] [Client thread/INFO]: [CHAT]  [ꜱᴛᴀꜰꜰ] [J-Helper] XyoNick » @.Clarissa8528 /store
+[Cylox Perf] avgFPS=18.9, frameAvgMs=53.0, frameMaxMs=126.0, terrainAvgMs=3.6, terrainMaxMs=57.0, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.3, entityAvgMs=2.1, entityMaxMs=17.1, blockLayerAvgMs=0.9, blockLayerMaxMs=14.4, particleAvgMs=0.1, particleMaxMs=1.3, tileEntityAvgMs=7.1, tileEntityMaxMs=61.0, nameTagAvgMs=0.4, nameTagMaxMs=1.3, terrainCameraAvgMs=0.1, terrainCameraMaxMs=2.9, terrainCameraSamples=57, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=57, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=57, terrainCullingAvgMs=3.5, terrainCullingMaxMs=56.9, terrainCullingSamples=57, terrainBuildNearAvgMs=51.4, terrainBuildNearMaxMs=53.1, terrainBuildNearSamples=3, visibilityHits=487, visibilityMisses=208, visibilityInvalidations=27, visibilityRangeInvalidations=24, visibilityRangeRemovedEntries=120, visibilityRangeFailures=0, visibilityCacheEntries=52, visibilityGraphHits=168, visibilityGraphMisses=40, visibilityGraphFailures=0, visibilityGraphEntries=12, textWidthHits=118267, textWidthMisses=531, textWidthInvalidations=1, textWidthEntries=512, frames=57.
+[16:22:29] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:29] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:30] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:30] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:31] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:gui.button.press
+[16:22:32] [Client thread/INFO]: [CHAT] - NetssNold123 is disconnected. (Java)
+[16:22:33] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:gui.button.press
+[Cylox Perf] avgFPS=17.2, frameAvgMs=58.2, frameMaxMs=114.9, terrainAvgMs=1.7, terrainMaxMs=60.3, chunkUploadAvgMs=0.4, chunkUploadMaxMs=1.5, entityAvgMs=13.5, entityMaxMs=32.4, blockLayerAvgMs=0.4, blockLayerMaxMs=3.1, particleAvgMs=0.2, particleMaxMs=1.3, tileEntityAvgMs=8.0, tileEntityMaxMs=24.4, nameTagAvgMs=0.4, nameTagMaxMs=2.5, terrainCameraAvgMs=0.1, terrainCameraMaxMs=5.9, terrainCameraSamples=52, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=52, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=52, terrainCullingAvgMs=1.5, terrainCullingMaxMs=54.4, terrainCullingSamples=52, terrainBuildNearAvgMs=50.4, terrainBuildNearMaxMs=50.4, terrainBuildNearSamples=1, visibilityHits=534, visibilityMisses=213, visibilityInvalidations=28, visibilityRangeInvalidations=25, visibilityRangeRemovedEntries=125, visibilityRangeFailures=0, visibilityCacheEntries=53, visibilityGraphHits=172, visibilityGraphMisses=41, visibilityGraphFailures=0, visibilityGraphEntries=12, textWidthHits=142963, textWidthMisses=571, textWidthInvalidations=1, textWidthEntries=512, frames=52.
+[16:22:34] [Client thread/INFO]: [CHAT] 
+  [ NOVEMBER SALE ]
+  | Diskon hingga 75% untuk semua rank!
+  | Berlaku 1 - 30 November 2026.
+  | Kunjungi: store.alwination.id
+
+[16:22:39] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=13.2, frameAvgMs=75.9, frameMaxMs=139.8, terrainAvgMs=0.6, terrainMaxMs=4.8, chunkUploadAvgMs=0.5, chunkUploadMaxMs=2.3, entityAvgMs=25.0, entityMaxMs=63.4, blockLayerAvgMs=0.5, blockLayerMaxMs=2.6, particleAvgMs=0.1, particleMaxMs=0.5, tileEntityAvgMs=11.2, tileEntityMaxMs=22.3, nameTagAvgMs=0.5, nameTagMaxMs=2.4, terrainCameraAvgMs=0.1, terrainCameraMaxMs=2.7, terrainCameraSamples=41, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=41, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=41, terrainCullingAvgMs=0.5, terrainCullingMaxMs=2.2, terrainCullingSamples=41, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=573, visibilityMisses=215, visibilityInvalidations=28, visibilityRangeInvalidations=25, visibilityRangeRemovedEntries=125, visibilityRangeFailures=0, visibilityCacheEntries=55, visibilityGraphHits=174, visibilityGraphMisses=41, visibilityGraphFailures=0, visibilityGraphEntries=12, textWidthHits=168209, textWidthMisses=592, textWidthInvalidations=1, textWidthEntries=512, frames=41.
+[16:22:39] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:39] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:40] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [Eternal] KoplingSelip » itu multi tool
+[16:22:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:41] [Client thread/INFO]: [CHAT] - .XWin4to is disconnected. (Bedrock)
+[16:22:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:41] [Client thread/INFO]: [CHAT] - bror_brar is disconnected. (Java)
+[16:22:42] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:42] [Client thread/INFO]: [CHAT] + .RANZ5076 is connected. (Bedrock)
+[16:22:42] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:42] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.burp
+[Cylox Perf] avgFPS=11.5, frameAvgMs=87.2, frameMaxMs=137.6, terrainAvgMs=2.3, terrainMaxMs=9.5, chunkUploadAvgMs=0.7, chunkUploadMaxMs=4.1, entityAvgMs=26.5, entityMaxMs=65.8, blockLayerAvgMs=0.5, blockLayerMaxMs=4.0, particleAvgMs=0.3, particleMaxMs=1.1, tileEntityAvgMs=17.1, tileEntityMaxMs=39.6, nameTagAvgMs=0.5, nameTagMaxMs=2.9, terrainCameraAvgMs=0.5, terrainCameraMaxMs=5.8, terrainCameraSamples=38, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=38, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=38, terrainCullingAvgMs=1.8, terrainCullingMaxMs=6.6, terrainCullingSamples=38, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=593, visibilityMisses=233, visibilityInvalidations=31, visibilityRangeInvalidations=28, visibilityRangeRemovedEntries=128, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=190, visibilityGraphMisses=43, visibilityGraphFailures=0, visibilityGraphEntries=11, textWidthHits=197260, textWidthMisses=597, textWidthInvalidations=1, textWidthEntries=512, frames=38.
+[16:22:44] [Client thread/INFO]: [CHAT] - SineX is disconnected. (Java)
+[16:22:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.burp
+[16:22:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.eat
+[16:22:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.burp
+[16:22:48] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:48] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:49] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=11.2, frameAvgMs=89.2, frameMaxMs=433.4, terrainAvgMs=1.6, terrainMaxMs=40.2, chunkUploadAvgMs=0.5, chunkUploadMaxMs=2.1, entityAvgMs=29.5, entityMaxMs=66.9, blockLayerAvgMs=0.4, blockLayerMaxMs=1.8, particleAvgMs=0.3, particleMaxMs=0.9, tileEntityAvgMs=21.8, tileEntityMaxMs=349.0, nameTagAvgMs=0.4, nameTagMaxMs=7.8, terrainCameraAvgMs=0.1, terrainCameraMaxMs=3.2, terrainCameraSamples=40, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=40, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=40, terrainCullingAvgMs=1.5, terrainCullingMaxMs=40.0, terrainCullingSamples=40, terrainBuildNearAvgMs=36.0, terrainBuildNearMaxMs=36.0, terrainBuildNearSamples=1, visibilityHits=628, visibilityMisses=238, visibilityInvalidations=32, visibilityRangeInvalidations=29, visibilityRangeRemovedEntries=138, visibilityRangeFailures=0, visibilityCacheEntries=60, visibilityGraphHits=194, visibilityGraphMisses=44, visibilityGraphFailures=0, visibilityGraphEntries=11, textWidthHits=232308, textWidthMisses=637, textWidthInvalidations=1, textWidthEntries=512, frames=40.
+[16:22:49] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:50] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:50] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:50] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:50] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:50] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:51] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:51] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:51] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=8.1, frameAvgMs=123.4, frameMaxMs=589.5, terrainAvgMs=5.6, terrainMaxMs=60.6, chunkUploadAvgMs=0.5, chunkUploadMaxMs=2.2, entityAvgMs=44.2, entityMaxMs=111.8, blockLayerAvgMs=0.3, blockLayerMaxMs=1.9, particleAvgMs=0.6, particleMaxMs=4.8, tileEntityAvgMs=28.5, tileEntityMaxMs=139.6, nameTagAvgMs=0.6, nameTagMaxMs=56.7, terrainCameraAvgMs=1.0, terrainCameraMaxMs=4.7, terrainCameraSamples=25, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=25, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=25, terrainCullingAvgMs=4.6, terrainCullingMaxMs=60.6, terrainCullingSamples=25, terrainBuildNearAvgMs=56.7, terrainBuildNearMaxMs=56.7, terrainBuildNearSamples=1, visibilityHits=635, visibilityMisses=256, visibilityInvalidations=38, visibilityRangeInvalidations=35, visibilityRangeRemovedEntries=145, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=208, visibilityGraphMisses=48, visibilityGraphFailures=0, visibilityGraphEntries=9, textWidthHits=240043, textWidthMisses=637, textWidthInvalidations=1, textWidthEntries=512, frames=25.
+[16:22:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:57] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:57] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:57] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:57] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:57] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:22:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[Cylox Perf] avgFPS=12.0, frameAvgMs=83.3, frameMaxMs=204.0, terrainAvgMs=2.5, terrainMaxMs=38.9, chunkUploadAvgMs=0.3, chunkUploadMaxMs=2.6, entityAvgMs=28.6, entityMaxMs=99.1, blockLayerAvgMs=0.4, blockLayerMaxMs=4.8, particleAvgMs=0.4, particleMaxMs=1.4, tileEntityAvgMs=26.2, tileEntityMaxMs=83.1, nameTagAvgMs=0.5, nameTagMaxMs=12.2, terrainCameraAvgMs=0.1, terrainCameraMaxMs=2.7, terrainCameraSamples=38, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=38, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=38, terrainCullingAvgMs=2.4, terrainCullingMaxMs=38.8, terrainCullingSamples=38, terrainBuildNearAvgMs=33.6, terrainBuildNearMaxMs=34.8, terrainBuildNearSamples=2, visibilityHits=670, visibilityMisses=259, visibilityInvalidations=40, visibilityRangeInvalidations=37, visibilityRangeRemovedEntries=159, visibilityRangeFailures=0, visibilityCacheEntries=55, visibilityGraphHits=209, visibilityGraphMisses=50, visibilityGraphFailures=0, visibilityGraphEntries=8, textWidthHits=255270, textWidthMisses=646, textWidthInvalidations=1, textWidthEntries=512, frames=38.
+[16:22:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:22:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:01] [Client thread/INFO]: [CHAT]  [][Guardian] .HardHD8259 » efeknya?
+[16:23:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:02] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:02] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:02] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:02] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:23:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[Cylox Perf] avgFPS=12.3, frameAvgMs=81.0, frameMaxMs=177.1, terrainAvgMs=2.7, terrainMaxMs=43.4, chunkUploadAvgMs=0.4, chunkUploadMaxMs=1.7, entityAvgMs=27.6, entityMaxMs=84.6, blockLayerAvgMs=0.5, blockLayerMaxMs=4.8, particleAvgMs=0.4, particleMaxMs=1.7, tileEntityAvgMs=23.2, tileEntityMaxMs=54.6, nameTagAvgMs=0.4, nameTagMaxMs=7.8, terrainCameraAvgMs=0.3, terrainCameraMaxMs=4.2, terrainCameraSamples=37, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=37, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=37, terrainCullingAvgMs=2.4, terrainCullingMaxMs=43.3, terrainCullingSamples=37, terrainBuildNearAvgMs=38.8, terrainBuildNearMaxMs=38.8, terrainBuildNearSamples=1, visibilityHits=694, visibilityMisses=272, visibilityInvalidations=42, visibilityRangeInvalidations=39, visibilityRangeRemovedEntries=179, visibilityRangeFailures=0, visibilityCacheEntries=50, visibilityGraphHits=220, visibilityGraphMisses=52, visibilityGraphFailures=0, visibilityGraphEntries=8, textWidthHits=269079, textWidthMisses=650, textWidthInvalidations=1, textWidthEntries=512, frames=37.
+[16:23:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:23:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:23:05] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:23:05] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:05] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:06] [Client thread/INFO]: [CHAT] + bror_brar is connected. (Java)
+[16:23:07] [Client thread/INFO]: [CHAT]  [BAKUSHIN] [Noble] Gens098 » aku afk bentar
+[16:23:08] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:09] [Client thread/INFO]: [CHAT] + SineX is connected. (Java)
+[Cylox Perf] avgFPS=19.4, frameAvgMs=51.5, frameMaxMs=159.3, terrainAvgMs=2.8, terrainMaxMs=63.5, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.0, entityAvgMs=13.0, entityMaxMs=85.8, blockLayerAvgMs=0.4, blockLayerMaxMs=3.6, particleAvgMs=0.3, particleMaxMs=4.4, tileEntityAvgMs=8.9, tileEntityMaxMs=38.1, nameTagAvgMs=0.4, nameTagMaxMs=5.0, terrainCameraAvgMs=0.2, terrainCameraMaxMs=8.7, terrainCameraSamples=62, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=62, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=62, terrainCullingAvgMs=2.5, terrainCullingMaxMs=63.4, terrainCullingSamples=62, terrainBuildNearAvgMs=49.5, terrainBuildNearMaxMs=56.9, terrainBuildNearSamples=2, visibilityHits=743, visibilityMisses=285, visibilityInvalidations=44, visibilityRangeInvalidations=41, visibilityRangeRemovedEntries=195, visibilityRangeFailures=0, visibilityCacheEntries=50, visibilityGraphHits=230, visibilityGraphMisses=55, visibilityGraphFailures=0, visibilityGraphEntries=8, textWidthHits=290481, textWidthMisses=661, textWidthInvalidations=1, textWidthEntries=512, frames=62.
+[16:23:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:23:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:12] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:12] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:12] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[Cylox Perf] avgFPS=19.3, frameAvgMs=51.8, frameMaxMs=119.4, terrainAvgMs=2.8, terrainMaxMs=62.4, chunkUploadAvgMs=0.4, chunkUploadMaxMs=1.6, entityAvgMs=7.2, entityMaxMs=18.1, blockLayerAvgMs=0.6, blockLayerMaxMs=4.0, particleAvgMs=0.5, particleMaxMs=2.8, tileEntityAvgMs=7.1, tileEntityMaxMs=17.2, nameTagAvgMs=0.4, nameTagMaxMs=2.3, terrainCameraAvgMs=0.3, terrainCameraMaxMs=4.1, terrainCameraSamples=59, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=59, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=59, terrainCullingAvgMs=2.5, terrainCullingMaxMs=62.4, terrainCullingSamples=59, terrainBuildNearAvgMs=61.9, terrainBuildNearMaxMs=61.9, terrainBuildNearSamples=1, visibilityHits=782, visibilityMisses=305, visibilityInvalidations=44, visibilityRangeInvalidations=41, visibilityRangeRemovedEntries=195, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=249, visibilityGraphMisses=56, visibilityGraphFailures=0, visibilityGraphEntries=9, textWidthHits=309071, textWidthMisses=663, textWidthInvalidations=1, textWidthEntries=512, frames=59.
+[16:23:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:15] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:15] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:16] [Client thread/INFO]: [CHAT]  [][Monarch] Mintkoala » ngurangin efek corrosion @.HardHD8259
+[16:23:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:18] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[Cylox Perf] avgFPS=25.3, frameAvgMs=39.6, frameMaxMs=107.4, terrainAvgMs=2.1, terrainMaxMs=10.8, chunkUploadAvgMs=0.4, chunkUploadMaxMs=2.7, entityAvgMs=0.1, entityMaxMs=0.1, blockLayerAvgMs=0.5, blockLayerMaxMs=2.3, particleAvgMs=0.7, particleMaxMs=3.5, tileEntityAvgMs=6.6, tileEntityMaxMs=15.7, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.2, terrainCameraMaxMs=4.4, terrainCameraSamples=78, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=78, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=78, terrainCullingAvgMs=1.9, terrainCullingMaxMs=10.7, terrainCullingSamples=78, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=837, visibilityMisses=328, visibilityInvalidations=45, visibilityRangeInvalidations=42, visibilityRangeRemovedEntries=214, visibilityRangeFailures=0, visibilityCacheEntries=47, visibilityGraphHits=272, visibilityGraphMisses=56, visibilityGraphFailures=0, visibilityGraphEntries=8, textWidthHits=331393, textWidthMisses=666, textWidthInvalidations=1, textWidthEntries=512, frames=78.
+[16:23:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:21] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [HOLIGANS] MasWily » gam bisa break
+[16:23:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:21] [Client thread/INFO]: [CHAT] 
+ AlwiNation » Server Guide
+ | New here? /guide shows every command,
+ | feature and menu of OneBlock in one place.
+ → Click to open the guide
+
+
+[16:23:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:22] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:23] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:23] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[Cylox Perf] avgFPS=13.5, frameAvgMs=73.9, frameMaxMs=592.5, terrainAvgMs=6.7, terrainMaxMs=144.8, chunkUploadAvgMs=0.4, chunkUploadMaxMs=1.7, entityAvgMs=0.1, entityMaxMs=0.2, blockLayerAvgMs=0.6, blockLayerMaxMs=5.5, particleAvgMs=1.9, particleMaxMs=40.9, tileEntityAvgMs=8.1, tileEntityMaxMs=30.2, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.5, terrainCameraMaxMs=6.9, terrainCameraSamples=42, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=42, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=42, terrainCullingAvgMs=6.2, terrainCullingMaxMs=144.8, terrainCullingSamples=42, terrainBuildNearAvgMs=72.4, terrainBuildNearMaxMs=134.1, terrainBuildNearSamples=2, visibilityHits=862, visibilityMisses=345, visibilityInvalidations=48, visibilityRangeInvalidations=45, visibilityRangeRemovedEntries=225, visibilityRangeFailures=0, visibilityCacheEntries=56, visibilityGraphHits=286, visibilityGraphMisses=59, visibilityGraphFailures=0, visibilityGraphEntries=8, textWidthHits=345767, textWidthMisses=679, textWidthInvalidations=1, textWidthEntries=512, frames=42.
+[16:23:24] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:24] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:25] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:25] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:25] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:26] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:26] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:26] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:27] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:27] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:27] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:27] [Client thread/INFO]: [CHAT]  [][Governor] .SyaaXHound » @.MasWily22 buat multitool mas [/recipe]
+[16:23:27] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:28] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:28] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:28] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:29] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:29] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[Cylox Perf] avgFPS=18.8, frameAvgMs=53.3, frameMaxMs=115.2, terrainAvgMs=4.5, terrainMaxMs=17.6, chunkUploadAvgMs=0.4, chunkUploadMaxMs=1.5, entityAvgMs=0.1, entityMaxMs=0.2, blockLayerAvgMs=0.5, blockLayerMaxMs=3.6, particleAvgMs=2.1, particleMaxMs=7.9, tileEntityAvgMs=5.7, tileEntityMaxMs=15.6, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.5, terrainCameraMaxMs=5.5, terrainCameraSamples=54, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=54, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=54, terrainCullingAvgMs=4.0, terrainCullingMaxMs=17.5, terrainCullingSamples=54, terrainBuildNearAvgMs=10.8, terrainBuildNearMaxMs=10.8, terrainBuildNearSamples=1, visibilityHits=884, visibilityMisses=377, visibilityInvalidations=49, visibilityRangeInvalidations=46, visibilityRangeRemovedEntries=233, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=315, visibilityGraphMisses=62, visibilityGraphFailures=0, visibilityGraphEntries=10, textWidthHits=358527, textWidthMisses=684, textWidthInvalidations=1, textWidthEntries=512, frames=54.
+[16:23:29] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:29] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:30] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:30] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:30] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:31] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:31] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:31] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:32] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:32] [Client thread/INFO]: [CHAT]  [][Citizen] Aher123 » ada lagi?
+[16:23:32] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:32] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:32] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:33] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:33] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:33] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:34] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:34] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[Cylox Perf] avgFPS=23.7, frameAvgMs=42.1, frameMaxMs=115.6, terrainAvgMs=3.7, terrainMaxMs=77.6, chunkUploadAvgMs=0.4, chunkUploadMaxMs=2.9, entityAvgMs=0.1, entityMaxMs=0.2, blockLayerAvgMs=0.6, blockLayerMaxMs=5.7, particleAvgMs=0.8, particleMaxMs=5.9, tileEntityAvgMs=3.4, tileEntityMaxMs=10.1, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.4, terrainCameraMaxMs=7.3, terrainCameraSamples=74, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=74, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=74, terrainCullingAvgMs=3.2, terrainCullingMaxMs=77.6, terrainCullingSamples=74, terrainBuildNearAvgMs=71.1, terrainBuildNearMaxMs=71.1, terrainBuildNearSamples=1, visibilityHits=926, visibilityMisses=409, visibilityInvalidations=54, visibilityRangeInvalidations=51, visibilityRangeRemovedEntries=255, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=345, visibilityGraphMisses=64, visibilityGraphFailures=0, visibilityGraphEntries=7, textWidthHits=369991, textWidthMisses=686, textWidthInvalidations=1, textWidthEntries=512, frames=74.
+[16:23:34] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:35] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:35] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [HOLIGANS] MasWily » sudah
+[16:23:35] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:35] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:35] [Client thread/INFO]: [CHAT]  [][Guardian] .HardHD8259 » ouu, oke makasih
+[16:23:36] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:36] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:36] [Client thread/INFO]: [CHAT]  [][Arch Duke] .AbasID2870 » udah
+[16:23:36] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:36] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:37] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:37] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:37] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:38] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:38] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:38] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:39] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:39] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=16.8, frameAvgMs=59.4, frameMaxMs=156.7, terrainAvgMs=7.6, terrainMaxMs=84.5, chunkUploadAvgMs=0.4, chunkUploadMaxMs=3.1, entityAvgMs=0.8, entityMaxMs=6.7, blockLayerAvgMs=1.5, blockLayerMaxMs=7.6, particleAvgMs=0.3, particleMaxMs=1.5, tileEntityAvgMs=7.2, tileEntityMaxMs=52.9, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.8, terrainCameraMaxMs=7.6, terrainCameraSamples=48, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.1, terrainRenderListSamples=48, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=48, terrainCullingAvgMs=6.8, terrainCullingMaxMs=80.2, terrainCullingSamples=48, terrainBuildNearAvgMs=63.1, terrainBuildNearMaxMs=73.8, terrainBuildNearSamples=3, visibilityHits=946, visibilityMisses=437, visibilityInvalidations=56, visibilityRangeInvalidations=53, visibilityRangeRemovedEntries=274, visibilityRangeFailures=0, visibilityCacheEntries=60, visibilityGraphHits=368, visibilityGraphMisses=69, visibilityGraphFailures=0, visibilityGraphEntries=10, textWidthHits=381532, textWidthMisses=692, textWidthInvalidations=1, textWidthEntries=512, frames=48.
+[16:23:39] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:39] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:40] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:41] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:42] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:42] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:42] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:43] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=22.3, frameAvgMs=44.9, frameMaxMs=126.1, terrainAvgMs=3.2, terrainMaxMs=71.8, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.4, entityAvgMs=0.1, entityMaxMs=0.2, blockLayerAvgMs=0.6, blockLayerMaxMs=3.7, particleAvgMs=0.3, particleMaxMs=1.7, tileEntityAvgMs=2.1, tileEntityMaxMs=6.1, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.4, terrainCameraMaxMs=7.2, terrainCameraSamples=75, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=75, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=75, terrainCullingAvgMs=2.8, terrainCullingMaxMs=71.7, terrainCullingSamples=75, terrainBuildNearAvgMs=62.1, terrainBuildNearMaxMs=62.1, terrainBuildNearSamples=1, visibilityHits=993, visibilityMisses=465, visibilityInvalidations=57, visibilityRangeInvalidations=54, visibilityRangeRemovedEntries=295, visibilityRangeFailures=0, visibilityCacheEntries=57, visibilityGraphHits=393, visibilityGraphMisses=72, visibilityGraphFailures=0, visibilityGraphEntries=12, textWidthHits=387307, textWidthMisses=692, textWidthInvalidations=1, textWidthEntries=512, frames=75.
+[16:23:44] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:45] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:46] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:47] [Client thread/INFO]: [CHAT] + BRIGIDAJA First time joined to AlwiNation!
+[16:23:47] [Client thread/INFO]: [CHAT] + BRIGIDAJA is connected. (Java)
+[16:23:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:47] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:48] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:48] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:48] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:49] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:49] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:49] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[Cylox Perf] avgFPS=23.9, frameAvgMs=41.8, frameMaxMs=127.8, terrainAvgMs=5.6, terrainMaxMs=74.7, chunkUploadAvgMs=0.8, chunkUploadMaxMs=6.5, entityAvgMs=0.4, entityMaxMs=1.0, blockLayerAvgMs=0.7, blockLayerMaxMs=6.7, particleAvgMs=0.4, particleMaxMs=2.6, tileEntityAvgMs=0.2, tileEntityMaxMs=1.3, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.5, terrainCameraMaxMs=11.4, terrainCameraSamples=72, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=72, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=72, terrainCullingAvgMs=5.1, terrainCullingMaxMs=74.6, terrainCullingSamples=72, terrainBuildNearAvgMs=52.6, terrainBuildNearMaxMs=62.5, terrainBuildNearSamples=2, visibilityHits=1033, visibilityMisses=497, visibilityInvalidations=60, visibilityRangeInvalidations=57, visibilityRangeRemovedEntries=310, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=422, visibilityGraphMisses=75, visibilityGraphFailures=0, visibilityGraphEntries=12, textWidthHits=389458, textWidthMisses=699, textWidthInvalidations=1, textWidthEntries=512, frames=72.
+[16:23:49] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:50] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:23:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:23:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.cloth
+[16:23:52] [Client thread/INFO]: [CHAT] + fnzldl is connected. (Java)
+[16:23:52] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:53] [Client thread/INFO]: [CHAT] - .xenomm4089 is disconnected. (Bedrock)
+[16:23:53] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:54] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:54] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[Cylox Perf] avgFPS=20.9, frameAvgMs=47.8, frameMaxMs=106.3, terrainAvgMs=2.8, terrainMaxMs=11.2, chunkUploadAvgMs=0.7, chunkUploadMaxMs=2.9, entityAvgMs=0.7, entityMaxMs=7.2, blockLayerAvgMs=2.6, blockLayerMaxMs=13.9, particleAvgMs=0.2, particleMaxMs=0.9, tileEntityAvgMs=6.9, tileEntityMaxMs=32.8, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=0.2, terrainCameraMaxMs=3.9, terrainCameraSamples=59, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=59, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=59, terrainCullingAvgMs=2.6, terrainCullingMaxMs=9.6, terrainCullingSamples=59, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=1076, visibilityMisses=513, visibilityInvalidations=62, visibilityRangeInvalidations=59, visibilityRangeRemovedEntries=325, visibilityRangeFailures=0, visibilityCacheEntries=63, visibilityGraphHits=435, visibilityGraphMisses=78, visibilityGraphFailures=0, visibilityGraphEntries=13, textWidthHits=407478, textWidthMisses=705, textWidthInvalidations=1, textWidthEntries=512, frames=59.
+[16:23:54] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:55] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:56] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.wood
+[16:23:57] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:58] [Client thread/INFO]: [CHAT]  [👑 The King 👑] [Adventurer] gxlexs » bang helper jual apa yang wort it buat nambah balance??
+[16:23:58] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:23:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:23:59] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=12.3, frameAvgMs=81.3, frameMaxMs=225.7, terrainAvgMs=15.1, terrainMaxMs=84.6, chunkUploadAvgMs=0.5, chunkUploadMaxMs=1.9, entityAvgMs=1.7, entityMaxMs=19.8, blockLayerAvgMs=2.9, blockLayerMaxMs=7.4, particleAvgMs=0.3, particleMaxMs=3.4, tileEntityAvgMs=16.6, tileEntityMaxMs=35.8, nameTagAvgMs=0.0, nameTagMaxMs=0.0, terrainCameraAvgMs=1.3, terrainCameraMaxMs=8.0, terrainCameraSamples=33, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=33, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=33, terrainCullingAvgMs=13.7, terrainCullingMaxMs=84.6, terrainCullingSamples=33, terrainBuildNearAvgMs=70.7, terrainBuildNearMaxMs=73.8, terrainBuildNearSamples=3, visibilityHits=1081, visibilityMisses=541, visibilityInvalidations=66, visibilityRangeInvalidations=63, visibilityRangeRemovedEntries=382, visibilityRangeFailures=0, visibilityCacheEntries=33, visibilityGraphHits=458, visibilityGraphMisses=83, visibilityGraphFailures=0, visibilityGraphEntries=12, textWidthHits=426974, textWidthMisses=711, textWidthInvalidations=1, textWidthEntries=512, frames=33.
+[16:24:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:00] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:01] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:02] [Client thread/INFO]: [CHAT] + RanzOp is connected. (Java)
+[16:24:03] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:03] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:03] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=9.5, frameAvgMs=104.7, frameMaxMs=982.6, terrainAvgMs=3.9, terrainMaxMs=17.1, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.7, entityAvgMs=10.9, entityMaxMs=122.1, blockLayerAvgMs=1.9, blockLayerMaxMs=8.4, particleAvgMs=0.4, particleMaxMs=11.1, tileEntityAvgMs=15.7, tileEntityMaxMs=35.0, nameTagAvgMs=0.6, nameTagMaxMs=0.9, terrainCameraAvgMs=0.8, terrainCameraMaxMs=6.6, terrainCameraSamples=34, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=34, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=34, terrainCullingAvgMs=3.1, terrainCullingMaxMs=10.4, terrainCullingSamples=34, terrainBuildNearAvgMs=0.0, terrainBuildNearMaxMs=0.0, terrainBuildNearSamples=0, visibilityHits=1087, visibilityMisses=569, visibilityInvalidations=66, visibilityRangeInvalidations=63, visibilityRangeRemovedEntries=382, visibilityRangeFailures=0, visibilityCacheEntries=61, visibilityGraphHits=484, visibilityGraphMisses=85, visibilityGraphFailures=0, visibilityGraphEntries=14, textWidthHits=451740, textWidthMisses=714, textWidthInvalidations=1, textWidthEntries=512, frames=34.
+[16:24:04] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:05] [Client thread/FATAL]: Error executing task
+java.util.concurrent.ExecutionException: java.lang.IllegalArgumentException: A team with the name 'typewriter-20274' already exists!
+	at java.util.concurrent.FutureTask.report(Unknown Source) ~[?:1.8.0_512-internal]
+	at java.util.concurrent.FutureTask.get(Unknown Source) ~[?:1.8.0_512-internal]
+	at g.a(SourceFile:45) [g.class:?]
+	at ave.av(SourceFile:881) [ave.class:?]
+	at ave.a(SourceFile:325) [ave.class:?]
+	at net.minecraft.client.main.Main.main(SourceFile:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_512-internal]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(Unknown Source) ~[?:1.8.0_512-internal]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(Unknown Source) ~[?:1.8.0_512-internal]
+	at java.lang.reflect.Method.invoke(Unknown Source) ~[?:1.8.0_512-internal]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+Caused by: java.lang.IllegalArgumentException: A team with the name 'typewriter-20274' already exists!
+	at auo.e(SourceFile:218) ~[auo.class:?]
+	at bcy.a(SourceFile:1362) ~[bcy.class:?]
+	at hr.a(SourceFile:113) ~[hr.class:?]
+	at hr.a(SourceFile:13) ~[hr.class:?]
+	at fh$1.run(SourceFile:13) ~[fh$1.class:?]
+	at java.util.concurrent.Executors$RunnableAdapter.call(Unknown Source) ~[?:1.8.0_512-internal]
+	at java.util.concurrent.FutureTask.run(Unknown Source) ~[?:1.8.0_512-internal]
+	at g.a(SourceFile:44) ~[g.class:?]
+	... 9 more
+[16:24:05] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:06] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:06] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:06] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:07] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:07] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:07] [Client thread/INFO]: [CHAT]  [][ALLFAKE] Piinokio » jual ore
+[16:24:07] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:08] [Client thread/INFO]: [CHAT] - RanzOp is disconnected. (Java)
+[16:24:08] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:08] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:09] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=10.2, frameAvgMs=97.8, frameMaxMs=246.0, terrainAvgMs=6.0, terrainMaxMs=81.4, chunkUploadAvgMs=0.5, chunkUploadMaxMs=2.9, entityAvgMs=26.3, entityMaxMs=136.5, blockLayerAvgMs=1.4, blockLayerMaxMs=5.5, particleAvgMs=0.2, particleMaxMs=0.8, tileEntityAvgMs=30.1, tileEntityMaxMs=67.0, nameTagAvgMs=0.5, nameTagMaxMs=2.5, terrainCameraAvgMs=0.8, terrainCameraMaxMs=5.2, terrainCameraSamples=35, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=35, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=35, terrainCullingAvgMs=5.1, terrainCullingMaxMs=81.3, terrainCullingSamples=35, terrainBuildNearAvgMs=69.9, terrainBuildNearMaxMs=69.9, terrainBuildNearSamples=1, visibilityHits=1090, visibilityMisses=601, visibilityInvalidations=68, visibilityRangeInvalidations=65, visibilityRangeRemovedEntries=387, visibilityRangeFailures=0, visibilityCacheEntries=62, visibilityGraphHits=512, visibilityGraphMisses=89, visibilityGraphFailures=0, visibilityGraphEntries=16, textWidthHits=476183, textWidthMisses=724, textWidthInvalidations=1, textWidthEntries=512, frames=35.
+[16:24:10] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:11] [Client thread/INFO]: [CHAT]  [ꜱᴛᴀꜰꜰ] [J-Helper] XyoNick » @gxlexs jual ore mas
+[16:24:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.grass
+[16:24:11] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:12] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:12] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:fire.fire
+[16:24:12] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:13] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:14] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:15] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=5.7, frameAvgMs=174.0, frameMaxMs=376.2, terrainAvgMs=53.9, terrainMaxMs=125.4, chunkUploadAvgMs=0.6, chunkUploadMaxMs=2.1, entityAvgMs=53.5, entityMaxMs=132.7, blockLayerAvgMs=0.9, blockLayerMaxMs=4.7, particleAvgMs=0.5, particleMaxMs=2.0, tileEntityAvgMs=28.2, tileEntityMaxMs=65.0, nameTagAvgMs=0.5, nameTagMaxMs=8.5, terrainCameraAvgMs=1.5, terrainCameraMaxMs=5.1, terrainCameraSamples=19, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=19, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=19, terrainCullingAvgMs=52.3, terrainCullingMaxMs=121.7, terrainCullingSamples=19, terrainBuildNearAvgMs=58.4, terrainBuildNearMaxMs=118.7, terrainBuildNearSamples=16, visibilityHits=1092, visibilityMisses=618, visibilityInvalidations=72, visibilityRangeInvalidations=69, visibilityRangeRemovedEntries=394, visibilityRangeFailures=0, visibilityCacheEntries=64, visibilityGraphHits=522, visibilityGraphMisses=96, visibilityGraphFailures=0, visibilityGraphEntries=19, textWidthHits=488591, textWidthMisses=727, textWidthInvalidations=1, textWidthEntries=512, frames=19.
+[16:24:15] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:16] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:17] [Client thread/INFO]: [CHAT] + _Lynxxz is connected. (Java)
+[16:24:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:random.bowhit
+[16:24:17] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:19] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[16:24:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:step.stone
+[Cylox Perf] avgFPS=9.1, frameAvgMs=110.3, frameMaxMs=257.6, terrainAvgMs=37.5, terrainMaxMs=83.0, chunkUploadAvgMs=0.3, chunkUploadMaxMs=0.8, entityAvgMs=18.5, entityMaxMs=64.4, blockLayerAvgMs=0.7, blockLayerMaxMs=5.2, particleAvgMs=0.6, particleMaxMs=3.8, tileEntityAvgMs=23.4, tileEntityMaxMs=76.8, nameTagAvgMs=0.5, nameTagMaxMs=10.6, terrainCameraAvgMs=0.5, terrainCameraMaxMs=3.8, terrainCameraSamples=28, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=28, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=28, terrainCullingAvgMs=37.0, terrainCullingMaxMs=82.9, terrainCullingSamples=28, terrainBuildNearAvgMs=39.4, terrainBuildNearMaxMs=74.1, terrainBuildNearSamples=25, visibilityHits=1105, visibilityMisses=633, visibilityInvalidations=77, visibilityRangeInvalidations=74, visibilityRangeRemovedEntries=402, visibilityRangeFailures=0, visibilityCacheEntries=62, visibilityGraphHits=535, visibilityGraphMisses=98, visibilityGraphFailures=0, visibilityGraphEntries=16, textWidthHits=497324, textWidthMisses=730, textWidthInvalidations=1, textWidthEntries=512, frames=28.
+[16:24:20] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:fire.fire
+[16:24:21] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:fire.fire
+[16:24:22] [Client thread/INFO]: [CHAT]  [][Citizen] Notpro1333 » oke
+[16:24:22] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:gui.button.press
+[Cylox] Multiplayer Cancel preserved at (337,212); Select placed at (416,212), width 95.
+[Cylox] Via initializer reached: available=true, candidate=io.netty.channel.socket.nio.NioSocketChannel
+[Cylox] Netty channel type verified: io.netty.channel.socket.nio.NioSocketChannel is instance of io.netty.channel.Channel.
+[Cylox] Vanilla Netty pipeline: [ek$5#0, timeout, splitter, decoder, prepender, encoder, packet_handler, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via Netty handlers active: [ek$5#0, timeout, splitter, via-decoder, decoder, prepender, via-encoder, encoder, packet_handler, MCPVLBPipeline#0, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via pipeline attached before initial handshake: 1.8.9 (protocol 47) -> 1.14 (protocol 477).
+[Cylox] Active Netty pipeline: [ek$5#0, timeout, splitter, via-decoder, decoder, prepender, via-encoder, encoder, packet_handler, MCPVLBPipeline#0, DefaultChannelPipeline$TailContext#0].
+[Cylox] Via handshake decision: client=1.8.x (47), target=1.14 (477), route=13 steps.
+[Cylox] OUTGOING HANDSHAKE AFTER VIA: protocol=477, target=1.14 (477).
+[Cylox] HANDSHAKE VERIFIED: selected protocol was written to the outgoing packet.
+[Cylox] Via handshake decision: client=1.8.x (47), target=1.14 (477), route=13 steps.
+[16:24:25] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:gui.button.press
+[Cylox Perf] avgFPS=28.9, frameAvgMs=34.6, frameMaxMs=115.3, terrainAvgMs=3.4, terrainMaxMs=60.2, chunkUploadAvgMs=0.2, chunkUploadMaxMs=0.8, entityAvgMs=11.3, entityMaxMs=18.0, blockLayerAvgMs=0.3, blockLayerMaxMs=1.3, particleAvgMs=0.3, particleMaxMs=0.7, tileEntityAvgMs=20.7, tileEntityMaxMs=26.8, nameTagAvgMs=0.3, nameTagMaxMs=1.1, terrainCameraAvgMs=0.0, terrainCameraMaxMs=0.0, terrainCameraSamples=20, terrainRenderListAvgMs=0.0, terrainRenderListMaxMs=0.0, terrainRenderListSamples=20, terrainCullPrepAvgMs=0.0, terrainCullPrepMaxMs=0.0, terrainCullPrepSamples=20, terrainCullingAvgMs=3.4, terrainCullingMaxMs=60.1, terrainCullingSamples=20, terrainBuildNearAvgMs=56.0, terrainBuildNearMaxMs=56.0, terrainBuildNearSamples=1, visibilityHits=1124, visibilityMisses=634, visibilityInvalidations=79, visibilityRangeInvalidations=76, visibilityRangeRemovedEntries=407, visibilityRangeFailures=0, visibilityCacheEntries=60, visibilityGraphHits=535, visibilityGraphMisses=99, visibilityGraphFailures=0, visibilityGraphEntries=15, textWidthHits=503215, textWidthMisses=756, textWidthInvalidations=1, textWidthEntries=512, frames=60.
+[16:24:26] [Client thread/WARN]: Unable to play unknown soundEvent: minecraft:gui.button.press
+[16:24:26] [Client thread/INFO]: Stopping!
+[16:24:26] [Client thread/INFO]: SoundSystem shutting down...
+[16:24:26] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
