@@ -1,6 +1,12 @@
 package dev.cylox.client.verify;
 
 import dev.cylox.client.minecraft189.CyloxClientTransformer;
+import dev.cylox.client.minecraft189.CyloxVisibilityCacheHooks;
+import dev.cylox.client.minecraft189.CyloxGraphicsPreset;
+import dev.cylox.client.minecraft189.CyloxTextWidthCache;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.BitSet;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -52,9 +58,312 @@ public final class Vanilla189Verifier {
         require("Cylox custom main menu", CyloxClientTransformer.getPatchedMainMenuClassCount());
         require("opt-in frame profiler", CyloxClientTransformer.getPatchedFrameProfileClassCount());
         require("opt-in terrain profiler", CyloxClientTransformer.getPatchedTerrainProfileClassCount());
+        require("opt-in terrain phase profiler", CyloxClientTransformer.getPatchedTerrainBreakdownClassCount());
         require("opt-in chunk-upload profiler", CyloxClientTransformer.getPatchedChunkUploadProfileClassCount());
+        require("terrain visibility cache", CyloxClientTransformer.getPatchedVisibilityCacheClassCount());
+        require("terrain visibility cache world invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
+        require("terrain visibility cache range invalidation", CyloxClientTransformer.getPatchedVisibilityRangeInvalidationClassCount());
+        require("near-chunk synchronous build radius limiter", CyloxClientTransformer.getPatchedNearBuildRadiusClassCount());
+        require("predictive ahead-of-motion chunk pre-build ordering", CyloxClientTransformer.getPatchedPredictiveChunkPrebuildClassCount());
+        require("terrain visibility graph snapshot cache", CyloxClientTransformer.getPatchedVisibilityGraphCacheClassCount());
+        require("entity render-view state reuse", CyloxClientTransformer.getPatchedEntitySleepingCacheClassCount());
+        require("player equipment slot bounds guard", CyloxClientTransformer.getPatchedPlayerEquipmentGuardClassCount());
+        require("opt-in entity renderer profiler", CyloxClientTransformer.getPatchedEntityProfileClassCount());
+        require("opt-in floating nameplate profiler", CyloxClientTransformer.getPatchedNameTagProfileClassCount());
+        require("FontRenderer text-width cache", CyloxClientTransformer.getPatchedFontWidthCacheClassCount());
+        require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
+        require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
+        verifyVisibilityCacheBehavior();
+        verifyVisibilityGraphSnapshotBehavior();
+        verifyVisibilityRangeInvalidationBehavior();
+        verifyTextWidthCacheBehavior();
+        verifyGraphicsPresetBehavior();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
+    }
+
+    private static void verifyVisibilityCacheBehavior() {
+        Object renderGlobal = new Object();
+        Set<String> expected = new HashSet<String>();
+        expected.add("north");
+        expected.add("south");
+
+        for (int i = 0; i < 64; i++) {
+            CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, Integer.valueOf(i), expected);
+        }
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 64) {
+            throw new IllegalStateException("Visibility cache did not retain exactly 64 entries");
+        }
+
+        Object oldest = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(oldest instanceof Set)) {
+            throw new IllegalStateException("Visibility cache missed the first stored entry");
+        }
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, Integer.valueOf(64), expected);
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 64
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(1)) != null) {
+            throw new IllegalStateException("Visibility cache did not evict its least-recently-used entry");
+        }
+
+        Object firstCopy = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(firstCopy instanceof Set) || firstCopy == expected || !expected.equals(firstCopy)) {
+            throw new IllegalStateException("Visibility cache did not return a defensive copy");
+        }
+        ((Set<?>) firstCopy).clear();
+        Object secondCopy = CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, Integer.valueOf(0));
+        if (!(secondCopy instanceof Set) || !expected.equals(secondCopy)) {
+            throw new IllegalStateException("Mutating a returned visibility set changed the cached value");
+        }
+
+        Object replacementRenderGlobal = new Object();
+        if (CyloxVisibilityCacheHooks.getCachedVisibleFacings(replacementRenderGlobal,
+                Integer.valueOf(0)) != null
+            || CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 0) {
+            throw new IllegalStateException("Visibility cache leaked entries across RenderGlobal instances");
+        }
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(replacementRenderGlobal);
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 0) {
+            throw new IllegalStateException("Visibility cache did not clear on invalidation");
+        }
+        System.out.println("[Cylox] Verified bounded 64-entry LRU visibility cache, defensive copies and invalidation.");
+    }
+
+    private static final class FakeVisGraph {
+        private final BitSet opaqueBlocks = new BitSet(4096);
+        private int remainingCount = 4096;
+
+        void markOpaque(int index) {
+            opaqueBlocks.set(index);
+            remainingCount--;
+        }
+
+        boolean isOpaque(int index) {
+            return opaqueBlocks.get(index);
+        }
+
+        int getRemainingCount() {
+            return remainingCount;
+        }
+    }
+
+    private static final class FakeBlockPos {
+        private final int x;
+        private final int y;
+        private final int z;
+
+        FakeBlockPos(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        public long toLong() {
+            long xMask = (1L << 26) - 1L;
+            long yMask = (1L << 12) - 1L;
+            long zMask = (1L << 26) - 1L;
+            return ((long) x & xMask) << 38
+                | ((long) y & yMask) << 26
+                | ((long) z & zMask);
+        }
+
+        @Override
+        public int hashCode() {
+            return (x * 31 + y) * 31 + z;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof FakeBlockPos)) return false;
+            FakeBlockPos that = (FakeBlockPos) other;
+            return x == that.x && y == that.y && z == that.z;
+        }
+    }
+
+    private static void verifyVisibilityRangeInvalidationBehavior() {
+        Object renderGlobal = new Object();
+        Set<String> facings = new HashSet<String>();
+        facings.add("north");
+        FakeBlockPos nearCameraA = new FakeBlockPos(1, 1, 1);
+        FakeBlockPos nearCameraB = new FakeBlockPos(15, 15, 15);
+        FakeBlockPos farCamera = new FakeBlockPos(33, 1, 1);
+        FakeBlockPos negativeCamera = new FakeBlockPos(-17, 1, 1);
+
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, nearCameraA, facings);
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, nearCameraB, facings);
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, farCamera, facings);
+        CyloxVisibilityCacheHooks.cacheVisibleFacings(renderGlobal, negativeCamera, facings);
+
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal,
+            new FakeBlockPos(0, 0, 0), new FakeVisGraph());
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal,
+            new FakeBlockPos(32, 0, 0), new FakeVisGraph());
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal,
+            new FakeBlockPos(-32, 0, 0), new FakeVisGraph());
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityRange(renderGlobal, 1, 1, 1, 1, 1, 1);
+
+        if (CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, nearCameraA) != null
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, nearCameraB) != null
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, farCamera) == null
+            || CyloxVisibilityCacheHooks.getCachedVisibleFacings(renderGlobal, negativeCamera) == null) {
+            throw new IllegalStateException("Range invalidation removed the wrong camera-block cache sections");
+        }
+
+        if (CyloxVisibilityCacheHooks.getCachedVisibilityGraph(renderGlobal,
+                new FakeBlockPos(0, 0, 0)) != null
+            || CyloxVisibilityCacheHooks.getCachedVisibilityGraph(renderGlobal,
+                new FakeBlockPos(32, 0, 0)) == null
+            || CyloxVisibilityCacheHooks.getCachedVisibilityGraph(renderGlobal,
+                new FakeBlockPos(-32, 0, 0)) == null) {
+            throw new IllegalStateException("Range invalidation removed the wrong VisGraph snapshots");
+        }
+        if (CyloxVisibilityCacheHooks.getVisibilityCacheSize() != 2
+            || CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 2) {
+            throw new IllegalStateException("Range invalidation did not retain unaffected cache entries");
+        }
+
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
+        System.out.println("[Cylox] Verified block-range invalidation preserves unaffected positive and negative VisGraph sections.");
+    }
+
+    private static void verifyVisibilityGraphSnapshotBehavior() {
+        Object renderGlobal = new Object();
+        Object sectionPosition = Integer.valueOf(256);
+        FakeVisGraph source = new FakeVisGraph();
+        source.markOpaque(5);
+        source.markOpaque(4090);
+
+        CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal, sectionPosition, source);
+        FakeVisGraph first = new FakeVisGraph();
+        if (!CyloxVisibilityCacheHooks.restoreCachedVisibilityGraph(renderGlobal, sectionPosition, first)
+            || first == source || !first.isOpaque(5) || !first.isOpaque(4090)
+            || first.getRemainingCount() != 4094) {
+            throw new IllegalStateException("Visibility graph snapshot did not restore the vanilla graph in place");
+        }
+
+        first.markOpaque(7);
+        FakeVisGraph second = new FakeVisGraph();
+        if (!CyloxVisibilityCacheHooks.restoreCachedVisibilityGraph(renderGlobal, sectionPosition, second)
+            || second.isOpaque(7) || !second.isOpaque(5) || !second.isOpaque(4090)
+            || second.getRemainingCount() != 4094) {
+            throw new IllegalStateException("Flood-fill mutation changed the pristine VisGraph snapshot");
+        }
+        if (CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 1) {
+            throw new IllegalStateException("Visibility graph snapshot cache size is incorrect");
+        }
+
+        if (CyloxVisibilityCacheHooks.restoreCachedVisibilityGraph(renderGlobal,
+                Integer.valueOf(512), new FakeVisGraph())) {
+            throw new IllegalStateException("Visibility graph restore should miss for an uncached section");
+        }
+        CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
+        if (CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 0) {
+            throw new IllegalStateException("Visibility graph snapshots were not cleared on invalidation");
+        }
+        System.out.println("[Cylox] Verified in-place VisGraph restore, pristine snapshots, isolated flood-fill and invalidation.");
+    }
+
+    private static void verifyTextWidthCacheBehavior() {
+        Object renderer = new Object();
+        String text = "\u00a7aLeaderboard";
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, false) != -1) {
+            throw new IllegalStateException("Text-width cache should miss before the first measurement");
+        }
+        CyloxTextWidthCache.cacheWidth(renderer, text, false, 73);
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, false) != 73) {
+            throw new IllegalStateException("Text-width cache did not return the stored width");
+        }
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, true) != -1) {
+            throw new IllegalStateException("Text-width cache reused a width across Unicode-font modes");
+        }
+        CyloxTextWidthCache.cacheWidth(renderer, text, true, 81);
+        if (CyloxTextWidthCache.getCachedWidth(renderer, text, true) != 81) {
+            throw new IllegalStateException("Text-width cache did not retain the Unicode-mode width");
+        }
+        if (CyloxTextWidthCache.getCachedWidth(new Object(), text, false) != -1) {
+            throw new IllegalStateException("Text-width cache reused measurements across FontRenderer instances");
+        }
+
+        Object boundedRenderer = new Object();
+        for (int i = 0; i < 513; i++) {
+            CyloxTextWidthCache.cacheWidth(boundedRenderer, "label-" + i, false, i);
+        }
+        if (CyloxTextWidthCache.getSize() > 512) {
+            throw new IllegalStateException("Text-width cache exceeded its 512-entry bound");
+        }
+        System.out.println("[Cylox] Verified FontRenderer-scoped text widths, Unicode isolation and 512-entry LRU bound.");
+    }
+
+    private static void verifyGraphicsPresetBehavior() throws Exception {
+        File root = java.nio.file.Files.createTempDirectory("cylox-graphics-preset").toFile();
+        File options = new File(root, "options.txt");
+        File cyloxDirectory = new File(root, "cylox");
+        File backup = new File(cyloxDirectory, "options-before-graphics-preset.txt");
+        try {
+            java.nio.file.Files.write(options.toPath(), java.util.Arrays.asList(
+                "renderDistance:3",
+                "fancyGraphics:false",
+                "ao:0",
+                "particles:2",
+                "entityShadows:false",
+                "renderClouds:false",
+                "mipmapLevels:0",
+                "maxFps:30",
+                "enableVsync:true",
+                "lang:en_US"
+            ), java.nio.charset.StandardCharsets.UTF_8);
+
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(root);
+            java.util.List<String> applied = java.nio.file.Files.readAllLines(
+                options.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            String[] expected = new String[] {
+                "renderDistance:16",
+                "fancyGraphics:true",
+                "ao:2",
+                "particles:0",
+                "entityShadows:true",
+                "renderClouds:true",
+                "mipmapLevels:4",
+                "maxFps:260",
+                "enableVsync:false",
+                "lang:en_US"
+            };
+            for (String entry : expected) {
+                if (!applied.contains(entry)) {
+                    throw new IllegalStateException("Graphics preset is missing expected setting: " + entry);
+                }
+            }
+            if (!backup.isFile()) throw new IllegalStateException("Original options.txt backup was not created");
+            java.util.List<String> original = java.nio.file.Files.readAllLines(
+                backup.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            if (!original.contains("renderDistance:3") || !original.contains("lang:en_US")) {
+                throw new IllegalStateException("Original options.txt backup did not preserve existing settings");
+            }
+
+            java.nio.file.Files.write(options.toPath(), java.util.Arrays.asList("renderDistance:4"),
+                java.nio.charset.StandardCharsets.UTF_8);
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(root);
+            java.util.List<String> afterSecondLaunch = java.nio.file.Files.readAllLines(
+                options.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            if (!afterSecondLaunch.contains("renderDistance:4")) {
+                throw new IllegalStateException("Graphics preset overwrote user settings after its first launch");
+            }
+            System.out.println("[Cylox] Verified one-time maximum graphics preset, options.txt backup and user-setting preservation.");
+        } finally {
+            deleteRecursively(root);
+        }
+    }
+
+    private static void deleteRecursively(File file) {
+        if (file == null || !file.exists()) return;
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) deleteRecursively(child);
+        }
+        if (!file.delete()) {
+            System.err.println("[Cylox] Could not remove verifier temporary file: " + file);
+        }
     }
 
     private static void verifyViaRewindEquipmentHook(File viaRewindJar) throws Exception {

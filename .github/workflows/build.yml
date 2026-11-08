@@ -2,7 +2,7 @@ name: Build Cylox Client — 1.8.9
 
 on:
   push:
-    branches: [main, perf/low-end-diagnostics-1.4.1]
+    branches: [main, perf/low-end-diagnostics-1.4.1, perf/render-engine-phase1-1.4.3]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -99,6 +99,9 @@ jobs:
           unzip -l "$JAR" | grep -q 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxPerformanceMonitor.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxTextWidthCache.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxGraphicsPreset.class'
           unzip -l "$JAR" | grep -q 'xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class'
           if unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxRenderHooks.class'; then
             echo "Unexpected custom terrain scratch hook in Cylox JAR"
@@ -122,6 +125,8 @@ jobs:
               "com/viaversion/viarewind/api/ViaRewindPlatform.class",
               "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class",
               "xyz/wagyourtail/jvmdg/j16/stub/java_base/J_L_Record.class",
+              "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks.class",
+              "dev/cylox/client/minecraft189/CyloxTextWidthCache.class",
           }
           checked = 0
           highest_major = 0
@@ -185,9 +190,10 @@ jobs:
           - Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads.
           - Preserves Minecraft 1.8.9's native near/far chunk-update scheduling; Cylox does not add a custom chunk queue or renderer.
           - Does not inject a custom terrain list or queue into RenderGlobal.setupTerrain; no renderer FPS gain is claimed without device measurements.
-          - Adds opt-in profiling for rendered-frame time, terrain setup/culling time and chunk-upload time; it is disabled by default and can be enabled with -Dcylox.profile=true.
+          - Adds opt-in profiling for rendered-frame time, terrain setup/culling, chunk upload, entity rendering, block layers and particles; it is disabled by default and can be enabled with -Dcylox.profile=true.
+          - Adds a bounded 64-entry LRU camera-block visibility cache to reuse RenderGlobal's opaque-block visibility graph at recently visited camera positions; the cache is invalidated by block-range updates and world replacement, and cached Sets are copied before vanilla may mutate them.
           - Profiling is diagnostic only: it does not change renderer scheduling, gameplay ticks or network handling, and this build does not claim an FPS increase.
-          - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Video Settings and options.txt are unchanged.
+          - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Adds a one-time max-graphics stress preset in options.txt (Fancy, 16 chunks, maximum smooth lighting, all particles, entity shadows/clouds on, mipmap 4, 260 FPS, VSync off), backing up existing settings to cylox/options-before-graphics-preset.txt and preserving later user edits.
           - Sizes Via's temporary packet buffers from the incoming packet length (minimum 256 bytes) to avoid unnecessary initial buffer growth; translated packets can still expand when required.
           - Java 8 compatibility builds are an upstream fallback and may continue to log that Java 8 is outside normal support. Real MJ Launcher testing is still required to confirm server packet compatibility.
           - Applies the selected Via target at startup or selector change; channel initialization reuses it instead of reloading Via's global protocol manager for every connection.

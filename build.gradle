@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.4.2'
+version = '1.4.6'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -114,11 +114,14 @@ sourceSets {
         java {
             srcDir 'src/minecraft189/java'
             include '**/CyloxTweaker.java'
+            include '**/CyloxGraphicsPreset.java'
             include '**/CyloxClientTransformer.java'
             include '**/CyloxBackgroundHooks.java'
             include '**/CyloxProtocolBridge.java'
             include '**/CyloxViaRewindHooks.java'
             include '**/CyloxPerformanceMonitor.java'
+            include '**/CyloxVisibilityCacheHooks.java'
+            include '**/CyloxTextWidthCache.java'
             include '**/CyloxUiHooks.java'
         }
         compileClasspath += sourceSets.main.output
