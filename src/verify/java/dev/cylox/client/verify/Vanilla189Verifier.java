@@ -4,6 +4,7 @@ import dev.cylox.client.minecraft189.CyloxClientTransformer;
 import dev.cylox.client.minecraft189.CyloxVisibilityCacheHooks;
 import dev.cylox.client.minecraft189.CyloxGraphicsPreset;
 import dev.cylox.client.minecraft189.CyloxTextWidthCache;
+import dev.cylox.client.minecraft189.CyloxCloudBatchHooks;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.BitSet;
@@ -78,13 +79,36 @@ public final class Vanilla189Verifier {
         require("opt-in cloud-check profiler", CyloxClientTransformer.getPatchedCloudsProfileClassCount());
         require("opt-in render-frame phase profiler", CyloxClientTransformer.getPatchedRenderFrameBreakdownClassCount());
         require("opt-in HUD overlay/chat profiler", CyloxClientTransformer.getPatchedGuiOverlayProfileClassCount());
+        require("vanilla Fancy Cloud tile draw batching", CyloxClientTransformer.getPatchedFancyCloudBatchClassCount());
+        require("opt-in scoreboard/player-list/title profiler", CyloxClientTransformer.getPatchedGuiDetailProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
         verifyVisibilityCacheBehavior();
         verifyVisibilityGraphSnapshotBehavior();
         verifyVisibilityRangeInvalidationBehavior();
         verifyTextWidthCacheBehavior();
+        verifyCloudBatchBehavior();
         verifyGraphicsPresetBehavior();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
+    }
+
+    private static void verifyCloudBatchBehavior() {
+        for (int pass = 0; pass < 2; pass++) {
+            for (int tile = 0; tile < 64; tile++) {
+                boolean shouldBegin = CyloxCloudBatchHooks.shouldBeginTile();
+                boolean shouldDraw = CyloxCloudBatchHooks.shouldDrawTile();
+                if (shouldBegin != (tile == 0)) {
+                    throw new IllegalStateException("Fancy Cloud batch begin gate was incorrect at tile " + tile);
+                }
+                if (shouldDraw != (tile == 63)) {
+                    throw new IllegalStateException("Fancy Cloud batch draw gate was incorrect at tile " + tile);
+                }
+            }
+            if (!CyloxCloudBatchHooks.shouldBeginTile()) {
+                throw new IllegalStateException("Fancy Cloud tile counter did not reset between passes");
+            }
+        }
+        CyloxCloudBatchHooks.reset();
+        System.out.println("[Cylox] Verified one begin/draw gate per 64-tile Fancy Cloud pass.");
     }
 
     private static void verifyVisibilityCacheBehavior() {
