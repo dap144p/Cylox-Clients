@@ -161,7 +161,7 @@ public final class CyloxPerformanceMonitor {
             nameTagCount++;
             nameTagTotalNanos += elapsed;
             if (elapsed > nameTagMaxNanos) nameTagMaxNanos = elapsed;
-        } else if (section >= WORLD_RENDER && section <= FRAME_SETUP) {
+        } else if (section >= WORLD_RENDER && section <= GUI_TITLE) {
             int extra = section - WORLD_RENDER;
             EXTRA_SECTION_COUNTS[extra]++;
             EXTRA_SECTION_TOTAL_NANOS[extra] += elapsed;
