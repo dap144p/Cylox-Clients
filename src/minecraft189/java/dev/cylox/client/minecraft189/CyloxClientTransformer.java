@@ -50,6 +50,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedEntityProfileClasses;
     private static volatile int patchedBlockLayerProfileClasses;
     private static volatile int patchedParticleProfileClasses;
+    private static volatile int patchedWorldRenderProfileClasses;
+    private static volatile int patchedWorldPassProfileClasses;
+    private static volatile int patchedCloudsProfileClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -93,6 +96,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedEntityProfileClasses = 0;
         patchedBlockLayerProfileClasses = 0;
         patchedParticleProfileClasses = 0;
+        patchedWorldRenderProfileClasses = 0;
+        patchedWorldPassProfileClasses = 0;
+        patchedCloudsProfileClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -124,6 +130,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedEntityProfileClassCount() { return patchedEntityProfileClasses; }
     public static int getPatchedBlockLayerProfileClassCount() { return patchedBlockLayerProfileClasses; }
     public static int getPatchedParticleProfileClassCount() { return patchedParticleProfileClasses; }
+    public static int getPatchedWorldRenderProfileClassCount() { return patchedWorldRenderProfileClasses; }
+    public static int getPatchedWorldPassProfileClassCount() { return patchedWorldPassProfileClasses; }
+    public static int getPatchedCloudsProfileClassCount() { return patchedCloudsProfileClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -161,6 +170,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean entityProfilePatched = false;
             boolean blockLayerProfilePatched = false;
             boolean particleProfilePatched = false;
+            boolean worldRenderProfilePatched = false;
+            boolean worldPassProfilePatched = false;
+            boolean cloudsProfilePatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
             boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png")
@@ -374,6 +386,31 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
+            if (frameProfilePatched) {
+                for (MethodNode method : node.methods) {
+                    if (!worldRenderProfilePatched && "(FJ)V".equals(method.desc)
+                        && hasMarkers(method, "center")
+                        && hasMethodCallDescriptor(method, "(IFJ)V")) {
+                        insertTimedSection(method, 13);
+                        worldRenderProfilePatched = true;
+                        changed = true;
+                    }
+                    if (!worldPassProfilePatched && isWorldPassMethod(method)) {
+                        if (!insertWorldPassBreakdown(method)) {
+                            throw new IllegalStateException("Could not safely locate vanilla world-render profiler transitions");
+                        }
+                        insertTimedSection(method, 14);
+                        worldPassProfilePatched = true;
+                        changed = true;
+                    }
+                    if (!cloudsProfilePatched && isCloudsCheckMethod(method)) {
+                        insertTimedSection(method, 26);
+                        cloudsProfilePatched = true;
+                        changed = true;
+                    }
+                }
+            }
+
             if (fontRendererClass && fontUnicodeField != null) {
                 for (MethodNode method : node.methods) {
                     if ((method.access & Opcodes.ACC_STATIC) == 0 && isStringWidthMethod(node, method)) {
@@ -470,6 +507,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (entityProfilePatched) patchedEntityProfileClasses++;
             if (blockLayerProfilePatched) patchedBlockLayerProfileClasses++;
             if (particleProfilePatched) patchedParticleProfileClasses++;
+            if (worldRenderProfilePatched) patchedWorldRenderProfileClasses++;
+            if (worldPassProfilePatched) patchedWorldPassProfileClasses++;
+            if (cloudsProfilePatched) patchedCloudsProfileClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -497,6 +537,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (entityProfilePatched) System.out.println("[Cylox] Opt-in entity renderer profiler injected: " + node.name);
             if (blockLayerProfilePatched) System.out.println("[Cylox] Opt-in block-layer profiler injected: " + node.name);
             if (particleProfilePatched) System.out.println("[Cylox] Opt-in particle profiler injected: " + node.name);
+            if (worldRenderProfilePatched) System.out.println("[Cylox] Opt-in whole-world renderer profiler injected: " + node.name);
+            if (worldPassProfilePatched) System.out.println("[Cylox] Opt-in world-pass phase profiler injected: " + node.name);
+            if (cloudsProfilePatched) System.out.println("[Cylox] Opt-in cloud-check profiler injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -1475,6 +1518,88 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
      * Hooks are placed only at section transitions already present in 1.8.9;
      * no traversal, chunk scheduling, or render decisions are changed.
      */
+    private static boolean isWorldPassMethod(MethodNode method) {
+        return Type.getReturnType(method.desc).getSort() == Type.VOID
+            && "(IFJ)V".equals(method.desc)
+            && hasMarkers(method, "clear", "sky", "prepareterrain", "terrain_setup",
+                "updatechunks", "terrain", "entities", "litParticles", "particles",
+                "weather", "translucent", "aboveClouds", "hand");
+    }
+
+    private static boolean isCloudsCheckMethod(MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0
+            || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        return arguments.length == 3 && arguments[0].getSort() == Type.OBJECT
+            && arguments[1].getSort() == Type.FLOAT && arguments[2].getSort() == Type.INT
+            && hasMarkers(method, "clouds") && hasMethodCallDescriptor(method, "(FI)V");
+    }
+
+    private static boolean insertWorldPassBreakdown(MethodNode method) {
+        MethodInsnNode clearStart = findProfilerStringCall(method, "clear");
+        MethodInsnNode skyStart = findProfilerStringCall(method, "sky");
+        MethodInsnNode prepareTerrainStart = findProfilerStringCall(method, "prepareterrain");
+        MethodInsnNode terrainSetupStart = findProfilerStringCall(method, "terrain_setup");
+        MethodInsnNode terrainStart = findProfilerStringCall(method, "terrain");
+        MethodInsnNode entitiesStart = findProfilerStringCall(method, "entities");
+        MethodInsnNode litParticlesStart = findProfilerStringCall(method, "litParticles");
+        MethodInsnNode particlesStart = findProfilerStringCall(method, "particles");
+        MethodInsnNode weatherStart = findProfilerStringCall(method, "weather");
+        MethodInsnNode translucentStart = findProfilerStringCall(method, "translucent");
+        MethodInsnNode aboveCloudsStart = findProfilerStringCall(method, "aboveClouds");
+        MethodInsnNode handStart = findProfilerStringCall(method, "hand");
+        if (clearStart == null || skyStart == null || prepareTerrainStart == null
+            || terrainSetupStart == null || terrainStart == null || entitiesStart == null
+            || litParticlesStart == null || particlesStart == null || weatherStart == null
+            || translucentStart == null || aboveCloudsStart == null || handStart == null) return false;
+
+        insertTerrainSectionBeginAfter(method, clearStart, 15);
+        insertTerrainSectionEndBefore(method, skyStart, 15);
+        insertTerrainSectionBeginAfter(method, skyStart, 16);
+        insertTerrainSectionEndBefore(method, prepareTerrainStart, 16);
+        insertTerrainSectionBeginAfter(method, terrainSetupStart, 17);
+        insertTerrainSectionEndBefore(method, terrainStart, 17);
+        insertTerrainSectionBeginAfter(method, terrainStart, 18);
+        insertTerrainSectionEndBefore(method, entitiesStart, 18);
+        insertTerrainSectionBeginAfter(method, entitiesStart, 19);
+        insertTerrainSectionEndBefore(method, litParticlesStart, 19);
+        insertTerrainSectionEndBefore(method, weatherStart, 19);
+        insertTerrainSectionBeginAfter(method, litParticlesStart, 20);
+        insertTerrainSectionEndBefore(method, particlesStart, 20);
+        insertTerrainSectionEndBefore(method, weatherStart, 20);
+        insertTerrainSectionBeginAfter(method, particlesStart, 21);
+        insertTerrainSectionEndBefore(method, weatherStart, 21);
+        insertTerrainSectionBeginAfter(method, weatherStart, 22);
+        insertTerrainSectionEndBefore(method, translucentStart, 22);
+        insertTerrainSectionBeginAfter(method, translucentStart, 23);
+        insertTerrainSectionEndBefore(method, aboveCloudsStart, 23);
+        insertTerrainSectionEndBefore(method, handStart, 23);
+        insertTerrainSectionBeginAfter(method, aboveCloudsStart, 24);
+        insertTerrainSectionEndBefore(method, handStart, 24);
+        insertTerrainSectionBeginAfter(method, handStart, 25);
+        insertSectionEndBeforeReturns(method, 25);
+        return true;
+    }
+
+    private static void insertSectionEndBeforeReturns(MethodNode method, int section) {
+        java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            int opcode = instruction.getOpcode();
+            if (opcode == Opcodes.IRETURN || opcode == Opcodes.LRETURN || opcode == Opcodes.FRETURN
+                || opcode == Opcodes.DRETURN || opcode == Opcodes.ARETURN || opcode == Opcodes.RETURN) {
+                returns.add(instruction);
+            }
+        }
+        for (AbstractInsnNode instruction : returns) {
+            InsnList end = new InsnList();
+            end.add(new LdcInsnNode(Integer.valueOf(section)));
+            end.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+                "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
+            method.instructions.insertBefore(instruction, end);
+        }
+    }
+
     private static boolean insertTerrainBreakdown(MethodNode method) {
         MethodInsnNode cameraStart = findProfilerStringCall(method, "camera");
         MethodInsnNode renderListStart = findProfilerStringCall(method, "renderlistcamera");

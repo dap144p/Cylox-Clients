@@ -174,7 +174,9 @@ jobs:
           NOTES="$(cat <<EOF
           Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla terrain traversal and Via equipment handling.
 
-          - Adds opt-in heap telemetry to the five-second `[Cylox Perf]` report: sampled average/peak used heap, current/peak committed heap and maximum heap. Sampling is enabled only with `-Dcylox.profile=true`; no GC policy or gameplay behavior is changed.
+          - Adds opt-in world-render diagnostics to the five-second `[Cylox Perf]` report: whole renderWorld and renderWorldPass duration plus camera/culling, sky/cloud, terrain preparation/layers, entity, particle, weather, translucent, above-cloud and hand phases. The cloud-check timer is nested inside the relevant sky/cloud phase; do not add the nested metrics together.
+          - Uses only existing vanilla 1.8.9 profiler transitions and preserves all render operations, chunk scheduling, gameplay ticks and networking. Diagnostics are enabled only with `-Dcylox.profile=true`; no FPS gain is claimed until the new measurements identify a concrete bottleneck.
+          - Retains the opt-in heap telemetry added in v1.4.7: sampled average/peak used heap, current/peak committed heap and maximum heap. No GC policy or gameplay behavior is changed.
           - Bundles ViaVersion 5.12.3-SNAPSHOT (upstream Java 8 CI build #55), ViaBackwards 5.12.3-SNAPSHOT (build #45), and the established ViaRewind 4.2.0 Java 8 compatibility build #39 inside the single Cylox client JAR.
           - Includes the JavaDowngrader 2.0.1 Java 8 API stubs at their required root package path so ViaRewind's Java 8-transformed classes can resolve them; CI checks the J_L_Record class and Java 8 bytecode compatibility.
           - Applies ViaRewind commit f6424ddb565b9350cc347ce43f67c7e608767499 to the embedded 4.2.0 class at load time, cancelling redundant local-player equipment packets in the 1.9-to-1.8 translation.

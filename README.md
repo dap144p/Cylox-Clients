@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.7  
+**Version:** 1.4.8  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -104,6 +104,14 @@ This is not an Android background service. The launcher must keep the game proce
 - Does not change the garbage collector, heap allocation limit, chunk workers, renderer scheduling, graphics settings, gameplay ticks, or network behavior.
 - Use these measurements alongside tile-entity and block-layer timings to distinguish heap pressure from render-thread work.
 - Diagnostics only; no FPS or RAM reduction is claimed. Confirm memory and stability on MJ Launcher and the target Android device.
+
+## World-render phase diagnostics (1.4.8)
+
+- Extends the opt-in Cylox Perf report with the whole renderWorld and renderWorldPass durations, plus per-phase measurements for pre-sky camera/culling work, sky/cloud preparation, terrain preparation, opaque terrain layers, entities, lit particles, particles, weather, translucent terrain, above-cloud rendering, and first-person hand rendering.
+- Adds a separate timing for the cloud-check/render method. It is nested inside worldSkyClouds or worldAboveClouds; do not add the nested timings together.
+- Uses the existing vanilla 1.8.9 profiler transition markers in EntityRenderer; it does not skip, reorder, or replace any world-render operation.
+- All added timings remain disabled unless -Dcylox.profile=true is set. No video settings, renderer behavior, ticks, chunk scheduling, or network handling are changed.
+- Diagnostic only: this version does not claim an FPS increase. Use the new breakdown from comparable hub and OneBlock scenes to select the next targeted optimization.
 
 ## Low-stall nearby chunk rebuilds — beta follow-up
 

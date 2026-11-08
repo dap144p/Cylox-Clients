@@ -23,16 +23,38 @@ public final class CyloxPerformanceMonitor {
     private static final int TERRAIN_BUILD_NEAR = 10;
     private static final int TILE_ENTITIES = 11;
     private static final int NAME_TAG = 12;
+    private static final int WORLD_RENDER = 13;
+    private static final int WORLD_PASS = 14;
+    private static final int WORLD_PRE_SKY = 15;
+    private static final int WORLD_SKY_CLOUDS = 16;
+    private static final int WORLD_PREPARE_TERRAIN = 17;
+    private static final int WORLD_OPAQUE_TERRAIN = 18;
+    private static final int WORLD_ENTITIES = 19;
+    private static final int WORLD_LIT_PARTICLES = 20;
+    private static final int WORLD_PARTICLES = 21;
+    private static final int WORLD_WEATHER = 22;
+    private static final int WORLD_TRANSLUCENT = 23;
+    private static final int WORLD_ABOVE_CLOUDS = 24;
+    private static final int WORLD_HAND = 25;
+    private static final int CLOUDS_CHECK = 26;
+    private static final String[] EXTRA_SECTION_NAMES = {
+        "worldRender", "worldPass", "worldPreSky", "worldSkyClouds", "worldPrepareTerrain",
+        "worldOpaqueTerrain", "worldEntities", "worldLitParticles", "worldParticles",
+        "worldWeather", "worldTranslucent", "worldAboveClouds", "worldHand", "cloudsCheck"
+    };
 
     private static final ThreadLocal<long[]> START_TIMES = new ThreadLocal<long[]>() {
         @Override
         protected long[] initialValue() {
-            return new long[13];
+            return new long[27];
         }
     };
     private static final long[] TERRAIN_DETAIL_COUNTS = new long[5];
     private static final long[] TERRAIN_DETAIL_TOTAL_NANOS = new long[5];
     private static final long[] TERRAIN_DETAIL_MAX_NANOS = new long[5];
+    private static final long[] EXTRA_SECTION_COUNTS = new long[EXTRA_SECTION_NAMES.length];
+    private static final long[] EXTRA_SECTION_TOTAL_NANOS = new long[EXTRA_SECTION_NAMES.length];
+    private static final long[] EXTRA_SECTION_MAX_NANOS = new long[EXTRA_SECTION_NAMES.length];
 
     private static long windowStartedAt = System.nanoTime();
     private static long frameCount;
@@ -86,12 +108,12 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void beginSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > NAME_TAG) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > CLOUDS_CHECK) return;
         START_TIMES.get()[section] = System.nanoTime();
     }
 
     public static void endSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > NAME_TAG) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > CLOUDS_CHECK) return;
         long[] starts = START_TIMES.get();
         long start = starts[section];
         starts[section] = 0L;
@@ -125,6 +147,11 @@ public final class CyloxPerformanceMonitor {
             nameTagCount++;
             nameTagTotalNanos += elapsed;
             if (elapsed > nameTagMaxNanos) nameTagMaxNanos = elapsed;
+        } else if (section >= WORLD_RENDER && section <= CLOUDS_CHECK) {
+            int extra = section - WORLD_RENDER;
+            EXTRA_SECTION_COUNTS[extra]++;
+            EXTRA_SECTION_TOTAL_NANOS[extra] += elapsed;
+            if (elapsed > EXTRA_SECTION_MAX_NANOS[extra]) EXTRA_SECTION_MAX_NANOS[extra] = elapsed;
         } else {
             int detail = section - TERRAIN_CAMERA;
             if (detail < 0 || detail >= TERRAIN_DETAIL_COUNTS.length) return;
@@ -188,6 +215,7 @@ public final class CyloxPerformanceMonitor {
             + ", terrainBuildNearAvgMs=" + detailAverage(4)
             + ", terrainBuildNearMaxMs=" + detailMaximum(4)
             + ", terrainBuildNearSamples=" + TERRAIN_DETAIL_COUNTS[4]
+            + extraSectionFields()
             + ", visibilityHits=" + CyloxVisibilityCacheHooks.getVisibilityCacheHits()
             + ", visibilityMisses=" + CyloxVisibilityCacheHooks.getVisibilityCacheMisses()
             + ", visibilityInvalidations=" + CyloxVisibilityCacheHooks.getVisibilityCacheInvalidations()
@@ -234,11 +262,29 @@ public final class CyloxPerformanceMonitor {
         heapTotalUsedBytes = 0L;
         heapPeakUsedBytes = 0L;
         heapPeakCommittedBytes = 0L;
+        for (int i = 0; i < EXTRA_SECTION_COUNTS.length; i++) {
+            EXTRA_SECTION_COUNTS[i] = 0L;
+            EXTRA_SECTION_TOTAL_NANOS[i] = 0L;
+            EXTRA_SECTION_MAX_NANOS[i] = 0L;
+        }
         for (int i = 0; i < TERRAIN_DETAIL_COUNTS.length; i++) {
             TERRAIN_DETAIL_COUNTS[i] = 0L;
             TERRAIN_DETAIL_TOTAL_NANOS[i] = 0L;
             TERRAIN_DETAIL_MAX_NANOS[i] = 0L;
         }
+    }
+
+    private static String extraSectionFields() {
+        StringBuilder fields = new StringBuilder();
+        for (int i = 0; i < EXTRA_SECTION_NAMES.length; i++) {
+            fields.append(", ").append(EXTRA_SECTION_NAMES[i]).append("AvgMs=")
+                .append(oneDecimal(averageMillis(EXTRA_SECTION_TOTAL_NANOS[i], EXTRA_SECTION_COUNTS[i])))
+                .append(", ").append(EXTRA_SECTION_NAMES[i]).append("MaxMs=")
+                .append(oneDecimal(EXTRA_SECTION_MAX_NANOS[i] / 1_000_000.0D))
+                .append(", ").append(EXTRA_SECTION_NAMES[i]).append("Samples=")
+                .append(EXTRA_SECTION_COUNTS[i]);
+        }
+        return fields.toString();
     }
 
     private static void sampleHeap() {

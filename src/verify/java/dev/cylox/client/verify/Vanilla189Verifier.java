@@ -73,6 +73,9 @@ public final class Vanilla189Verifier {
         require("FontRenderer text-width cache", CyloxClientTransformer.getPatchedFontWidthCacheClassCount());
         require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
         require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
+        require("opt-in whole-world renderer profiler", CyloxClientTransformer.getPatchedWorldRenderProfileClassCount());
+        require("opt-in world-pass phase profiler", CyloxClientTransformer.getPatchedWorldPassProfileClassCount());
+        require("opt-in cloud-check profiler", CyloxClientTransformer.getPatchedCloudsProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
         verifyVisibilityCacheBehavior();
         verifyVisibilityGraphSnapshotBehavior();
