@@ -97,6 +97,13 @@ This is not an Android background service. The launcher must keep the game proce
 - Preserves vanilla BFS traversal, frustum decisions, render queues, chunk scheduling, chunk uploads, entity drawing, tile-entity drawing, scoreboard teams, hologram text and Via/network behavior. No entities or holograms are hidden, skipped or distance-limited.
 - These are conservative CPU-side reuse optimizations. They do not claim a measured FPS increase; compare logs on the same device, server location, renderer and scene before judging the result.
 
+## Scoreboard team packet safety (1.4.7)
+
+- Makes duplicate vanilla team-create operations idempotent: an existing team is reused and the packet's normal display fields and member list are still applied.
+- Makes stale team removals safe: removing an unknown team or removing a player who is not currently assigned to the packet's team becomes a no-op instead of throwing from the vanilla scoreboard.
+- The guards are limited to the 1.8.9 scoreboard's team create/remove methods. They do not hide scoreboard text, teams, nameplates or holograms, and do not change Via translation or packet ordering.
+- This handles duplicate/stale team state operations seen in the supplied logs; it does not prove or repair the server plugin that emitted them. Re-test on the same server before treating compatibility as confirmed.
+
 ## Low-stall nearby chunk rebuilds — beta follow-up
 
 - Narrows vanilla's synchronous near-build predicate from 16 to 8 blocks on each axis. Since render-section origins are 16 blocks apart, only the section containing the player can use the blocking `updateChunkNow` path.
