@@ -690,7 +690,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
         for (MethodNode method : owner.methods) {
             if (!targetDescriptor.equals(method.desc)
-                || findUniqueMethodCallName(method, teamInternalName, "()Ljava/lang/String;") == null
+                || !hasMethodCallDescriptor(method, "()Ljava/lang/String;")
+                || !hasMethodCallDescriptor(method, "()Ljava/util/Collection;")
                 || !hasMethodCall(method, "java/util/Map", "(Ljava/lang/Object;)Ljava/lang/Object;")) {
                 continue;
             }
