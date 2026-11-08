@@ -73,6 +73,9 @@ public final class Vanilla189Verifier {
         require("FontRenderer text-width cache", CyloxClientTransformer.getPatchedFontWidthCacheClassCount());
         require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
         require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
+        require("scoreboard duplicate-team create guard", CyloxClientTransformer.getPatchedScoreboardTeamCreateGuardClassCount());
+        require("scoreboard null-team removal guard", CyloxClientTransformer.getPatchedScoreboardTeamRemoveGuardClassCount());
+        require("scoreboard membership removal guard", CyloxClientTransformer.getPatchedScoreboardMemberRemoveGuardClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
         verifyVisibilityCacheBehavior();
         verifyVisibilityGraphSnapshotBehavior();
