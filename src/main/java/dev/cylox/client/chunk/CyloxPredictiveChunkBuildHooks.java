@@ -24,6 +24,7 @@ public final class CyloxPredictiveChunkBuildHooks {
     private static final Map<Object, MotionState> MOTION =
         new WeakHashMap<Object, MotionState>();
     private static volatile ChunkQueueAccessor cachedAccessor;
+    private static volatile YawAccessor cachedYawAccessor;
 
     private CyloxPredictiveChunkBuildHooks() { }
 
@@ -34,6 +35,7 @@ public final class CyloxPredictiveChunkBuildHooks {
 
         double directionX;
         double directionZ;
+        boolean cameraBased;
         long now = System.nanoTime();
 
         synchronized (MOTION) {
@@ -41,53 +43,61 @@ public final class CyloxPredictiveChunkBuildHooks {
             if (state == null || state.viewEntity.get() != viewEntity) {
                 state = new MotionState(viewEntity, playerX, playerZ);
                 MOTION.put(renderGlobal, state);
-                return;
-            }
+            } else {
+                double dx = playerX - state.lastX;
+                double dz = playerZ - state.lastZ;
+                state.lastX = playerX;
+                state.lastZ = playerZ;
+                double movementSquared = dx * dx + dz * dz;
 
-            double dx = playerX - state.lastX;
-            double dz = playerZ - state.lastZ;
-            state.lastX = playerX;
-            state.lastZ = playerZ;
-            double movementSquared = dx * dx + dz * dz;
+                // A large position jump is a teleport/respawn, not a useful prediction.
+                if (movementSquared > 64.0D) {
+                    state.directionX = 0.0D;
+                    state.directionZ = 0.0D;
+                    state.lastMovementNanos = 0L;
+                } else if (movementSquared >= 0.0004D) {
+                    double length = Math.sqrt(movementSquared);
+                    double nextX = dx / length;
+                    double nextZ = dz / length;
+                    double dot = state.directionX * nextX + state.directionZ * nextZ;
 
-            // A large position jump is a teleport/respawn, not a useful prediction.
-            if (movementSquared > 64.0D) {
-                state.directionX = 0.0D;
-                state.directionZ = 0.0D;
-                state.lastMovementNanos = 0L;
-            } else if (movementSquared >= 0.0004D) {
-                double length = Math.sqrt(movementSquared);
-                double nextX = dx / length;
-                double nextZ = dz / length;
-                double dot = state.directionX * nextX + state.directionZ * nextZ;
-
-                if (state.lastMovementNanos == 0L || dot < 0.35D) {
-                    state.directionX = nextX;
-                    state.directionZ = nextZ;
-                } else {
-                    double smoothX = state.directionX * 0.65D + nextX * 0.35D;
-                    double smoothZ = state.directionZ * 0.65D + nextZ * 0.35D;
-                    double smoothLength = Math.sqrt(smoothX * smoothX + smoothZ * smoothZ);
-                    if (smoothLength > 0.0001D) {
-                        state.directionX = smoothX / smoothLength;
-                        state.directionZ = smoothZ / smoothLength;
+                    if (state.lastMovementNanos == 0L || dot < 0.35D) {
+                        state.directionX = nextX;
+                        state.directionZ = nextZ;
+                    } else {
+                        double smoothX = state.directionX * 0.65D + nextX * 0.35D;
+                        double smoothZ = state.directionZ * 0.65D + nextZ * 0.35D;
+                        double smoothLength = Math.sqrt(smoothX * smoothX + smoothZ * smoothZ);
+                        if (smoothLength > 0.0001D) {
+                            state.directionX = smoothX / smoothLength;
+                            state.directionZ = smoothZ / smoothLength;
+                        }
                     }
+                    state.lastMovementNanos = now;
                 }
-                state.lastMovementNanos = now;
             }
 
             if (state.lastMovementNanos == 0L
                 || now - state.lastMovementNanos > 500000000L) {
                 state.directionX = 0.0D;
                 state.directionZ = 0.0D;
+                state.lastMovementNanos = 0L;
             }
 
-            directionX = state.directionX;
-            directionZ = state.directionZ;
             if (now - state.lastPriorityNanos < 100000000L) return;
             state.lastPriorityNanos = now;
+
+            cameraBased = state.lastMovementNanos == 0L;
+            directionX = state.directionX;
+            directionZ = state.directionZ;
         }
 
+        if (cameraBased) {
+            double[] cameraDirection = new double[2];
+            if (!readCameraDirection(viewEntity, cameraDirection)) return;
+            directionX = cameraDirection[0];
+            directionZ = cameraDirection[1];
+        }
         if (directionX * directionX + directionZ * directionZ < 0.5D) return;
 
         try {
@@ -98,11 +108,60 @@ public final class CyloxPredictiveChunkBuildHooks {
 
             @SuppressWarnings("unchecked")
             Set<Object> chunks = (Set<Object>) value;
-            prioritizeAhead(chunks, playerX, playerZ, directionX, directionZ,
-                accessor.positionAccess);
+            if (cameraBased) {
+                prioritizeByCamera(chunks, playerX, playerZ, directionX, directionZ,
+                    accessor.positionAccess);
+            } else {
+                prioritizeAhead(chunks, playerX, playerZ, directionX, directionZ,
+                    accessor.positionAccess);
+            }
         } catch (Exception ignored) {
             // Optional scheduling optimization: always fall back to vanilla order.
         }
+    }
+
+    private static boolean readCameraDirection(Object viewEntity, double[] direction) {
+        try {
+            YawAccessor accessor = getYawAccessor(viewEntity.getClass());
+            if (accessor == null || accessor.yawField == null) return false;
+            float yaw = accessor.yawField.getFloat(viewEntity);
+            if (Float.isNaN(yaw) || Float.isInfinite(yaw)) return false;
+
+            double radians = Math.toRadians((double) yaw);
+            // Minecraft yaw 0 faces +Z; positive yaw rotates toward -X.
+            direction[0] = -Math.sin(radians);
+            direction[1] = Math.cos(radians);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static YawAccessor getYawAccessor(Class<?> entityClass) {
+        YawAccessor current = cachedYawAccessor;
+        if (current != null && current.entityClass == entityClass) return current;
+
+        String[] fieldNames = new String[] {"rotationYaw", "field_70177_z", "y"};
+        Field found = null;
+        for (Class<?> type = entityClass; type != null && found == null; type = type.getSuperclass()) {
+            for (String fieldName : fieldNames) {
+                try {
+                    Field candidate = type.getDeclaredField(fieldName);
+                    if (candidate.getType() != Float.TYPE || Modifier.isStatic(candidate.getModifiers())) continue;
+                    candidate.setAccessible(true);
+                    found = candidate;
+                    break;
+                } catch (NoSuchFieldException ignored) {
+                    // Continue through the deobfuscated, SRG and obfuscated names.
+                } catch (RuntimeException inaccessible) {
+                    // An inaccessible field is not safe to use; keep vanilla ordering.
+                }
+            }
+        }
+
+        YawAccessor resolved = new YawAccessor(entityClass, found);
+        cachedYawAccessor = resolved;
+        return resolved;
     }
 
     /** Clears movement prediction when RenderGlobal is attached to another world. */
@@ -190,6 +249,73 @@ public final class CyloxPredictiveChunkBuildHooks {
         return null;
     }
 
+    /**
+     * Builds newly available dirty sections in camera order: front cone, front
+     * flanks, sides/rear flanks, then the rear cone. Every queued section remains.
+     */
+    private static void prioritizeByCamera(Set<Object> chunks, double playerX, double playerZ,
+                                            double directionX, double directionZ,
+                                            PositionAccess positionAccess) throws Exception {
+        if (chunks == null || chunks.size() < 2 || positionAccess == null) return;
+
+        List<CameraChunkOrder> ordered = new ArrayList<CameraChunkOrder>(chunks.size());
+        int index = 0;
+        for (Object chunk : chunks) {
+            try {
+                if (chunk == null) throw new IllegalArgumentException("Null render chunk");
+                Object blockPos = positionAccess.positionMethod.invoke(chunk);
+                long packed = ((Long) positionAccess.packedPositionMethod.invoke(blockPos)).longValue();
+                int chunkX = (int) (packed >> 38);
+                int chunkZ = (int) (packed & 0x3FFFFFFL);
+                if ((chunkZ & 0x2000000) != 0) chunkZ |= 0xFC000000;
+
+                double dx = (double) chunkX + 8.0D - playerX;
+                double dz = (double) chunkZ + 8.0D - playerZ;
+                double distanceSquared = dx * dx + dz * dz;
+                double distance = Math.sqrt(distanceSquared);
+                double forward = dx * directionX + dz * directionZ;
+                double forwardRatio = distance > 0.0001D ? forward / distance : 1.0D;
+
+                int bucket;
+                if (forwardRatio >= 0.7071067811865476D) {
+                    bucket = 0; // Center of the camera view.
+                } else if (forwardRatio > 0.0D) {
+                    bucket = 1; // Front-left and front-right.
+                } else if (forwardRatio > -0.7071067811865476D) {
+                    bucket = 2; // Sides and rear flanks.
+                } else {
+                    bucket = 3; // Directly behind the camera.
+                }
+                ordered.add(new CameraChunkOrder(chunk, bucket, distanceSquared, index));
+            } catch (Exception invalidChunkPosition) {
+                ordered.add(new CameraChunkOrder(chunk, 4, Double.MAX_VALUE, index));
+            }
+            index++;
+        }
+
+        Collections.sort(ordered, new Comparator<CameraChunkOrder>() {
+            @Override
+            public int compare(CameraChunkOrder left, CameraChunkOrder right) {
+                int bucket = left.bucket - right.bucket;
+                if (bucket != 0) return bucket;
+                int distance = Double.compare(left.distanceSquared, right.distanceSquared);
+                return distance != 0 ? distance : left.originalIndex - right.originalIndex;
+            }
+        });
+
+        chunks.clear();
+        for (CameraChunkOrder item : ordered) chunks.add(item.chunk);
+    }
+
+    // Package-private to let unit tests exercise camera-sector ordering.
+    static void prioritizeCameraForTest(Set<Object> chunks, double playerX, double playerZ,
+                                        double directionX, double directionZ) throws Exception {
+        if (chunks == null || chunks.isEmpty()) return;
+        Object sample = chunks.iterator().next();
+        PositionAccess access = findPositionAccess(sample.getClass());
+        prioritizeByCamera(chunks, playerX, playerZ, directionX, directionZ, access);
+    }
+
     private static void prioritizeAhead(Set<Object> chunks, double playerX, double playerZ,
                                         double directionX, double directionZ,
                                         PositionAccess positionAccess) throws Exception {
@@ -273,6 +399,16 @@ public final class CyloxPredictiveChunkBuildHooks {
         }
     }
 
+    private static final class YawAccessor {
+        final Class<?> entityClass;
+        final Field yawField;
+
+        YawAccessor(Class<?> entityClass, Field yawField) {
+            this.entityClass = entityClass;
+            this.yawField = yawField;
+        }
+    }
+
     private static final class PositionAccess {
         final Method positionMethod;
         final Method packedPositionMethod;
@@ -280,6 +416,20 @@ public final class CyloxPredictiveChunkBuildHooks {
         PositionAccess(Method positionMethod, Method packedPositionMethod) {
             this.positionMethod = positionMethod;
             this.packedPositionMethod = packedPositionMethod;
+        }
+    }
+
+    private static final class CameraChunkOrder {
+        final Object chunk;
+        final int bucket;
+        final double distanceSquared;
+        final int originalIndex;
+
+        CameraChunkOrder(Object chunk, int bucket, double distanceSquared, int originalIndex) {
+            this.chunk = chunk;
+            this.bucket = bucket;
+            this.distanceSquared = distanceSquared;
+            this.originalIndex = originalIndex;
         }
     }
 
