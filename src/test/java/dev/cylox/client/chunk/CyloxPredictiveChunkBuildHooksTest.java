@@ -1,0 +1,85 @@
+package dev.cylox.client.chunk;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+
+public class CyloxPredictiveChunkBuildHooksTest {
+    @Test
+    public void prioritizesNearestChunksAheadOfMovementAndPreservesTheRest() throws Exception {
+        FakeRenderChunk side = new FakeRenderChunk(0, 0, 32);
+        FakeRenderChunk behind = new FakeRenderChunk(-32, 0, 0);
+        FakeRenderChunk forwardFar = new FakeRenderChunk(48, 0, 0);
+        FakeRenderChunk forwardNear = new FakeRenderChunk(16, 0, 0);
+        FakeRenderChunk forwardSide = new FakeRenderChunk(32, 0, 16);
+
+        LinkedHashSet<Object> queue = new LinkedHashSet<Object>();
+        queue.add(side);
+        queue.add(behind);
+        queue.add(forwardFar);
+        queue.add(forwardNear);
+        queue.add(forwardSide);
+
+        CyloxPredictiveChunkBuildHooks.prioritizeAheadForTest(queue, 0.0D, 0.0D, 1.0D, 0.0D);
+
+        List<Object> expected = new ArrayList<Object>();
+        expected.add(forwardNear);
+        expected.add(forwardSide);
+        expected.add(forwardFar);
+        expected.add(side);
+        expected.add(behind);
+        assertEquals(expected, new ArrayList<Object>(queue));
+        assertEquals("No dirty chunk may be dropped or duplicated", 5, queue.size());
+    }
+
+    @Test
+    public void leavesVanillaInsertionOrderWhenThereIsNoMovementDirection() throws Exception {
+        LinkedHashSet<Object> queue = new LinkedHashSet<Object>();
+        FakeRenderChunk first = new FakeRenderChunk(32, 0, 0);
+        FakeRenderChunk second = new FakeRenderChunk(0, 0, 32);
+        FakeRenderChunk third = new FakeRenderChunk(-32, 0, 0);
+        queue.add(first);
+        queue.add(second);
+        queue.add(third);
+
+        CyloxPredictiveChunkBuildHooks.prioritizeAheadForTest(queue, 0.0D, 0.0D, 0.0D, 0.0D);
+
+        List<Object> expected = new ArrayList<Object>();
+        expected.add(first);
+        expected.add(second);
+        expected.add(third);
+        assertEquals(expected, new ArrayList<Object>(queue));
+    }
+
+    private static final class FakeRenderChunk {
+        private final FakeBlockPos position;
+
+        FakeRenderChunk(int x, int y, int z) {
+            position = new FakeBlockPos(x, y, z);
+        }
+
+        FakeBlockPos getPosition() {
+            return position;
+        }
+    }
+
+    private static final class FakeBlockPos {
+        private final int x;
+        private final int y;
+        private final int z;
+
+        FakeBlockPos(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        long toLong() {
+            return ((long) x & 0x3FFFFFFL) << 38
+                | ((long) y & 0xFFFL) << 26
+                | ((long) z & 0x3FFFFFFL);
+        }
+    }
+}
