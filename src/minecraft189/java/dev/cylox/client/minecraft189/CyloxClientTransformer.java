@@ -1569,7 +1569,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             return instruction instanceof org.objectweb.asm.tree.IntInsnNode
                 && ((org.objectweb.asm.tree.IntInsnNode) instruction).operand == 7;
         }
-        if (opcode == Opcodes.ICONST_7) return true;
         if (instruction instanceof LdcInsnNode) return Integer.valueOf(7).equals(((LdcInsnNode) instruction).cst);
         return false;
     }
