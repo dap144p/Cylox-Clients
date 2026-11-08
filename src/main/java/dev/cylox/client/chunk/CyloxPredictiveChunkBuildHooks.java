@@ -207,7 +207,7 @@ public final class CyloxPredictiveChunkBuildHooks {
                 Object blockPos = positionAccess.positionMethod.invoke(chunk);
                 long packed = ((Long) positionAccess.packedPositionMethod.invoke(blockPos)).longValue();
                 int chunkX = (int) (packed >> 38);
-                int chunkZ = (int) ((packed >> 12) & 0x3FFFFFFL);
+                int chunkZ = (int) (packed & 0x3FFFFFFL);
                 if ((chunkZ & 0x2000000) != 0) chunkZ |= 0xFC000000;
 
                 double dx = (double) chunkX + 8.0D - playerX;
