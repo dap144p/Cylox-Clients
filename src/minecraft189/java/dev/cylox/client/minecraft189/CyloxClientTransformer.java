@@ -245,6 +245,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         changed = true;
                     }
 
+                    if (terrainClass && !fancyCloudBatchPatched && isFancyCloudsMethod(method)) {
+                        fancyCloudBatchPatched = patchFancyCloudBatch(method);
+                        if (!fancyCloudBatchPatched) {
+                            throw new IllegalStateException("Could not safely locate vanilla Fancy Cloud tile begin/draw calls");
+                        }
+                        changed = true;
+                    }
+
                     if (terrainClass && !terrainProfilePatched
                         && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
                         insertTimedSection(method, 1);
@@ -454,6 +462,16 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         nameTagProfilePatched = true;
                         changed = true;
                     }
+                }
+            }
+
+            if (guiOverlayClass && !guiDetailProfilePatched) {
+                for (MethodNode method : node.methods) {
+                    if (!"(F)V".equals(method.desc)
+                        || !hasMarkers(method, "bossHealth", "titleAndSubtitle", "chat")) continue;
+                    guiDetailProfilePatched = insertGuiOverlayDetailProfile(method, node.name);
+                    if (guiDetailProfilePatched) changed = true;
+                    break;
                 }
             }
 
