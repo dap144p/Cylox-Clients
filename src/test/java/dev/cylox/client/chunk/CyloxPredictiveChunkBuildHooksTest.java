@@ -55,6 +55,38 @@ public class CyloxPredictiveChunkBuildHooksTest {
     }
 
     @Test
+    public void prioritizesInitialCameraViewThenFlanksSidesAndRear() throws Exception {
+        FakeRenderChunk rear = new FakeRenderChunk(0, 0, -64);
+        FakeRenderChunk side = new FakeRenderChunk(48, 0, -8);
+        FakeRenderChunk frontFar = new FakeRenderChunk(0, 0, 64);
+        FakeRenderChunk frontFlank = new FakeRenderChunk(32, 0, 16);
+        FakeRenderChunk frontNear = new FakeRenderChunk(0, 0, 16);
+        FakeRenderChunk rearFlank = new FakeRenderChunk(32, 0, -32);
+
+        LinkedHashSet<Object> queue = new LinkedHashSet<Object>();
+        queue.add(rear);
+        queue.add(side);
+        queue.add(frontFar);
+        queue.add(frontFlank);
+        queue.add(frontNear);
+        queue.add(rearFlank);
+
+        // A +Z camera heading: center-front, front flanks, side/rear flanks, rear.
+        CyloxPredictiveChunkBuildHooks.prioritizeCameraForTest(
+            queue, 0.0D, 0.0D, 0.0D, 1.0D);
+
+        List<Object> expected = new ArrayList<Object>();
+        expected.add(frontNear);
+        expected.add(frontFar);
+        expected.add(frontFlank);
+        expected.add(rearFlank);
+        expected.add(side);
+        expected.add(rear);
+        assertEquals(expected, new ArrayList<Object>(queue));
+        assertEquals("Every queued dirty chunk must remain exactly once", 6, queue.size());
+    }
+
+    @Test
     public void leavesVanillaInsertionOrderWhenThereIsNoMovementDirection() throws Exception {
         LinkedHashSet<Object> queue = new LinkedHashSet<Object>();
         FakeRenderChunk first = new FakeRenderChunk(32, 0, 0);
