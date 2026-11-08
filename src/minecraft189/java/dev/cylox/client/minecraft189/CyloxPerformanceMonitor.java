@@ -44,17 +44,21 @@ public final class CyloxPerformanceMonitor {
     private static final int FRAME_TAIL = 31;
     private static final int MOUSE_INPUT = 32;
     private static final int FRAME_SETUP = 33;
+    private static final int GUI_SCOREBOARD = 34;
+    private static final int GUI_PLAYER_LIST = 35;
+    private static final int GUI_TITLE = 36;
     private static final String[] EXTRA_SECTION_NAMES = {
         "worldRender", "worldPass", "worldPreSky", "worldSkyClouds", "worldPrepareTerrain",
         "worldOpaqueTerrain", "worldEntities", "worldLitParticles", "worldParticles",
         "worldWeather", "worldTranslucent", "worldAboveClouds", "worldHand", "cloudsCheck",
-        "worldPostEffects", "guiOverlay", "guiChat", "screenDraw", "frameTail", "mouseInput", "frameSetup"
+        "worldPostEffects", "guiOverlay", "guiChat", "screenDraw", "frameTail", "mouseInput", "frameSetup",
+        "guiScoreboard", "guiPlayerList", "guiTitle"
     };
 
     private static final ThreadLocal<long[]> START_TIMES = new ThreadLocal<long[]>() {
         @Override
         protected long[] initialValue() {
-            return new long[34];
+            return new long[37];
         }
     };
     private static final long[] TERRAIN_DETAIL_COUNTS = new long[5];
@@ -89,6 +93,8 @@ public final class CyloxPerformanceMonitor {
     private static long nameTagCount;
     private static long nameTagTotalNanos;
     private static long nameTagMaxNanos;
+    private static long renderedEntityCalls;
+    private static long renderedTileEntityCalls;
     private static long heapSampleCount;
     private static long heapTotalUsedBytes;
     private static long heapPeakUsedBytes;
@@ -116,12 +122,12 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void beginSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > FRAME_SETUP) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > GUI_TITLE) return;
         START_TIMES.get()[section] = System.nanoTime();
     }
 
     public static void endSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > FRAME_SETUP) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > GUI_TITLE) return;
         long[] starts = START_TIMES.get();
         long start = starts[section];
         starts[section] = 0L;
@@ -171,6 +177,14 @@ public final class CyloxPerformanceMonitor {
         }
     }
 
+    public static void recordEntityRenderCall() {
+        if (ENABLED) renderedEntityCalls++;
+    }
+
+    public static void recordTileEntityRenderCall() {
+        if (ENABLED) renderedTileEntityCalls++;
+    }
+
     private static void reportIfDue() {
         long now = System.nanoTime();
         if (now - windowStartedAt < REPORT_INTERVAL_NANOS) return;
@@ -201,6 +215,8 @@ public final class CyloxPerformanceMonitor {
             + ", tileEntityMaxMs=" + oneDecimal(tileEntityMaxNanos / 1_000_000.0D)
             + ", nameTagAvgMs=" + oneDecimal(averageMillis(nameTagTotalNanos, nameTagCount))
             + ", nameTagMaxMs=" + oneDecimal(nameTagMaxNanos / 1_000_000.0D)
+            + ", renderedEntityCalls=" + renderedEntityCalls
+            + ", renderedTileEntityCalls=" + renderedTileEntityCalls
             + ", heapUsedAvgMB=" + oneDecimal(averageHeapUsedBytes / 1048576.0D)
             + ", heapUsedPeakMB=" + oneDecimal(heapPeakUsedBytes / 1048576.0D)
             + ", heapUsedCurrentMB=" + oneDecimal(currentUsedHeapBytes / 1048576.0D)
@@ -266,6 +282,8 @@ public final class CyloxPerformanceMonitor {
         nameTagCount = 0L;
         nameTagTotalNanos = 0L;
         nameTagMaxNanos = 0L;
+        renderedEntityCalls = 0L;
+        renderedTileEntityCalls = 0L;
         heapSampleCount = 0L;
         heapTotalUsedBytes = 0L;
         heapPeakUsedBytes = 0L;
