@@ -161,6 +161,42 @@ public final class CyloxVisibilityCacheHooks {
      * Looks up an opaque-block snapshot for a section origin and returns a fresh
      * VisGraph instance. A null result means the caller must run vanilla's scan.
      */
+    public static synchronized boolean restoreCachedVisibilityGraph(Object renderGlobal,
+            Object sectionPosition, Object visibilityGraph) {
+        if (renderGlobal == null || sectionPosition == null || visibilityGraph == null) {
+            graphCacheMisses++;
+            return false;
+        }
+        activateRenderGlobal(renderGlobal);
+        CacheKey key = new CacheKey(renderGlobal, sectionPosition);
+        GraphSnapshot snapshot = VISIBILITY_GRAPH_CACHE.get(key);
+        if (snapshot == null) {
+            graphCacheMisses++;
+            return false;
+        }
+        try {
+            Field bitSetField = snapshot.layout.opaqueBlocks;
+            Field remainingField = snapshot.layout.remainingCount;
+            if (!bitSetField.getDeclaringClass().isInstance(visibilityGraph)) {
+                throw new IllegalStateException("Cached VisGraph layout does not match the active graph");
+            }
+            BitSet target = (BitSet) bitSetField.get(visibilityGraph);
+            target.clear();
+            target.or(snapshot.opaqueBlocks);
+            remainingField.setInt(visibilityGraph, snapshot.remainingCount);
+            graphCacheHits++;
+            return true;
+        } catch (Throwable error) {
+            VISIBILITY_GRAPH_CACHE.remove(key);
+            graphCacheFailures++;
+            return false;
+        }
+    }
+
+    /**
+     * Compatibility helper retained for verifier/diagnostic use. Runtime cache
+     * hits restore the vanilla-allocated graph in place to avoid a second object.
+     */
     public static synchronized Object getCachedVisibilityGraph(Object renderGlobal, Object sectionPosition) {
         if (renderGlobal == null || sectionPosition == null) {
             graphCacheMisses++;
