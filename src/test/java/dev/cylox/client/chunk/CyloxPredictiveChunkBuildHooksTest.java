@@ -35,6 +35,26 @@ public class CyloxPredictiveChunkBuildHooksTest {
     }
 
     @Test
+    public void handlesNegativeChunkCoordinates() throws Exception {
+        FakeRenderChunk behind = new FakeRenderChunk(0, 0, 32);
+        FakeRenderChunk forward = new FakeRenderChunk(0, 0, -32);
+        FakeRenderChunk side = new FakeRenderChunk(32, 0, 0);
+
+        LinkedHashSet<Object> queue = new LinkedHashSet<Object>();
+        queue.add(behind);
+        queue.add(side);
+        queue.add(forward);
+
+        CyloxPredictiveChunkBuildHooks.prioritizeAheadForTest(queue, 0.0D, 0.0D, 0.0D, -1.0D);
+
+        List<Object> expected = new ArrayList<Object>();
+        expected.add(forward);
+        expected.add(behind);
+        expected.add(side);
+        assertEquals(expected, new ArrayList<Object>(queue));
+    }
+
+    @Test
     public void leavesVanillaInsertionOrderWhenThereIsNoMovementDirection() throws Exception {
         LinkedHashSet<Object> queue = new LinkedHashSet<Object>();
         FakeRenderChunk first = new FakeRenderChunk(32, 0, 0);
