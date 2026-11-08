@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CyloxPredictiveChunkBuildHooksTest {
     @Test
@@ -103,6 +104,26 @@ public class CyloxPredictiveChunkBuildHooksTest {
         expected.add(second);
         expected.add(third);
         assertEquals(expected, new ArrayList<Object>(queue));
+    }
+
+    @Test
+    public void readsMinecraftCameraYawForInitialPriorityDirection() {
+        FakeViewEntity viewEntity = new FakeViewEntity();
+        double[] direction = new double[2];
+
+        viewEntity.rotationYaw = 0.0F;
+        assertTrue(CyloxPredictiveChunkBuildHooks.readCameraDirectionForTest(viewEntity, direction));
+        assertEquals(0.0D, direction[0], 0.000001D);
+        assertEquals(1.0D, direction[1], 0.000001D);
+
+        viewEntity.rotationYaw = 90.0F;
+        assertTrue(CyloxPredictiveChunkBuildHooks.readCameraDirectionForTest(viewEntity, direction));
+        assertEquals(-1.0D, direction[0], 0.000001D);
+        assertEquals(0.0D, direction[1], 0.000001D);
+    }
+
+    private static final class FakeViewEntity {
+        private float rotationYaw;
     }
 
     private static final class FakeRenderChunk {
