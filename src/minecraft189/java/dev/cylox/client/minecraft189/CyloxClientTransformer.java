@@ -1560,7 +1560,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
      */
     /**
      * Splits EntityRenderer.updateCameraAndRender into non-world phases:
-     * post-world effects, screen drawing, mouse input, setup and frame tail.
+     * post-world effects, screen drawing, mouse input, method setup and tail.
      * These hooks only measure existing calls and do not change their behavior.
      */
     private static boolean insertRenderFrameBreakdown(MethodNode method, String owner) {
@@ -1568,40 +1568,41 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         MethodInsnNode mouseEnd = mouseStart == null ? null
             : findFollowingProfilerEnd(method, mouseStart, mouseStart.owner, false);
         MethodInsnNode guiStart = findProfilerStringCall(method, "gui");
+        MethodInsnNode guiEnd = guiStart == null ? null
+            : findFollowingProfilerEnd(method, guiStart, guiStart.owner, false);
         MethodInsnNode worldCall = null;
         MethodInsnNode screenDraw = null;
-        MethodInsnNode frameSetup = null;
-        MethodInsnNode frameTail = null;
         int worldCalls = 0;
         int screenCalls = 0;
-        boolean pastMouseStart = false;
-        boolean pastScreenDraw = false;
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null; instruction = instruction.getNext()) {
-            if (instruction == mouseStart) pastMouseStart = true;
             if (!(instruction instanceof MethodInsnNode)) continue;
             MethodInsnNode call = (MethodInsnNode) instruction;
             if (owner.equals(call.owner) && "(FJ)V".equals(call.desc)) { worldCall = call; worldCalls++; }
-            if ("(IIF)V".equals(call.desc)) { screenDraw = call; screenCalls++; pastScreenDraw = true; }
-            if (owner.equals(call.owner) && "()V".equals(call.desc)) {
-                if (!pastMouseStart && frameSetup == null) frameSetup = call;
-                else if (pastScreenDraw && frameTail == null) frameTail = call;
-            }
+            if ("(IIF)V".equals(call.desc)) { screenDraw = call; screenCalls++; }
         }
-        if (mouseStart == null || mouseEnd == null || guiStart == null || worldCalls != 1
-            || screenCalls != 1 || frameSetup == null || frameTail == null) return false;
-        insertTimedCall(method, frameSetup, 33);
+        if (mouseStart == null || mouseEnd == null || guiStart == null || guiEnd == null
+            || worldCalls != 1 || screenCalls != 1) return false;
+
+        InsnList frameSetupBegin = new InsnList();
+        frameSetupBegin.add(new LdcInsnNode(Integer.valueOf(33)));
+        frameSetupBegin.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
+        method.instructions.insert(frameSetupBegin);
+        insertTerrainSectionEndBefore(method, mouseStart, 33);
+        insertTerrainSectionBeginAfter(method, mouseStart, 32);
+        insertTerrainSectionEndBefore(method, mouseEnd, 32);
+
         insertTerrainSectionBeginAfter(method, worldCall, 27);
         insertTerrainSectionEndBefore(method, guiStart, 27);
         insertTimedCall(method, screenDraw, 30);
+
         InsnList frameTailBegin = new InsnList();
         frameTailBegin.add(new LdcInsnNode(Integer.valueOf(31)));
         frameTailBegin.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
             "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
-        method.instructions.insertBefore(frameTail, frameTailBegin);
+        method.instructions.insert(guiEnd, frameTailBegin);
         insertSectionEndBeforeReturns(method, 31);
-        insertTerrainSectionBeginAfter(method, mouseStart, 32);
-        insertTerrainSectionEndBefore(method, mouseEnd, 32);
         return true;
     }
 
