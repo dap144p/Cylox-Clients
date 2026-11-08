@@ -226,29 +226,33 @@ public final class Vanilla189Verifier {
         source.markOpaque(4090);
 
         CyloxVisibilityCacheHooks.cacheVisibilityGraph(renderGlobal, sectionPosition, source);
-        FakeVisGraph first = (FakeVisGraph) CyloxVisibilityCacheHooks.getCachedVisibilityGraph(
-            renderGlobal, sectionPosition);
-        if (first == null || first == source || !first.isOpaque(5) || !first.isOpaque(4090)
+        FakeVisGraph first = new FakeVisGraph();
+        if (!CyloxVisibilityCacheHooks.restoreCachedVisibilityGraph(renderGlobal, sectionPosition, first)
+            || first == source || !first.isOpaque(5) || !first.isOpaque(4090)
             || first.getRemainingCount() != 4094) {
-            throw new IllegalStateException("Visibility graph snapshot did not restore the opaque BitSet and counter");
+            throw new IllegalStateException("Visibility graph snapshot did not restore the vanilla graph in place");
         }
 
         first.markOpaque(7);
-        FakeVisGraph second = (FakeVisGraph) CyloxVisibilityCacheHooks.getCachedVisibilityGraph(
-            renderGlobal, sectionPosition);
-        if (second == null || second.isOpaque(7) || !second.isOpaque(5) || !second.isOpaque(4090)
+        FakeVisGraph second = new FakeVisGraph();
+        if (!CyloxVisibilityCacheHooks.restoreCachedVisibilityGraph(renderGlobal, sectionPosition, second)
+            || second.isOpaque(7) || !second.isOpaque(5) || !second.isOpaque(4090)
             || second.getRemainingCount() != 4094) {
-            throw new IllegalStateException("Mutating a cached graph copy changed its pristine snapshot");
+            throw new IllegalStateException("Flood-fill mutation changed the pristine VisGraph snapshot");
         }
         if (CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 1) {
             throw new IllegalStateException("Visibility graph snapshot cache size is incorrect");
         }
 
+        if (CyloxVisibilityCacheHooks.restoreCachedVisibilityGraph(renderGlobal,
+                Integer.valueOf(512), new FakeVisGraph())) {
+            throw new IllegalStateException("Visibility graph restore should miss for an uncached section");
+        }
         CyloxVisibilityCacheHooks.invalidateVisibilityCache(renderGlobal);
         if (CyloxVisibilityCacheHooks.getVisibilityGraphCacheSize() != 0) {
             throw new IllegalStateException("Visibility graph snapshots were not cleared on invalidation");
         }
-        System.out.println("[Cylox] Verified pristine VisGraph snapshots, isolated flood-fill copies and invalidation.");
+        System.out.println("[Cylox] Verified in-place VisGraph restore, pristine snapshots, isolated flood-fill and invalidation.");
     }
 
     private static void verifyTextWidthCacheBehavior() {
