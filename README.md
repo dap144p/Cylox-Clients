@@ -105,6 +105,15 @@ This is not an Android background service. The launcher must keep the game proce
 - Leaves VisGraph flood-fill, BFS traversal, frustum checks, visible chunk selection, chunk upload behavior, render distance, and network handling unchanged.
 - The bytecode patch applies only when the official 1.8.9 near-build predicate matches the verified three-axis distance-check shape; otherwise verification fails closed.
 
+## Predictive chunk pre-build ordering — beta follow-up
+
+- Tracks the player's recent horizontal movement direction during vanilla `RenderGlobal.setupTerrain`.
+- Reorders only the existing dirty `RenderChunk` set before vanilla `updateChunks()` submits compile tasks to the existing worker dispatcher: chunks in the forward movement corridor are submitted nearest-first.
+- Every queued chunk is retained exactly once. Chunks outside the forward corridor keep their relative vanilla insertion order; no extra compile tasks are created.
+- Prediction resets when the view entity changes, after a large position jump, or after 0.5 seconds without movement. When there is no valid direction, the vanilla queue order is left unchanged.
+- This first stage only prioritizes chunks already present in the active render/update queue. It does not load chunks beyond the selected Render Distance, create a second render distance, alter visibility/frustum/BFS decisions, or add a second GPU render pass.
+- The goal is to reduce wait/stutter when dirty chunk geometry is rebuilt while moving. Average FPS improvement is not guaranteed; test the same MJ Launcher scene and collect before/after profiles on the target Android device.
+
 ## Cylox adaptive lightweight UI
 
 - Uses one consistent dark navy, cyan and orange visual system across the main menu, standard menu backgrounds, vanilla buttons and the protocol selector.
