@@ -683,7 +683,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static boolean patchScoreboardTeamRemoveGuard(ClassNode owner) {
         String teamDescriptor = findScoreboardTeamDescriptor(owner);
         if (teamDescriptor == null) return false;
-        String teamInternalName = Type.getType(teamDescriptor).getInternalName();
         String targetDescriptor = "(" + teamDescriptor + ")V";
         MethodNode target = null;
         int matches = 0;
