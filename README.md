@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.9  
+**Version:** 1.5.0-rc1 (pre-release)  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -105,6 +105,14 @@ This is not an Android background service. The launcher must keep the game proce
 - Use these measurements alongside tile-entity and block-layer timings to distinguish heap pressure from render-thread work.
 - Diagnostics only; no FPS or RAM reduction is claimed. Confirm memory and stability on MJ Launcher and the target Android device.
 
+## Render pipeline optimization pre-release (1.5.0-rc1)
+
+- Batches vanilla Fancy Cloud's 64 geometry tiles into one Tessellator draw per color-mask pass. The two depth/color-mask passes, geometry order, cloud texture, lighting, color and render settings are preserved; clouds are not disabled or downgraded.
+- Extends opt-in GUI timings with separate scoreboard, player-list and title/subtitle measurements. These are nested within the overall HUD overlay measurement where applicable.
+- Adds entity and TileEntity render-call counters beside their existing phase timings, to distinguish object-count pressure from per-object rendering cost.
+- All new profiler counters remain disabled unless `-Dcylox.profile=true` is enabled. Entity, TileEntity and GUI changes are diagnostic only; no visibility or HUD content is skipped.
+- This is a device-test pre-release. No FPS gain is guaranteed until verified on MJ Launcher / GL4ES and the target device.
+
 ## Render-frame phase diagnostics (1.4.9)
 
 - Adds opt-in measurements for post-world effects/framebuffer work, HUD overlay, chat drawing, current-screen drawing, mouse input, frame setup and frame tail.
@@ -193,8 +201,8 @@ gradle clean test buildClientPackage verifyVanilla189Hooks -Pvanilla189Jar=/path
 
 Outputs:
 
-- `build/libs/Cylox-Client-1.8.9-1.4.6.jar` — includes Cylox and all three Via libraries.
-- `build/distributions/Cylox-Client-1.8.9-1.4.6.zip` — standalone profile plus the single Cylox JAR at its declared library path.
+- `build/libs/Cylox-Client-1.8.9-1.5.0-rc1.jar` — includes Cylox and all three Via libraries.
+- `build/distributions/Cylox-Client-1.8.9-1.5.0-rc1.zip` — standalone profile plus the single Cylox JAR at its declared library path.
 
 The CI job verifies the injection points against Mojang's official 1.8.9 client JAR. The client JAR is kept below a 20 MB ceiling; Minecraft itself, Java, renderer and launcher libraries are not bundled.
 
