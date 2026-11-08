@@ -245,7 +245,7 @@ jobs:
               gh release edit "$TAG" --title "Cylox Client ${VERSION} — 1.8.9 (Pre-release)" --notes "$RC_NOTES" --prerelease
               upload_release_assets "$TAG"
             else
-              gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Client ${VERSION} — 1.8.9 (Pre-release)" --notes "$RC_NOTES" --prerelease --latest=false
+              gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Client ${VERSION} — 1.8.9 (Pre-release)" --notes "$RC_NOTES" --prerelease --latest=false --target "$GITHUB_SHA"
             fi
             exit 0
           fi
