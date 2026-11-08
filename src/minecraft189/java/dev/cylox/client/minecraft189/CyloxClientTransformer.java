@@ -55,8 +55,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedCloudsProfileClasses;
     private static volatile int patchedRenderFrameBreakdownClasses;
     private static volatile int patchedGuiOverlayProfileClasses;
+    private static volatile int patchedFancyCloudBatchClasses;
+    private static volatile int patchedGuiDetailProfileClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
+    private static final String CLOUD_BATCH = "dev/cylox/client/minecraft189/CyloxCloudBatchHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
     private static final String UI = "dev/cylox/client/minecraft189/CyloxUiHooks";
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
@@ -103,6 +106,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedCloudsProfileClasses = 0;
         patchedRenderFrameBreakdownClasses = 0;
         patchedGuiOverlayProfileClasses = 0;
+        patchedFancyCloudBatchClasses = 0;
+        patchedGuiDetailProfileClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -139,6 +144,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedCloudsProfileClassCount() { return patchedCloudsProfileClasses; }
     public static int getPatchedRenderFrameBreakdownClassCount() { return patchedRenderFrameBreakdownClasses; }
     public static int getPatchedGuiOverlayProfileClassCount() { return patchedGuiOverlayProfileClasses; }
+    public static int getPatchedFancyCloudBatchClassCount() { return patchedFancyCloudBatchClasses; }
+    public static int getPatchedGuiDetailProfileClassCount() { return patchedGuiDetailProfileClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -181,6 +188,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean cloudsProfilePatched = false;
             boolean renderFrameBreakdownPatched = false;
             boolean guiOverlayProfilePatched = false;
+            boolean fancyCloudBatchPatched = false;
+            boolean guiDetailProfilePatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
             boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png")
@@ -548,6 +557,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (cloudsProfilePatched) patchedCloudsProfileClasses++;
             if (renderFrameBreakdownPatched) patchedRenderFrameBreakdownClasses++;
             if (guiOverlayProfilePatched) patchedGuiOverlayProfileClasses++;
+            if (fancyCloudBatchPatched) patchedFancyCloudBatchClasses++;
+            if (guiDetailProfilePatched) patchedGuiDetailProfileClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -580,6 +591,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (cloudsProfilePatched) System.out.println("[Cylox] Opt-in cloud-check profiler injected: " + node.name);
             if (renderFrameBreakdownPatched) System.out.println("[Cylox] Opt-in render-frame phase profiler injected: " + node.name);
             if (guiOverlayProfilePatched) System.out.println("[Cylox] Opt-in HUD overlay/chat profiler injected: " + node.name);
+            if (fancyCloudBatchPatched) System.out.println("[Cylox] Fancy Cloud tile draw batching injected: " + node.name);
+            if (guiDetailProfilePatched) System.out.println("[Cylox] Opt-in scoreboard/player-list/title profiler injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
