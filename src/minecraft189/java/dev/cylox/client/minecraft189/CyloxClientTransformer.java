@@ -42,6 +42,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedVisibilityInvalidationClasses;
     private static volatile int patchedVisibilityRangeInvalidationClasses;
     private static volatile int patchedNearBuildRadiusClasses;
+    private static volatile int patchedPredictiveChunkPrebuildClasses;
     private static volatile int patchedEntitySleepingCacheClasses;
     private static volatile int patchedPlayerEquipmentGuardClasses;
     private static volatile int patchedNameTagProfileClasses;
@@ -56,6 +57,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
     private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks";
     private static final String TEXT_WIDTH_CACHE = "dev/cylox/client/minecraft189/CyloxTextWidthCache";
+    private static final String CHUNK_BUILD_HOOKS = "dev/cylox/client/chunk/CyloxPredictiveChunkBuildHooks";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
     // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
     // PacketHandlers class is the SET_EQUIPPED_ITEM registration.
@@ -83,6 +85,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedVisibilityInvalidationClasses = 0;
         patchedVisibilityRangeInvalidationClasses = 0;
         patchedNearBuildRadiusClasses = 0;
+        patchedPredictiveChunkPrebuildClasses = 0;
         patchedEntitySleepingCacheClasses = 0;
         patchedPlayerEquipmentGuardClasses = 0;
         patchedNameTagProfileClasses = 0;
@@ -113,6 +116,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedVisibilityInvalidationClassCount() { return patchedVisibilityInvalidationClasses; }
     public static int getPatchedVisibilityRangeInvalidationClassCount() { return patchedVisibilityRangeInvalidationClasses; }
     public static int getPatchedNearBuildRadiusClassCount() { return patchedNearBuildRadiusClasses; }
+    public static int getPatchedPredictiveChunkPrebuildClassCount() { return patchedPredictiveChunkPrebuildClasses; }
     public static int getPatchedEntitySleepingCacheClassCount() { return patchedEntitySleepingCacheClasses; }
     public static int getPatchedPlayerEquipmentGuardClassCount() { return patchedPlayerEquipmentGuardClasses; }
     public static int getPatchedNameTagProfileClassCount() { return patchedNameTagProfileClasses; }
@@ -149,6 +153,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean visibilityInvalidationPatched = false;
             boolean visibilityRangeInvalidationPatched = false;
             boolean nearBuildRadiusPatched = false;
+            boolean predictiveChunkPrebuildPatched = false;
             boolean entitySleepingCachePatched = false;
             boolean playerEquipmentGuardPatched = false;
             boolean nameTagProfilePatched = false;
@@ -228,6 +233,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         nearBuildRadiusPatched = patchNearBuildSyncRadius(node, method);
                         if (!nearBuildRadiusPatched) {
                             throw new IllegalStateException("Could not safely locate the near-chunk synchronous build predicate");
+                        }
+                        changed = true;
+                    }
+
+                    if (terrainClass && !predictiveChunkPrebuildPatched
+                        && hasMarkers(method, "renderlistcamera", "culling", "build near")) {
+                        predictiveChunkPrebuildPatched = insertPredictiveChunkPrebuild(method);
+                        if (!predictiveChunkPrebuildPatched) {
+                            throw new IllegalStateException("Could not safely locate setupTerrain player coordinates for predictive chunk pre-build ordering");
                         }
                         changed = true;
                     }
@@ -448,6 +462,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (visibilityInvalidationPatched) patchedVisibilityInvalidationClasses++;
             if (visibilityRangeInvalidationPatched) patchedVisibilityRangeInvalidationClasses++;
             if (nearBuildRadiusPatched) patchedNearBuildRadiusClasses++;
+            if (predictiveChunkPrebuildPatched) patchedPredictiveChunkPrebuildClasses++;
             if (entitySleepingCachePatched) patchedEntitySleepingCacheClasses++;
             if (playerEquipmentGuardPatched) patchedPlayerEquipmentGuardClasses++;
             if (nameTagProfilePatched) patchedNameTagProfileClasses++;
@@ -475,6 +490,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (visibilityInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache world-reset invalidation injected: " + node.name);
             if (visibilityRangeInvalidationPatched) System.out.println("[Cylox] Terrain visibility cache section-range invalidation injected: " + node.name);
             if (nearBuildRadiusPatched) System.out.println("[Cylox] Near synchronous chunk-build radius reduced to the current section: " + node.name);
+            if (predictiveChunkPrebuildPatched) System.out.println("[Cylox] Predictive ahead-of-motion chunk pre-build ordering injected: " + node.name);
             if (entitySleepingCachePatched) System.out.println("[Cylox] Reused render-view sleeping state across entity loops: " + node.name);
             if (nameTagProfilePatched) System.out.println("[Cylox] Opt-in floating nameplate profiler injected: " + node.name);
             if (fontWidthCachePatched) System.out.println("[Cylox] Bounded FontRenderer string-width cache injected: " + node.name);
@@ -729,6 +745,64 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             method.instructions.insertBefore(instruction, new MethodInsnNode(Opcodes.INVOKESTATIC,
                 "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endFrame", "()V", false));
         }
+    }
+
+    /**
+     * Reorders only the existing dirty RenderChunk set at the end of
+     * RenderGlobal.setupTerrain. updateChunks() later submits this LinkedHashSet
+     * to the vanilla worker queue in iteration order; no task is duplicated.
+     */
+    private static boolean insertPredictiveChunkPrebuild(MethodNode method) {
+        Type[] arguments = Type.getArgumentTypes(method.desc);
+        if (arguments.length != 5 || arguments[0].getSort() != Type.OBJECT
+            || arguments[1].getSort() != Type.DOUBLE || arguments[2].getSort() != Type.OBJECT
+            || arguments[3].getSort() != Type.INT || arguments[4].getSort() != Type.BOOLEAN
+            || Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
+
+        String entityOwner = arguments[0].getInternalName();
+        java.util.List<org.objectweb.asm.tree.FieldInsnNode> positionFields =
+            new java.util.ArrayList<org.objectweb.asm.tree.FieldInsnNode>();
+        Set<String> seenFields = new HashSet<String>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof org.objectweb.asm.tree.FieldInsnNode)) continue;
+            org.objectweb.asm.tree.FieldInsnNode field =
+                (org.objectweb.asm.tree.FieldInsnNode) instruction;
+            if (field.getOpcode() == Opcodes.GETFIELD && entityOwner.equals(field.owner)
+                && "D".equals(field.desc) && seenFields.add(field.name)) {
+                positionFields.add(field);
+            }
+        }
+
+        // setupTerrain reads Entity position X, Y and Z in this order before
+        // building its camera/frustum positions. Fail closed on another layout.
+        if (positionFields.size() < 3
+            || positionFields.get(0).name.equals(positionFields.get(2).name)) return false;
+
+        java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) returns.add(instruction);
+        }
+        if (returns.isEmpty()) return false;
+
+        String xField = positionFields.get(0).name;
+        String zField = positionFields.get(2).name;
+        for (AbstractInsnNode returnInstruction : returns) {
+            InsnList hook = new InsnList();
+            hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            hook.add(new VarInsnNode(Opcodes.ALOAD, 1));
+            hook.add(new VarInsnNode(Opcodes.ALOAD, 1));
+            hook.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD,
+                entityOwner, xField, "D"));
+            hook.add(new VarInsnNode(Opcodes.ALOAD, 1));
+            hook.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD,
+                entityOwner, zField, "D"));
+            hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, CHUNK_BUILD_HOOKS,
+                "onTerrainPrepared", "(Ljava/lang/Object;Ljava/lang/Object;DD)V", false));
+            method.instructions.insertBefore(returnInstruction, hook);
+        }
+        return true;
     }
 
     private static boolean isVisibilityGraphMethod(MethodNode method) {
@@ -1379,6 +1453,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
         hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, RENDER_HOOKS,
             "invalidateVisibilityCache", "(Ljava/lang/Object;)V", false));
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, CHUNK_BUILD_HOOKS,
+            "clear", "(Ljava/lang/Object;)V", false));
         method.instructions.insert(hook);
     }
 
