@@ -1417,6 +1417,137 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         return true;
     }
 
+    private static boolean insertGuiOverlayDetailProfile(MethodNode method, String owner) {
+        MethodInsnNode scoreboard = null;
+        MethodInsnNode playerList = null;
+        int scoreboardCalls = 0;
+        int playerListCalls = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (Type.getReturnType(call.desc).getSort() != Type.VOID) continue;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            if (owner.equals(call.owner) && arguments.length == 2
+                && arguments[0].getSort() == Type.OBJECT && arguments[1].getSort() == Type.OBJECT) {
+                scoreboard = call;
+                scoreboardCalls++;
+            }
+            if (arguments.length == 3 && arguments[0].getSort() == Type.INT
+                && arguments[1].getSort() == Type.OBJECT && arguments[2].getSort() == Type.OBJECT) {
+                playerList = call;
+                playerListCalls++;
+            }
+        }
+        MethodInsnNode titleStart = findProfilerStringCall(method, "titleAndSubtitle");
+        MethodInsnNode titleEnd = titleStart == null ? null
+            : findFollowingProfilerEnd(method, titleStart, titleStart.owner, false);
+        if (scoreboardCalls != 1 || playerListCalls != 1 || titleStart == null || titleEnd == null) return false;
+
+        insertTimedCall(method, scoreboard, 34);
+        insertTimedCall(method, playerList, 35);
+        insertTerrainSectionBeginAfter(method, titleStart, 36);
+        insertTerrainSectionEndBefore(method, titleEnd, 36);
+        return true;
+    }
+
+    private static boolean isFancyCloudsMethod(MethodNode method) {
+        return (method.access & Opcodes.ACC_STATIC) == 0 && "(FI)V".equals(method.desc)
+            && hasMethodCallDescriptor(method, "(ZZZZ)V")
+            && hasMethodCallDescriptor(method, "(FFF)V");
+    }
+
+    private static boolean patchFancyCloudBatch(MethodNode method) {
+        String tessellatorOwner = null;
+        int tessellatorFactories = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() == Opcodes.INVOKESTATIC
+                && ("()L" + call.owner + ";").equals(call.desc)) {
+                tessellatorOwner = call.owner;
+                tessellatorFactories++;
+            }
+        }
+        if (tessellatorFactories != 1 || tessellatorOwner == null) return false;
+
+        String worldRendererOwner = null;
+        int rendererGetters = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() != Opcodes.INVOKEVIRTUAL || !tessellatorOwner.equals(call.owner)
+                || Type.getArgumentTypes(call.desc).length != 0
+                || Type.getReturnType(call.desc).getSort() != Type.OBJECT) continue;
+            worldRendererOwner = Type.getReturnType(call.desc).getInternalName();
+            rendererGetters++;
+        }
+        if (rendererGetters != 1 || worldRendererOwner == null) return false;
+
+        MethodInsnNode begin = null;
+        MethodInsnNode draw = null;
+        int beginCount = 0;
+        int drawCount = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            if (worldRendererOwner.equals(call.owner) && Type.getReturnType(call.desc).getSort() == Type.VOID
+                && arguments.length == 2 && arguments[0].getSort() == Type.INT
+                && arguments[1].getSort() == Type.OBJECT) {
+                begin = call;
+                beginCount++;
+            }
+            if (tessellatorOwner.equals(call.owner) && "()V".equals(call.desc)) {
+                draw = call;
+                drawCount++;
+            }
+        }
+        if (beginCount != 1 || drawCount != 1 || begin == null || draw == null) return false;
+
+        AbstractInsnNode formatArgument = previousRealInstruction(begin);
+        AbstractInsnNode modeArgument = previousRealInstruction(formatArgument);
+        AbstractInsnNode beginReceiver = previousRealInstruction(modeArgument);
+        AbstractInsnNode drawReceiver = previousRealInstruction(draw);
+        if (!(formatArgument instanceof org.objectweb.asm.tree.FieldInsnNode)
+            || ((org.objectweb.asm.tree.FieldInsnNode) formatArgument).getOpcode() != Opcodes.GETSTATIC
+            || !(beginReceiver instanceof VarInsnNode) || beginReceiver.getOpcode() != Opcodes.ALOAD
+            || !isIntegerSeven(modeArgument)
+            || !(drawReceiver instanceof VarInsnNode) || drawReceiver.getOpcode() != Opcodes.ALOAD) return false;
+
+        insertConditionalCallGuard(method, beginReceiver, begin, "shouldBeginTile");
+        insertConditionalCallGuard(method, drawReceiver, draw, "shouldDrawTile");
+        return true;
+    }
+
+    private static boolean isIntegerSeven(AbstractInsnNode instruction) {
+        if (instruction == null) return false;
+        int opcode = instruction.getOpcode();
+        if (opcode == Opcodes.BIPUSH || opcode == Opcodes.SIPUSH) {
+            return instruction instanceof org.objectweb.asm.tree.IntInsnNode
+                && ((org.objectweb.asm.tree.IntInsnNode) instruction).operand == 7;
+        }
+        if (opcode == Opcodes.ICONST_7) return true;
+        if (instruction instanceof LdcInsnNode) return Integer.valueOf(7).equals(((LdcInsnNode) instruction).cst);
+        return false;
+    }
+
+    private static void insertConditionalCallGuard(MethodNode method, AbstractInsnNode anchor,
+                                                    MethodInsnNode originalCall, String hookName) {
+        LabelNode executeCall = new LabelNode();
+        LabelNode afterCall = new LabelNode();
+        InsnList guard = new InsnList();
+        guard.add(new MethodInsnNode(Opcodes.INVOKESTATIC, CLOUD_BATCH, hookName, "()Z", false));
+        guard.add(new JumpInsnNode(Opcodes.IFNE, executeCall));
+        guard.add(new JumpInsnNode(Opcodes.GOTO, afterCall));
+        guard.add(executeCall);
+        method.instructions.insertBefore(anchor, guard);
+        method.instructions.insert(originalCall, afterCall);
+    }
+
     private static boolean isNameTagRenderMethod(MethodNode method) {
         if (Type.getReturnType(method.desc).getSort() != Type.VOID) return false;
         Type[] arguments = Type.getArgumentTypes(method.desc);
