@@ -64,6 +64,7 @@ public final class Vanilla189Verifier {
         require("terrain visibility cache world invalidation", CyloxClientTransformer.getPatchedVisibilityInvalidationClassCount());
         require("terrain visibility cache range invalidation", CyloxClientTransformer.getPatchedVisibilityRangeInvalidationClassCount());
         require("near-chunk synchronous build radius limiter", CyloxClientTransformer.getPatchedNearBuildRadiusClassCount());
+        require("predictive ahead-of-motion chunk pre-build ordering", CyloxClientTransformer.getPatchedPredictiveChunkPrebuildClassCount());
         require("terrain visibility graph snapshot cache", CyloxClientTransformer.getPatchedVisibilityGraphCacheClassCount());
         require("entity render-view state reuse", CyloxClientTransformer.getPatchedEntitySleepingCacheClassCount());
         require("player equipment slot bounds guard", CyloxClientTransformer.getPatchedPlayerEquipmentGuardClassCount());
