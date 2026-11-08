@@ -123,6 +123,7 @@ sourceSets {
             include '**/CyloxVisibilityCacheHooks.java'
             include '**/CyloxTextWidthCache.java'
             include '**/CyloxUiHooks.java'
+            include '**/CyloxCloudBatchHooks.java'
         }
         compileClasspath += sourceSets.main.output
         compileClasspath += viaLibraryFiles
