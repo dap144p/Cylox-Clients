@@ -84,6 +84,8 @@ public final class CyloxPredictiveChunkBuildHooks {
 
             directionX = state.directionX;
             directionZ = state.directionZ;
+            if (now - state.lastPriorityNanos < 100000000L) return;
+            state.lastPriorityNanos = now;
         }
 
         if (directionX * directionX + directionZ * directionZ < 0.5D) return;
@@ -262,6 +264,7 @@ public final class CyloxPredictiveChunkBuildHooks {
         double directionX;
         double directionZ;
         long lastMovementNanos;
+        long lastPriorityNanos;
 
         MotionState(Object entity, double x, double z) {
             viewEntity = new WeakReference<Object>(entity);
