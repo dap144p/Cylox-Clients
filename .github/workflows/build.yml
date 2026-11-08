@@ -2,7 +2,7 @@ name: Build Cylox Client — 1.8.9
 
 on:
   push:
-    branches: [main, perf/low-end-diagnostics-1.4.1, perf/render-engine-phase1-1.4.3]
+    branches: [main, perf/low-end-diagnostics-1.4.1, perf/render-engine-phase1-1.4.3, perf/render-optimizations-1.5.0-rc1]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -99,6 +99,7 @@ jobs:
           unzip -l "$JAR" | grep -q 'com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxViaRewindHooks.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxPerformanceMonitor.class'
+          unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxCloudBatchHooks.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxTextWidthCache.class'
           unzip -l "$JAR" | grep -q 'dev/cylox/client/minecraft189/CyloxGraphicsPreset.class'
@@ -158,7 +159,7 @@ jobs:
           retention-days: 30
 
       - name: Publish versioned and latest releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/render-optimizations-1.5.0-rc1')
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -227,6 +228,27 @@ jobs:
             done
             gh release upload "$release" "${ASSETS[@]}"
           }
+
+          if [[ "$GITHUB_REF" == "refs/heads/perf/render-optimizations-1.5.0-rc1" ]]; then
+            RC_NOTES="$(cat <<'EOF'
+          Cylox Client 1.5.0-rc1 — Minecraft Java 1.8.9 rendering optimization pre-release.
+
+          - Batches the 64 Fancy Cloud geometry tiles into one WorldRenderer begin/draw batch per vanilla color-mask pass. The two passes, vertex generation order, cloud appearance, texture, color and existing graphics options remain unchanged.
+          - Adds opt-in scoreboard, player-list and title/subtitle phase timings inside the overall HUD overlay measurement.
+          - Adds opt-in rendered-entity and rendered-TileEntity call counts beside the existing entity and block-entity timings.
+          - Entity, TileEntity and GUI instrumentation does not skip objects or alter HUD content. The only rendering behavior change is Fancy Cloud tile draw batching.
+          - Diagnostics are enabled only with -Dcylox.profile=true. Cloud batching is enabled for vanilla Fancy Clouds regardless of profiling state.
+          - This is a pre-release for device validation on MJ Launcher / GL4ES. No minimum FPS or FPS gain is guaranteed until tested on the target Redmi device.
+          EOF
+          )"
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              gh release edit "$TAG" --title "Cylox Client ${VERSION} — 1.8.9 (Pre-release)" --notes "$RC_NOTES" --prerelease
+              upload_release_assets "$TAG"
+            else
+              gh release create "$TAG" "${ASSETS[@]}" --title "Cylox Client ${VERSION} — 1.8.9 (Pre-release)" --notes "$RC_NOTES" --prerelease --latest=false
+            fi
+            exit 0
+          fi
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "Cylox Client ${VERSION} — 1.8.9" --notes "$NOTES"
