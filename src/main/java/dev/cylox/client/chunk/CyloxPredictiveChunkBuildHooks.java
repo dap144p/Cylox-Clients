@@ -137,6 +137,11 @@ public final class CyloxPredictiveChunkBuildHooks {
         }
     }
 
+    // Package-private for unit tests of deobfuscated/SRG camera yaw access.
+    static boolean readCameraDirectionForTest(Object viewEntity, double[] direction) {
+        return readCameraDirection(viewEntity, direction);
+    }
+
     private static YawAccessor getYawAccessor(Class<?> entityClass) {
         YawAccessor current = cachedYawAccessor;
         if (current != null && current.entityClass == entityClass) return current;
