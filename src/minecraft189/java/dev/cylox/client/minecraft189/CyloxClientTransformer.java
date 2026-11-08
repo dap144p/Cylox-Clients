@@ -1398,6 +1398,22 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         MethodInsnNode tileEntityStart = findProfilerStringCall(method, "blockentities");
         if (entityStart == null || tileEntityStart == null) return false;
 
+        java.util.List<MethodInsnNode> entityCalls = new java.util.ArrayList<MethodInsnNode>();
+        for (AbstractInsnNode instruction = entityStart.getNext();
+             instruction != null && instruction != tileEntityStart; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode && isEntityRenderCall((MethodInsnNode) instruction)) {
+                entityCalls.add((MethodInsnNode) instruction);
+            }
+        }
+        java.util.List<MethodInsnNode> tileCalls = new java.util.ArrayList<MethodInsnNode>();
+        for (AbstractInsnNode instruction = tileEntityStart.getNext();
+             instruction != null && instruction.getOpcode() != Opcodes.RETURN; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode && isTileEntityRenderCall((MethodInsnNode) instruction)) {
+                tileCalls.add((MethodInsnNode) instruction);
+            }
+        }
+        if (entityCalls.isEmpty() || tileCalls.isEmpty()) return false;
+
         java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null; instruction = instruction.getNext()) {
@@ -1406,7 +1422,15 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
         insertTerrainSectionBeginAfter(method, entityStart, 3);
         insertTerrainSectionEndBefore(method, tileEntityStart, 3);
+        for (MethodInsnNode call : entityCalls) {
+            method.instructions.insertBefore(call, new MethodInsnNode(Opcodes.INVOKESTATIC,
+                "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "recordEntityRenderCall", "()V", false));
+        }
         insertTerrainSectionBeginAfter(method, tileEntityStart, 11);
+        for (MethodInsnNode call : tileCalls) {
+            method.instructions.insertBefore(call, new MethodInsnNode(Opcodes.INVOKESTATIC,
+                "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "recordTileEntityRenderCall", "()V", false));
+        }
         for (AbstractInsnNode instruction : returns) {
             InsnList end = new InsnList();
             end.add(new LdcInsnNode(Integer.valueOf(11)));
@@ -1415,6 +1439,21 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             method.instructions.insertBefore(instruction, end);
         }
         return true;
+    }
+
+    private static boolean isEntityRenderCall(MethodInsnNode call) {
+        Type[] arguments = Type.getArgumentTypes(call.desc);
+        int result = Type.getReturnType(call.desc).getSort();
+        return arguments.length == 2 && arguments[0].getSort() == Type.OBJECT
+            && arguments[1].getSort() == Type.FLOAT
+            && (result == Type.BOOLEAN || result == Type.VOID);
+    }
+
+    private static boolean isTileEntityRenderCall(MethodInsnNode call) {
+        Type[] arguments = Type.getArgumentTypes(call.desc);
+        return Type.getReturnType(call.desc).getSort() == Type.VOID
+            && arguments.length == 3 && arguments[0].getSort() == Type.OBJECT
+            && arguments[1].getSort() == Type.FLOAT && arguments[2].getSort() == Type.INT;
     }
 
     private static boolean insertGuiOverlayDetailProfile(MethodNode method, String owner) {
