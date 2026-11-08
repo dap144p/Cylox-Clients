@@ -50,6 +50,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedEntityProfileClasses;
     private static volatile int patchedBlockLayerProfileClasses;
     private static volatile int patchedParticleProfileClasses;
+    private static volatile int patchedScoreboardTeamCreateGuardClasses;
+    private static volatile int patchedScoreboardTeamRemoveGuardClasses;
+    private static volatile int patchedScoreboardMemberRemoveGuardClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -93,6 +96,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedEntityProfileClasses = 0;
         patchedBlockLayerProfileClasses = 0;
         patchedParticleProfileClasses = 0;
+        patchedScoreboardTeamCreateGuardClasses = 0;
+        patchedScoreboardTeamRemoveGuardClasses = 0;
+        patchedScoreboardMemberRemoveGuardClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -124,6 +130,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedEntityProfileClassCount() { return patchedEntityProfileClasses; }
     public static int getPatchedBlockLayerProfileClassCount() { return patchedBlockLayerProfileClasses; }
     public static int getPatchedParticleProfileClassCount() { return patchedParticleProfileClasses; }
+    public static int getPatchedScoreboardTeamCreateGuardClassCount() { return patchedScoreboardTeamCreateGuardClasses; }
+    public static int getPatchedScoreboardTeamRemoveGuardClassCount() { return patchedScoreboardTeamRemoveGuardClasses; }
+    public static int getPatchedScoreboardMemberRemoveGuardClassCount() { return patchedScoreboardMemberRemoveGuardClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -161,7 +170,13 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean entityProfilePatched = false;
             boolean blockLayerProfilePatched = false;
             boolean particleProfilePatched = false;
+            boolean scoreboardTeamCreateGuardPatched = false;
+            boolean scoreboardTeamRemoveGuardPatched = false;
+            boolean scoreboardMemberRemoveGuardPatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
+            boolean scoreboardClass = hasClassMarkers(node,
+                "A team with the name '", "' already exists!",
+                "Player is either on another team or not on any team. Cannot remove from team '");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
             boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png")
                 || hasFontRendererWidthPattern(node);
@@ -384,6 +399,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
+            if (scoreboardClass) {
+                scoreboardTeamCreateGuardPatched = patchScoreboardTeamCreateGuard(node);
+                scoreboardTeamRemoveGuardPatched = patchScoreboardTeamRemoveGuard(node);
+                scoreboardMemberRemoveGuardPatched = patchScoreboardMemberRemoveGuard(node);
+                if (scoreboardTeamCreateGuardPatched || scoreboardTeamRemoveGuardPatched
+                    || scoreboardMemberRemoveGuardPatched) changed = true;
+            }
+
             if (nameTagRenderClass) {
                 for (MethodNode method : node.methods) {
                     if ((method.access & Opcodes.ACC_STATIC) == 0 && isNameTagRenderMethod(method)) {
@@ -470,6 +493,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (entityProfilePatched) patchedEntityProfileClasses++;
             if (blockLayerProfilePatched) patchedBlockLayerProfileClasses++;
             if (particleProfilePatched) patchedParticleProfileClasses++;
+            if (scoreboardTeamCreateGuardPatched) patchedScoreboardTeamCreateGuardClasses++;
+            if (scoreboardTeamRemoveGuardPatched) patchedScoreboardTeamRemoveGuardClasses++;
+            if (scoreboardMemberRemoveGuardPatched) patchedScoreboardMemberRemoveGuardClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -497,6 +523,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (entityProfilePatched) System.out.println("[Cylox] Opt-in entity renderer profiler injected: " + node.name);
             if (blockLayerProfilePatched) System.out.println("[Cylox] Opt-in block-layer profiler injected: " + node.name);
             if (particleProfilePatched) System.out.println("[Cylox] Opt-in particle profiler injected: " + node.name);
+            if (scoreboardTeamCreateGuardPatched) System.out.println("[Cylox] Idempotent scoreboard team-create guard injected: " + node.name);
+            if (scoreboardTeamRemoveGuardPatched) System.out.println("[Cylox] Null-safe scoreboard team-remove guard injected: " + node.name);
+            if (scoreboardMemberRemoveGuardPatched) System.out.println("[Cylox] Membership-safe scoreboard team-player removal guard injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -594,6 +623,182 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     private static boolean hasMethodDescriptor(ClassNode node, String descriptor) {
         for (MethodNode method : node.methods) if (descriptor.equals(method.desc)) return true;
+        return false;
+    }
+
+
+    /**
+     * Makes duplicate vanilla team-create operations idempotent. A duplicate
+     * create packet reuses the current team so the remainder of handleTeams
+     * can still apply its display fields and member list.
+     */
+    private static boolean patchScoreboardTeamCreateGuard(ClassNode owner) {
+        MethodNode target = null;
+        String getterName = null;
+        String teamInternalName = null;
+        int matches = 0;
+
+        for (MethodNode method : owner.methods) {
+            Type[] arguments = Type.getArgumentTypes(method.desc);
+            Type returnType = Type.getReturnType(method.desc);
+            if (arguments.length != 1 || !"Ljava/lang/String;".equals(arguments[0].getDescriptor())
+                || returnType.getSort() != Type.OBJECT
+                || !hasMarkers(method, "A team with the name '", "' already exists!")) {
+                continue;
+            }
+
+            String candidateGetter = findUniqueMethodCallName(method, owner.name, method.desc);
+            if (candidateGetter == null) continue;
+            matches++;
+            target = method;
+            getterName = candidateGetter;
+            teamInternalName = returnType.getInternalName();
+        }
+
+        if (matches != 1 || target == null) return false;
+
+        LabelNode existingTeam = new LabelNode();
+        LabelNode createNewTeam = new LabelNode();
+        InsnList guard = new InsnList();
+        guard.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        guard.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        guard.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, owner.name,
+            getterName, target.desc, false));
+        guard.add(new InsnNode(Opcodes.DUP));
+        guard.add(new JumpInsnNode(Opcodes.IFNONNULL, existingTeam));
+        guard.add(new InsnNode(Opcodes.POP));
+        guard.add(new JumpInsnNode(Opcodes.GOTO, createNewTeam));
+        guard.add(existingTeam);
+        guard.add(new FrameNode(Opcodes.F_SAME1, 0, null, 1, new Object[] {teamInternalName}));
+        guard.add(new InsnNode(Opcodes.ARETURN));
+        guard.add(createNewTeam);
+        guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        target.instructions.insert(guard);
+        return true;
+    }
+
+    /**
+     * A stale remove-team packet must not pass null into Scoreboard.removeTeam.
+     */
+    private static boolean patchScoreboardTeamRemoveGuard(ClassNode owner) {
+        String teamDescriptor = findScoreboardTeamDescriptor(owner);
+        if (teamDescriptor == null) return false;
+        String teamInternalName = Type.getType(teamDescriptor).getInternalName();
+        String targetDescriptor = "(" + teamDescriptor + ")V";
+        MethodNode target = null;
+        int matches = 0;
+
+        for (MethodNode method : owner.methods) {
+            if (!targetDescriptor.equals(method.desc)
+                || findUniqueMethodCallName(method, teamInternalName, "()Ljava/lang/String;") == null
+                || !hasMethodCall(method, "java/util/Map", "(Ljava/lang/Object;)Ljava/lang/Object;")) {
+                continue;
+            }
+            target = method;
+            matches++;
+        }
+
+        if (matches != 1 || target == null) return false;
+
+        LabelNode hasTeam = new LabelNode();
+        InsnList guard = new InsnList();
+        guard.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        guard.add(new JumpInsnNode(Opcodes.IFNONNULL, hasTeam));
+        guard.add(new InsnNode(Opcodes.RETURN));
+        guard.add(hasTeam);
+        guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        target.instructions.insert(guard);
+        return true;
+    }
+
+    /**
+     * Team-member removals are idempotent: ignore a missing team or a player
+     * that is no longer assigned to the packet's team.
+     */
+    private static boolean patchScoreboardMemberRemoveGuard(ClassNode owner) {
+        String teamDescriptor = findScoreboardTeamDescriptor(owner);
+        if (teamDescriptor == null) return false;
+        String teamInternalName = Type.getType(teamDescriptor).getInternalName();
+        String targetDescriptor = "(Ljava/lang/String;" + teamDescriptor + ")V";
+        String getterDescriptor = "(Ljava/lang/String;)" + teamDescriptor;
+        MethodNode target = null;
+        String getterName = null;
+        int matches = 0;
+
+        for (MethodNode method : owner.methods) {
+            if (!targetDescriptor.equals(method.desc)
+                || !hasMarkers(method,
+                    "Player is either on another team or not on any team. Cannot remove from team '")) {
+                continue;
+            }
+            String candidateGetter = findUniqueMethodCallName(method, owner.name, getterDescriptor);
+            if (candidateGetter == null) continue;
+            target = method;
+            getterName = candidateGetter;
+            matches++;
+        }
+
+        if (matches != 1 || target == null) return false;
+
+        LabelNode skipRemoval = new LabelNode();
+        LabelNode removeMember = new LabelNode();
+        InsnList guard = new InsnList();
+        guard.add(new VarInsnNode(Opcodes.ALOAD, 2));
+        guard.add(new JumpInsnNode(Opcodes.IFNULL, skipRemoval));
+        guard.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        guard.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        guard.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, owner.name,
+            getterName, getterDescriptor, false));
+        guard.add(new VarInsnNode(Opcodes.ALOAD, 2));
+        guard.add(new JumpInsnNode(Opcodes.IF_ACMPEQ, removeMember));
+        guard.add(skipRemoval);
+        guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        guard.add(new InsnNode(Opcodes.RETURN));
+        guard.add(removeMember);
+        guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        target.instructions.insert(guard);
+        return true;
+    }
+
+    private static String findScoreboardTeamDescriptor(ClassNode owner) {
+        String descriptor = null;
+        int matches = 0;
+        for (MethodNode method : owner.methods) {
+            Type[] arguments = Type.getArgumentTypes(method.desc);
+            Type returnType = Type.getReturnType(method.desc);
+            if (arguments.length == 1 && "Ljava/lang/String;".equals(arguments[0].getDescriptor())
+                && returnType.getSort() == Type.OBJECT
+                && hasMarkers(method, "A team with the name '", "' already exists!")) {
+                descriptor = returnType.getDescriptor();
+                matches++;
+            }
+        }
+        return matches == 1 ? descriptor : null;
+    }
+
+    private static String findUniqueMethodCallName(MethodNode method, String callOwner, String callDescriptor) {
+        String name = null;
+        int matches = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                && callOwner.equals(call.owner) && callDescriptor.equals(call.desc)) {
+                name = call.name;
+                matches++;
+            }
+        }
+        return matches == 1 ? name : null;
+    }
+
+    private static boolean hasMethodCall(MethodNode method, String callOwner, String callDescriptor) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (callOwner.equals(call.owner) && callDescriptor.equals(call.desc)) return true;
+        }
         return false;
     }
 
