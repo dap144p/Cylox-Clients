@@ -53,6 +53,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedWorldRenderProfileClasses;
     private static volatile int patchedWorldPassProfileClasses;
     private static volatile int patchedCloudsProfileClasses;
+    private static volatile int patchedRenderFrameBreakdownClasses;
+    private static volatile int patchedGuiOverlayProfileClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -99,6 +101,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedWorldRenderProfileClasses = 0;
         patchedWorldPassProfileClasses = 0;
         patchedCloudsProfileClasses = 0;
+        patchedRenderFrameBreakdownClasses = 0;
+        patchedGuiOverlayProfileClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -133,6 +137,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedWorldRenderProfileClassCount() { return patchedWorldRenderProfileClasses; }
     public static int getPatchedWorldPassProfileClassCount() { return patchedWorldPassProfileClasses; }
     public static int getPatchedCloudsProfileClassCount() { return patchedCloudsProfileClasses; }
+    public static int getPatchedRenderFrameBreakdownClassCount() { return patchedRenderFrameBreakdownClasses; }
+    public static int getPatchedGuiOverlayProfileClassCount() { return patchedGuiOverlayProfileClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -173,11 +179,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean worldRenderProfilePatched = false;
             boolean worldPassProfilePatched = false;
             boolean cloudsProfilePatched = false;
+            boolean renderFrameBreakdownPatched = false;
+            boolean guiOverlayProfilePatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
             boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png")
                 || hasFontRendererWidthPattern(node);
             boolean nameTagRenderClass = hasClassString(node, "deadmau5");
+            boolean guiOverlayClass = hasClassMarkers(node, "bossHealth", "titleAndSubtitle", "chat");
             String fontUnicodeField = fontRendererClass ? findUnicodeField(node) : null;
             int visibilityGraphCandidates = 0;
             int blockLayerCandidates = 0;
@@ -388,6 +397,14 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
             if (frameProfilePatched) {
                 for (MethodNode method : node.methods) {
+                    if (!renderFrameBreakdownPatched && "(FJ)V".equals(method.desc)
+                        && hasMarkers(method, "mouse", "level", "gui")) {
+                        renderFrameBreakdownPatched = insertRenderFrameBreakdown(method, node.name);
+                        if (!renderFrameBreakdownPatched) {
+                            throw new IllegalStateException("Could not safely locate vanilla frame phase boundaries");
+                        }
+                        changed = true;
+                    }
                     if (!worldRenderProfilePatched && "(FJ)V".equals(method.desc)
                         && hasMarkers(method, "center")
                         && hasMethodCallDescriptor(method, "(IFJ)V")) {
@@ -428,6 +445,25 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         nameTagProfilePatched = true;
                         changed = true;
                     }
+                }
+            }
+
+            if (guiOverlayClass && !guiOverlayProfilePatched) {
+                for (MethodNode method : node.methods) {
+                    if (!"(F)V".equals(method.desc)
+                        || !hasMarkers(method, "bossHealth", "titleAndSubtitle", "chat")) continue;
+                    MethodInsnNode chatStart = findProfilerStringCall(method, "chat");
+                    MethodInsnNode chatEnd = chatStart == null ? null
+                        : findFollowingProfilerEnd(method, chatStart, chatStart.owner, false);
+                    if (chatStart == null || chatEnd == null) {
+                        throw new IllegalStateException("Could not locate vanilla HUD chat profiler boundaries");
+                    }
+                    insertTimedSection(method, 28);
+                    insertTerrainSectionBeginAfter(method, chatStart, 29);
+                    insertTerrainSectionEndBefore(method, chatEnd, 29);
+                    guiOverlayProfilePatched = true;
+                    changed = true;
+                    break;
                 }
             }
 
@@ -510,6 +546,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (worldRenderProfilePatched) patchedWorldRenderProfileClasses++;
             if (worldPassProfilePatched) patchedWorldPassProfileClasses++;
             if (cloudsProfilePatched) patchedCloudsProfileClasses++;
+            if (renderFrameBreakdownPatched) patchedRenderFrameBreakdownClasses++;
+            if (guiOverlayProfilePatched) patchedGuiOverlayProfileClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -540,6 +578,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (worldRenderProfilePatched) System.out.println("[Cylox] Opt-in whole-world renderer profiler injected: " + node.name);
             if (worldPassProfilePatched) System.out.println("[Cylox] Opt-in world-pass phase profiler injected: " + node.name);
             if (cloudsProfilePatched) System.out.println("[Cylox] Opt-in cloud-check profiler injected: " + node.name);
+            if (renderFrameBreakdownPatched) System.out.println("[Cylox] Opt-in render-frame phase profiler injected: " + node.name);
+            if (guiOverlayProfilePatched) System.out.println("[Cylox] Opt-in HUD overlay/chat profiler injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -1518,6 +1558,66 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
      * Hooks are placed only at section transitions already present in 1.8.9;
      * no traversal, chunk scheduling, or render decisions are changed.
      */
+    /**
+     * Splits EntityRenderer.updateCameraAndRender into non-world phases:
+     * post-world effects, screen drawing, mouse input, setup and frame tail.
+     * These hooks only measure existing calls and do not change their behavior.
+     */
+    private static boolean insertRenderFrameBreakdown(MethodNode method, String owner) {
+        MethodInsnNode mouseStart = findProfilerStringCall(method, "mouse");
+        MethodInsnNode mouseEnd = mouseStart == null ? null
+            : findFollowingProfilerEnd(method, mouseStart, mouseStart.owner, false);
+        MethodInsnNode guiStart = findProfilerStringCall(method, "gui");
+        MethodInsnNode worldCall = null;
+        MethodInsnNode screenDraw = null;
+        MethodInsnNode frameSetup = null;
+        MethodInsnNode frameTail = null;
+        int worldCalls = 0;
+        int screenCalls = 0;
+        boolean pastMouseStart = false;
+        boolean pastScreenDraw = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction == mouseStart) pastMouseStart = true;
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (owner.equals(call.owner) && "(FJ)V".equals(call.desc)) { worldCall = call; worldCalls++; }
+            if ("(IIF)V".equals(call.desc)) { screenDraw = call; screenCalls++; pastScreenDraw = true; }
+            if (owner.equals(call.owner) && "()V".equals(call.desc)) {
+                if (!pastMouseStart && frameSetup == null) frameSetup = call;
+                else if (pastScreenDraw && frameTail == null) frameTail = call;
+            }
+        }
+        if (mouseStart == null || mouseEnd == null || guiStart == null || worldCalls != 1
+            || screenCalls != 1 || frameSetup == null || frameTail == null) return false;
+        insertTimedCall(method, frameSetup, 33);
+        insertTerrainSectionBeginAfter(method, worldCall, 27);
+        insertTerrainSectionEndBefore(method, guiStart, 27);
+        insertTimedCall(method, screenDraw, 30);
+        InsnList frameTailBegin = new InsnList();
+        frameTailBegin.add(new LdcInsnNode(Integer.valueOf(31)));
+        frameTailBegin.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
+        method.instructions.insertBefore(frameTail, frameTailBegin);
+        insertSectionEndBeforeReturns(method, 31);
+        insertTerrainSectionBeginAfter(method, mouseStart, 32);
+        insertTerrainSectionEndBefore(method, mouseEnd, 32);
+        return true;
+    }
+
+    private static void insertTimedCall(MethodNode method, MethodInsnNode call, int section) {
+        InsnList begin = new InsnList();
+        begin.add(new LdcInsnNode(Integer.valueOf(section)));
+        begin.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginSection", "(I)V", false));
+        method.instructions.insertBefore(call, begin);
+        InsnList end = new InsnList();
+        end.add(new LdcInsnNode(Integer.valueOf(section)));
+        end.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
+        method.instructions.insert(call, end);
+    }
+
     private static boolean isWorldPassMethod(MethodNode method) {
         return Type.getReturnType(method.desc).getSort() == Type.VOID
             && "(IFJ)V".equals(method.desc)

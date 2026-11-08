@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.8  
+**Version:** 1.4.9  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -105,6 +105,12 @@ This is not an Android background service. The launcher must keep the game proce
 - Use these measurements alongside tile-entity and block-layer timings to distinguish heap pressure from render-thread work.
 - Diagnostics only; no FPS or RAM reduction is claimed. Confirm memory and stability on MJ Launcher and the target Android device.
 
+## Render-frame phase diagnostics (1.4.9)
+
+- Adds opt-in measurements for post-world effects/framebuffer work, HUD overlay, chat drawing, current-screen drawing, mouse input, frame setup and frame tail.
+- The HUD chat timer is nested inside `guiOverlay`; do not add the nested values together.
+- All timings are diagnostic-only, disabled unless `-Dcylox.profile=true` is set. No HUD elements, scoreboard/chat content, rendering operations, frame pacing, ticks or networking are changed.
+- Use these timings to identify which non-world phase accounts for the frame-time difference seen on low-end devices; this version does not claim an FPS increase.
 ## World-render phase diagnostics (1.4.8)
 
 - Extends the opt-in Cylox Perf report with the whole renderWorld and renderWorldPass durations, plus per-phase measurements for pre-sky camera/culling work, sky/cloud preparation, terrain preparation, opaque terrain layers, entities, lit particles, particles, weather, translucent terrain, above-cloud rendering, and first-person hand rendering.

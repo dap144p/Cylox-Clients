@@ -37,16 +37,24 @@ public final class CyloxPerformanceMonitor {
     private static final int WORLD_ABOVE_CLOUDS = 24;
     private static final int WORLD_HAND = 25;
     private static final int CLOUDS_CHECK = 26;
+    private static final int WORLD_POST_EFFECTS = 27;
+    private static final int GUI_OVERLAY = 28;
+    private static final int GUI_CHAT = 29;
+    private static final int SCREEN_DRAW = 30;
+    private static final int FRAME_TAIL = 31;
+    private static final int MOUSE_INPUT = 32;
+    private static final int FRAME_SETUP = 33;
     private static final String[] EXTRA_SECTION_NAMES = {
         "worldRender", "worldPass", "worldPreSky", "worldSkyClouds", "worldPrepareTerrain",
         "worldOpaqueTerrain", "worldEntities", "worldLitParticles", "worldParticles",
-        "worldWeather", "worldTranslucent", "worldAboveClouds", "worldHand", "cloudsCheck"
+        "worldWeather", "worldTranslucent", "worldAboveClouds", "worldHand", "cloudsCheck",
+        "worldPostEffects", "guiOverlay", "guiChat", "screenDraw", "frameTail", "mouseInput", "frameSetup"
     };
 
     private static final ThreadLocal<long[]> START_TIMES = new ThreadLocal<long[]>() {
         @Override
         protected long[] initialValue() {
-            return new long[27];
+            return new long[34];
         }
     };
     private static final long[] TERRAIN_DETAIL_COUNTS = new long[5];
@@ -108,12 +116,12 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void beginSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > CLOUDS_CHECK) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > FRAME_SETUP) return;
         START_TIMES.get()[section] = System.nanoTime();
     }
 
     public static void endSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > CLOUDS_CHECK) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > FRAME_SETUP) return;
         long[] starts = START_TIMES.get();
         long start = starts[section];
         starts[section] = 0L;
@@ -147,7 +155,7 @@ public final class CyloxPerformanceMonitor {
             nameTagCount++;
             nameTagTotalNanos += elapsed;
             if (elapsed > nameTagMaxNanos) nameTagMaxNanos = elapsed;
-        } else if (section >= WORLD_RENDER && section <= CLOUDS_CHECK) {
+        } else if (section >= WORLD_RENDER && section <= FRAME_SETUP) {
             int extra = section - WORLD_RENDER;
             EXTRA_SECTION_COUNTS[extra]++;
             EXTRA_SECTION_TOTAL_NANOS[extra] += elapsed;
