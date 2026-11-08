@@ -24,31 +24,6 @@ public final class CyloxVisibilityCacheHooks {
     private static final int MAX_CACHE_ENTRIES = 64;
     private static final int MAX_GRAPH_CACHE_ENTRIES = 32;
 
-    private static final class CacheKey {
-        final Object renderGlobal;
-        final Object blockPosition;
-        final int hashCode;
-
-        CacheKey(Object renderGlobal, Object blockPosition) {
-            this.renderGlobal = renderGlobal;
-            this.blockPosition = blockPosition;
-            this.hashCode = 31 * System.identityHashCode(renderGlobal) + blockPosition.hashCode();
-        }
-
-        @Override
-        public int hashCode() {
-            return hashCode;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof CacheKey)) return false;
-            CacheKey that = (CacheKey) other;
-            return renderGlobal == that.renderGlobal && blockPosition.equals(that.blockPosition);
-        }
-    }
-
     private static final class GraphLayout {
         final Constructor<?> constructor;
         final Field opaqueBlocks;
@@ -100,18 +75,18 @@ public final class CyloxVisibilityCacheHooks {
         }
     }
 
-    private static final LinkedHashMap<CacheKey, Set<?>> VISIBILITY_CACHE =
-        new LinkedHashMap<CacheKey, Set<?>>(MAX_CACHE_ENTRIES, 0.75F, true) {
+    private static final LinkedHashMap<Object, Set<?>> VISIBILITY_CACHE =
+        new LinkedHashMap<Object, Set<?>>(MAX_CACHE_ENTRIES, 0.75F, true) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<CacheKey, Set<?>> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<Object, Set<?>> eldest) {
                 return size() > MAX_CACHE_ENTRIES;
             }
         };
 
-    private static final LinkedHashMap<CacheKey, GraphSnapshot> VISIBILITY_GRAPH_CACHE =
-        new LinkedHashMap<CacheKey, GraphSnapshot>(MAX_GRAPH_CACHE_ENTRIES, 0.75F, true) {
+    private static final LinkedHashMap<Object, GraphSnapshot> VISIBILITY_GRAPH_CACHE =
+        new LinkedHashMap<Object, GraphSnapshot>(MAX_GRAPH_CACHE_ENTRIES, 0.75F, true) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<CacheKey, GraphSnapshot> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<Object, GraphSnapshot> eldest) {
                 return size() > MAX_GRAPH_CACHE_ENTRIES;
             }
         };
@@ -140,7 +115,7 @@ public final class CyloxVisibilityCacheHooks {
             return null;
         }
         activateRenderGlobal(renderGlobal);
-        Set<?> cached = VISIBILITY_CACHE.get(new CacheKey(renderGlobal, blockPosition));
+        Set<?> cached = VISIBILITY_CACHE.get(blockPosition);
         if (cached == null) {
             cacheMisses++;
             return null;
@@ -153,7 +128,7 @@ public final class CyloxVisibilityCacheHooks {
                                                         Object visibleFacings) {
         if (renderGlobal == null || blockPosition == null || !(visibleFacings instanceof Set)) return;
         activateRenderGlobal(renderGlobal);
-        VISIBILITY_CACHE.put(new CacheKey(renderGlobal, blockPosition),
+        VISIBILITY_CACHE.put(blockPosition,
             copySet((Set<?>) visibleFacings));
     }
 
@@ -168,7 +143,7 @@ public final class CyloxVisibilityCacheHooks {
             return false;
         }
         activateRenderGlobal(renderGlobal);
-        CacheKey key = new CacheKey(renderGlobal, sectionPosition);
+        Object key = sectionPosition;
         GraphSnapshot snapshot = VISIBILITY_GRAPH_CACHE.get(key);
         if (snapshot == null) {
             graphCacheMisses++;
@@ -203,7 +178,7 @@ public final class CyloxVisibilityCacheHooks {
             return null;
         }
         activateRenderGlobal(renderGlobal);
-        CacheKey key = new CacheKey(renderGlobal, sectionPosition);
+        Object key = sectionPosition;
         GraphSnapshot snapshot = VISIBILITY_GRAPH_CACHE.get(key);
         if (snapshot == null) {
             graphCacheMisses++;
@@ -233,7 +208,7 @@ public final class CyloxVisibilityCacheHooks {
             GraphLayout layout = getGraphLayout(visibilityGraph.getClass());
             BitSet opaque = (BitSet) layout.opaqueBlocks.get(visibilityGraph);
             int remaining = layout.remainingCount.getInt(visibilityGraph);
-            VISIBILITY_GRAPH_CACHE.put(new CacheKey(renderGlobal, sectionPosition),
+            VISIBILITY_GRAPH_CACHE.put(sectionPosition,
                 new GraphSnapshot(layout, (BitSet) opaque.clone(), remaining));
         } catch (Throwable error) {
             graphCacheFailures++;
@@ -270,19 +245,19 @@ public final class CyloxVisibilityCacheHooks {
 
         int removed = 0;
         try {
-            Iterator<Map.Entry<CacheKey, Set<?>>> visibility = VISIBILITY_CACHE.entrySet().iterator();
+            Iterator<Map.Entry<Object, Set<?>>> visibility = VISIBILITY_CACHE.entrySet().iterator();
             while (visibility.hasNext()) {
-                CacheKey key = visibility.next().getKey();
-                if (intersectsChangedSection(key.blockPosition, minX, minY, minZ, maxX, maxY, maxZ)) {
+                Object key = visibility.next().getKey();
+                if (intersectsChangedSection(key, minX, minY, minZ, maxX, maxY, maxZ)) {
                     visibility.remove();
                     removed++;
                 }
             }
 
-            Iterator<Map.Entry<CacheKey, GraphSnapshot>> graphs = VISIBILITY_GRAPH_CACHE.entrySet().iterator();
+            Iterator<Map.Entry<Object, GraphSnapshot>> graphs = VISIBILITY_GRAPH_CACHE.entrySet().iterator();
             while (graphs.hasNext()) {
-                CacheKey key = graphs.next().getKey();
-                if (intersectsChangedSection(key.blockPosition, minX, minY, minZ, maxX, maxY, maxZ)) {
+                Object key = graphs.next().getKey();
+                if (intersectsChangedSection(key, minX, minY, minZ, maxX, maxY, maxZ)) {
                     graphs.remove();
                     removed++;
                 }
