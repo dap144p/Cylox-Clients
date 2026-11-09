@@ -16,6 +16,8 @@ public final class CyloxUiHooks {
     private static final int ORANGE = 0xFFFFA45B;
     private static final ConcurrentMap<Class<?>, ButtonAccess> BUTTON_ACCESS =
         new ConcurrentHashMap<Class<?>, ButtonAccess>();
+    private static final ConcurrentMap<Class<?>, SliderAccess> SLIDER_ACCESS =
+        new ConcurrentHashMap<Class<?>, SliderAccess>();
     private static final ConcurrentMap<Class<?>, FontOwnerAccess> FONT_OWNER_ACCESS =
         new ConcurrentHashMap<Class<?>, FontOwnerAccess>();
     private static final ConcurrentMap<Class<?>, FontMethods> FONT_METHODS =
@@ -37,6 +39,20 @@ public final class CyloxUiHooks {
             Field text = findField(type, "displayString", "field_146126_j", "j");
             label = text != null ? text : findFirstField(type, String.class);
         }
+    }
+
+    /** Detects vanilla GuiOptionSlider instances without changing their option semantics. */
+    private static final class SliderAccess {
+        final Field value, dragging;
+        final Method drag;
+        SliderAccess(Class<?> type) {
+            Field found = findField(type, "sliderValue", "field_146150_p", "p");
+            value = found != null && found.getType() == Float.TYPE
+                ? found : findDeclaredFieldOfType(type, Float.TYPE);
+            dragging = findDeclaredFieldOfType(type, Boolean.TYPE);
+            drag = findSliderDragMethod(type);
+        }
+        boolean supported() { return value != null && drag != null; }
     }
 
     /** Resolves a screen/Minecraft FontRenderer field once per owner class, not once per frame. */
@@ -95,6 +111,40 @@ public final class CyloxUiHooks {
         return access;
     }
 
+    private static SliderAccess sliderAccess(Object button) {
+        Class<?> type = button.getClass();
+        SliderAccess access = SLIDER_ACCESS.get(type);
+        if (access == null) {
+            SliderAccess created = new SliderAccess(type);
+            SliderAccess prior = SLIDER_ACCESS.putIfAbsent(type, created);
+            access = prior == null ? created : prior;
+        }
+        return access;
+    }
+
+    private static Method findSliderDragMethod(Class<?> type) {
+        Method fallback = null;
+        for (Method candidate : type.getDeclaredMethods()) {
+            if (Modifier.isStatic(candidate.getModifiers())
+                || candidate.getReturnType() != Void.TYPE) continue;
+            Class<?>[] parameters = candidate.getParameterTypes();
+            if (parameters.length != 3 || parameters[0].isPrimitive()
+                || parameters[1] != Integer.TYPE || parameters[2] != Integer.TYPE) continue;
+            String name = candidate.getName();
+            if ("mouseDragged".equals(name) || "func_146119_b".equals(name)
+                || "b".equals(name)) {
+                try { candidate.setAccessible(true); return candidate; }
+                catch (Throwable ignored) { }
+            }
+            if (fallback == null) fallback = candidate;
+        }
+        if (fallback != null) {
+            try { fallback.setAccessible(true); return fallback; }
+            catch (Throwable ignored) { }
+        }
+        return null;
+    }
+
     private static FontOwnerAccess fontOwnerAccess(Object owner) {
         Class<?> type = owner.getClass();
         FontOwnerAccess access = FONT_OWNER_ACCESS.get(type);
@@ -146,6 +196,11 @@ public final class CyloxUiHooks {
         catch (Throwable ignored) { return fallback; }
     }
 
+    private static float readFloat(Field field, Object target, float fallback) {
+        try { return field == null ? fallback : field.getFloat(target); }
+        catch (Throwable ignored) { return fallback; }
+    }
+
     private static boolean readBoolean(Field field, Object target, boolean fallback) {
         try { return field == null ? fallback : field.getBoolean(target); }
         catch (Throwable ignored) { return fallback; }
@@ -177,14 +232,32 @@ public final class CyloxUiHooks {
             boolean hovered = mouseX >= x && mouseY >= y && mouseX < x + w && mouseY < y + h;
             if (access.hovered != null) access.hovered.setBoolean(button, hovered);
 
+            SliderAccess slider = sliderAccess(button);
+            boolean sliderButton = slider.supported();
+            boolean sliderDragging = sliderButton
+                && (slider.dragging == null || readBoolean(slider.dragging, button, true));
+            if (sliderDragging) {
+                // GuiButton's normal draw path calls this virtual method. The Cylox button
+                // hook replaces that path, so invoke it only while dragging to retain vanilla
+                // option updates without drawing the textured vanilla handle on idle frames.
+                try { slider.drag.invoke(button, minecraft, mouseX, mouseY); }
+                catch (Throwable ignored) { return false; }
+            }
+
             int fill = !enabled ? 0x80101A25 : hovered ? 0xB81A3545 : 0x98122333;
             int edge = !enabled ? 0x70273541 : hovered ? 0xD036D7E8 : 0xA024465A;
             GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            drawButtonShape(x, y, w, h, fill, edge, hovered ? 0xE0FFA45B : 0xC036D7E8);
+            drawButtonShape(x, y, w, h, fill, edge,
+                sliderButton ? 0x00000000 : hovered ? 0xE0FFA45B : 0xC036D7E8);
             GL11.glPopAttrib();
+
+            if (sliderButton) {
+                float value = readFloat(slider.value, button, 0.0F);
+                drawSliderTrack(x, y, w, h, value, hovered || sliderDragging);
+            }
 
             String label = readString(access.label, button);
             if (label.length() > 0) {
@@ -278,6 +351,39 @@ public final class CyloxUiHooks {
         color(accent);
         quad(x + 2, y + 2, x + 4, y + height - 2);
         GL11.glEnd();
+    }
+
+    /** Renders the slider rail and handle as flat 1px geometry; no bitmap texture is loaded. */
+    private static void drawSliderTrack(int x, int y, int width, int height,
+                                        float value, boolean highlighted) {
+        if (width < 12 || height < 4) return;
+        if (Float.isNaN(value) || Float.isInfinite(value)) value = 0.0F;
+        value = Math.max(0.0F, Math.min(1.0F, value));
+        int knobWidth = Math.min(8, width);
+        int knobHeight = Math.min(20, height);
+        int knobX = x + (int) (value * (width - knobWidth));
+        int knobY = y + (height - knobHeight) / 2;
+        int trackLeft = x + 4;
+        int trackRight = x + width - 4;
+        int trackY = y + height / 2 - 1;
+
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glBegin(GL11.GL_QUADS);
+        color(0xF20A1720);
+        quad(trackLeft, trackY, trackRight, trackY + 2);
+        color(0xF036D7E8);
+        quad(trackLeft, trackY, Math.min(trackRight, knobX + knobWidth / 2), trackY + 2);
+        color(highlighted ? 0xFFFFA45B : 0xFF36D7E8);
+        quad(knobX, knobY, knobX + knobWidth, knobY + knobHeight);
+        color(0xFF10212C);
+        quad(knobX + 1, knobY + 1, knobX + knobWidth - 1, knobY + knobHeight - 1);
+        color(highlighted ? 0xFFFFA45B : 0xFF7895A5);
+        quad(knobX + 2, knobY + 2, knobX + knobWidth - 2, knobY + 3);
+        GL11.glEnd();
+        GL11.glPopAttrib();
     }
 
     private static void fillQuad(int left, int top, int right, int bottom, int color) {
@@ -427,6 +533,16 @@ public final class CyloxUiHooks {
                     field.setAccessible(true);
                     return field;
                 } catch (Throwable ignored) { }
+            }
+        }
+        return null;
+    }
+
+    private static Field findDeclaredFieldOfType(Class<?> type, Class<?> fieldType) {
+        for (Field field : type.getDeclaredFields()) {
+            if (field.getType() == fieldType && !Modifier.isStatic(field.getModifiers())) {
+                try { field.setAccessible(true); return field; }
+                catch (Throwable ignored) { }
             }
         }
         return null;
