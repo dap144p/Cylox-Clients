@@ -1579,9 +1579,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     private static void injectFontTextLifecycle(MethodNode method) {
         InsnList begin = new InsnList();
-        begin.add(new VarInsnNode(Opcodes.ALOAD, 0));
         begin.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FONT_BATCH_HOOKS,
-            "beginText", "(Ljava/lang/Object;)V", false));
+            "beginText", "()V", false));
         method.instructions.insert(begin);
 
         java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
