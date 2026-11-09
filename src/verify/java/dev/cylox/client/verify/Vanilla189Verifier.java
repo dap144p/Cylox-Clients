@@ -76,6 +76,7 @@ public final class Vanilla189Verifier {
         require("opt-in whole-world renderer profiler", CyloxClientTransformer.getPatchedWorldRenderProfileClassCount());
         require("opt-in world-pass phase profiler", CyloxClientTransformer.getPatchedWorldPassProfileClassCount());
         require("opt-in cloud-check profiler", CyloxClientTransformer.getPatchedCloudsProfileClassCount());
+        require("Fancy Clouds tessellator batching", CyloxClientTransformer.getPatchedFancyCloudBatchClassCount());
         require("opt-in render-frame phase profiler", CyloxClientTransformer.getPatchedRenderFrameBreakdownClassCount());
         require("opt-in HUD overlay/chat profiler", CyloxClientTransformer.getPatchedGuiOverlayProfileClassCount());
         verifyViaRewindEquipmentHook(new File(args[1]));
