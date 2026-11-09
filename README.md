@@ -1,21 +1,21 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.7  
+**Version:** 1.5.8  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
 
 Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce rendering work while the game window is inactive. Its protocol compatibility features are embedded in the same Cylox JAR.
 
-## Execute .jar installer (1.5.7)
+## Execute .jar installer (1.5.8)
 
-- The release includes `Cylox-Installer-1.8.9-<version>.jar` for MJ Launcher's **Execute a .jar** feature.
+- The release includes `cylox-client-1.8.9-installer-<version>.jar` for MJ Launcher's **Execute a .jar** feature.
 - Each installer embeds the exact same-version ZIP package. It installs only that package's Cylox version profile, matching Cylox client JAR and license files; it does not fetch or substitute another client version.
 - The installer selects a detected game directory when available, otherwise opens a folder picker. Confirm the target before installation.
 - If a same-version destination file differs, the previous file is preserved under `.cylox-installer-backup/<version>/`. Identical files are left untouched.
 - The installer is Java 8 bytecode and uses Swing/AWT dialogs. Actual Execute .jar compatibility and folder-picker behavior still require testing in MJ Launcher on Android.
-- The original ZIP remains available for manual installation.
+- The manual ZIP package is `cylox-client-1.8.9-<version>.zip` and remains available for manual installation.
 ## Benchmark preset and profiler correction (1.5.6)
 
 - Restores the one-time maximum-graphics benchmark preset as the stress-test baseline for fresh installs: Fancy Graphics, 16-chunk render distance, maximum ambient occlusion, all particles, entity shadows, clouds, mipmap level 4, 260 FPS target and VSync off.

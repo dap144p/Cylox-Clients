@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.security.CodeSource;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -15,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -27,8 +30,9 @@ public final class CyloxInstaller {
     private CyloxInstaller() { }
 
     public static void main(String[] args) {
-        try {
-            Manifest manifest = readManifest();
+        try (JarFile installerJar = openInstallerJar()) {
+            Manifest manifest = installerJar.getManifest();
+            if (manifest == null) throw new IllegalStateException("Installer manifest is missing.");
             Attributes attributes = manifest.getMainAttributes();
             version = requiredAttribute(attributes, "Cylox-Version");
             payloadName = requiredAttribute(attributes, "Cylox-Payload");
@@ -39,7 +43,7 @@ public final class CyloxInstaller {
                     + "\n\nOnly this version profile, its matching client JAR and license files will be installed.",
                 "Cylox Installer " + version, JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
             if (answer != JOptionPane.OK_OPTION) return;
-            List<String> installed = install(target.toPath());
+            List<String> installed = install(target.toPath(), installerJar);
             JOptionPane.showMessageDialog(null,
                 "Installation completed.\nVersion: Cylox-1.8.9\nBuild: " + version
                     + "\nFiles: " + installed.size()
@@ -56,10 +60,16 @@ public final class CyloxInstaller {
         }
     }
 
-    private static Manifest readManifest() throws Exception {
-        InputStream input = CyloxInstaller.class.getResourceAsStream("/META-INF/MANIFEST.MF");
-        if (input == null) throw new IllegalStateException("Installer manifest is missing.");
-        try { return new Manifest(input); } finally { input.close(); }
+    private static JarFile openInstallerJar() throws Exception {
+        CodeSource source = CyloxInstaller.class.getProtectionDomain().getCodeSource();
+        if (source == null || source.getLocation() == null) {
+            throw new IllegalStateException("Cannot locate the running installer JAR.");
+        }
+        File file = new File(source.getLocation().toURI());
+        if (!file.isFile()) {
+            throw new IllegalStateException("The installer must be executed directly from its JAR file.");
+        }
+        return new JarFile(file);
     }
 
     private static String requiredAttribute(Attributes attributes, String name) {
@@ -111,11 +121,12 @@ public final class CyloxInstaller {
                 || new File(directory, "assets").isDirectory());
     }
 
-    private static List<String> install(Path gameDir) throws Exception {
+    private static List<String> install(Path gameDir, JarFile installerJar) throws Exception {
         Path root = gameDir.toRealPath();
         List<String> installed = new ArrayList<String>();
-        InputStream resource = CyloxInstaller.class.getResourceAsStream("/payload/" + payloadName);
-        if (resource == null) throw new IllegalStateException("Embedded version-matched ZIP payload is missing.");
+        JarEntry payload = installerJar.getJarEntry("payload/" + payloadName);
+        if (payload == null) throw new IllegalStateException("Embedded version-matched ZIP payload is missing.");
+        InputStream resource = installerJar.getInputStream(payload);
         ZipInputStream zip = new ZipInputStream(new BufferedInputStream(resource));
         try {
             ZipEntry entry;
