@@ -367,7 +367,7 @@ public final class Vanilla189Verifier {
             }
 
             java.nio.file.Files.write(options.toPath(), Arrays.asList("renderDistance:4"),
-                java.nio.file.StandardCharsets.UTF_8);
+                java.nio.charset.StandardCharsets.UTF_8);
             CyloxGraphicsPreset.restoreBenchmarkPresetOnce(root);
             java.util.List<String> afterSecondLaunch = java.nio.file.Files.readAllLines(
                 options.toPath(), java.nio.charset.StandardCharsets.UTF_8);
