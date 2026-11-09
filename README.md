@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.1  
+**Version:** 1.5.2  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -177,6 +177,14 @@ This is not an Android background service. The launcher must keep the game proce
 Included: Cylox main-menu theme, themed vanilla buttons and menu backgrounds, manual version-family selector, embedded Via protocol translation, outgoing-handshake verification, background render suppression and a 1.8.9 LaunchWrapper adapter that preserves vanilla terrain traversal and chunk scheduling.
 
 Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, custom HUD, Click GUI, cosmetics, texture packs, Minecraft assets, Java runtime, renderer binaries, or base Minecraft libraries.
+
+## Render-pipeline deep profiling (1.5.2)
+
+- Adds a nested cloud-geometry timer around the vanilla RenderGlobal.renderClouds call; it is separate from the existing cloudsCheck timer, which includes projection, fog and surrounding setup/restoration.
+- Adds weatherSubmit timing around the three vanilla rain/snow Tessellator.draw() submission sites inside renderRainSnow. It measures CPU time spent in each submission call, not GPU completion; its sample count can be up to three per weather frame.
+- Splits the HUD overlay into hotbar, player stats, scoreboard, boss health, player list, selected-item text, demo text, overlay message and title/subtitle timings. Chat remains separately measured and nested in the full GUI overlay timer.
+- All new timers are diagnostic-only and remain disabled unless -Dcylox.profile=true is set. Compare dry and active-rain scenes using the same server, position, renderer and graphics settings.
+- This release does not change rendering, weather density, graphics settings, game ticks, chunk scheduling or networking, and makes no FPS-improvement claim. Use the measurements to select the next targeted optimization.
 
 ## Download
 
