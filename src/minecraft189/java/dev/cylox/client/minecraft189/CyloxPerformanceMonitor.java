@@ -141,7 +141,7 @@ public final class CyloxPerformanceMonitor {
     }
 
     public static void endSection(int section) {
-        if (!ENABLED || section < TERRAIN_SETUP || section > FRAME_SETUP) return;
+        if (!ENABLED || section < TERRAIN_SETUP || section > MAX_SECTION) return;
         long[] starts = START_TIMES.get();
         long start = starts[section];
         starts[section] = 0L;
