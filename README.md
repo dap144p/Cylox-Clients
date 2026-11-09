@@ -181,7 +181,7 @@ Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, custom HUD, C
 ## Render-pipeline deep profiling (1.5.2)
 
 - Adds a nested cloud-geometry timer around the vanilla RenderGlobal.renderClouds call; it is separate from the existing cloudsCheck timer, which includes projection, fog and surrounding setup/restoration.
-- Adds weatherSubmit timing around the two vanilla rain/snow Tessellator.draw() submission sites inside renderRainSnow. It measures CPU time spent in each submission call, not GPU completion; its sample count can be up to two per weather frame.
+- Adds weatherSubmit timing around the three vanilla rain/snow Tessellator.draw() submission sites inside renderRainSnow. It measures CPU time spent in each submission call, not GPU completion; its sample count can be up to three per weather frame.
 - Splits the HUD overlay into hotbar, player stats, scoreboard, boss health, player list, selected-item text, demo text, overlay message and title/subtitle timings. Chat remains separately measured and nested in the full GUI overlay timer.
 - All new timers are diagnostic-only and remain disabled unless -Dcylox.profile=true is set. Compare dry and active-rain scenes using the same server, position, renderer and graphics settings.
 - This release does not change rendering, weather density, graphics settings, game ticks, chunk scheduling or networking, and makes no FPS-improvement claim. Use the measurements to select the next targeted optimization.
