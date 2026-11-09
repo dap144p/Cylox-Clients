@@ -174,10 +174,11 @@ jobs:
           NOTES="$(cat <<EOF
           Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla terrain traversal and Via equipment handling.
 
-          - Adds opt-in render-frame phase diagnostics to the five-second `[Cylox Perf]` report: post-world effects/framebuffer work, HUD overlay, nested chat drawing, current-screen drawing, mouse input, frame setup and frame tail. The chat timer is nested inside the HUD overlay timer; do not add nested metrics together.
-          - Retains the v1.4.8 whole-world and renderWorldPass diagnostics, including terrain preparation/layers, entities, particles, weather, translucent, above-cloud and hand phases. The cloud-check timer is nested inside the sky phase.
-          - Uses only timing hooks around existing vanilla 1.8.9 calls and profiler transitions. It preserves all render operations, HUD content, scoreboard/chat, chunk scheduling, gameplay ticks, frame pacing and networking. Diagnostics are enabled only with `-Dcylox.profile=true`; no FPS gain is claimed.
-          - Retains the opt-in heap telemetry added in v1.4.7: sampled average/peak used heap, current/peak committed heap and maximum heap. No GC policy or gameplay behavior is changed.
+          - Batches Fancy Clouds geometry: preserves every vanilla vertex, vertex order, texture coordinate, tint, alpha value, animation offset and both color-mask passes, while reducing each pass from 64 Tessellator submissions to one (two instead of 128 per Fancy Clouds render call).
+          - Targets OpenGL driver submission overhead without disabling clouds, switching Fancy to Fast, reducing render distance or changing the selected graphics preset. The optimization does not guarantee a specific FPS; Redmi 9C/MJ Launcher scene testing is still required.
+          - Keeps vanilla entity and TileEntity visibility and draw paths intact. Existing render-view sleeping-state reuse and FontRenderer width caching remain; no entities, TileEntities, scoreboard lines, chat messages or HUD elements are culled, hidden or reordered.
+          - Retains opt-in render diagnostics: whole-world/renderWorldPass phases, cloud-check timing, HUD overlay and nested chat, post-world effects, screen drawing, input and frame setup/tail. Timings are enabled only with `-Dcylox.profile=true`; nested timers must not be added together.
+          - Retains opt-in heap telemetry from v1.4.7. No GC policy, gameplay tick rate, frame pacing, chunk worker count or networking behavior is changed.
           - Bundles ViaVersion 5.12.3-SNAPSHOT (upstream Java 8 CI build #55), ViaBackwards 5.12.3-SNAPSHOT (build #45), and the established ViaRewind 4.2.0 Java 8 compatibility build #39 inside the single Cylox client JAR.
           - Includes the JavaDowngrader 2.0.1 Java 8 API stubs at their required root package path so ViaRewind's Java 8-transformed classes can resolve them; CI checks the J_L_Record class and Java 8 bytecode compatibility.
           - Applies ViaRewind commit f6424ddb565b9350cc347ce43f67c7e608767499 to the embedded 4.2.0 class at load time, cancelling redundant local-player equipment packets in the 1.9-to-1.8 translation.
