@@ -22,13 +22,12 @@ public final class CyloxFontBatchHooks {
 
     private CyloxFontBatchHooks() { }
 
-    public static void beginText(Object renderer) {
+    public static void beginText() {
         Context context = CONTEXT.get();
         if (context.textActive) {
             flush(context);
         }
         context.textActive = true;
-        context.renderer = renderer;
         context.texture = null;
         context.capturing = false;
         context.glyphVertexCount = 0;
@@ -38,7 +37,6 @@ public final class CyloxFontBatchHooks {
         Context context = CONTEXT.get();
         flush(context);
         context.textActive = false;
-        context.renderer = null;
         context.texture = null;
         context.capturing = false;
         context.glyphVertexCount = 0;
@@ -161,7 +159,6 @@ public final class CyloxFontBatchHooks {
         float textureV;
         boolean textActive;
         boolean capturing;
-        Object renderer;
         Object texture;
 
         void ensureGlyphCapacity(int required) {
@@ -177,7 +174,7 @@ public final class CyloxFontBatchHooks {
             int required = batchSize + additional;
             if (required <= batch.length) return;
             flush(this);
-            if (required <= batch.length) return;
+            if (additional <= batch.length) return;
             int capacity = batch.length;
             while (capacity < additional) capacity *= 2;
             batch = new float[capacity];
