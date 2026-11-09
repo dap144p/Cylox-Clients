@@ -89,6 +89,7 @@ public final class Vanilla189Verifier {
         verifyVisibilityRangeInvalidationBehavior();
         verifyTextWidthCacheBehavior();
         verifyGraphicsPresetBehavior();
+        verifyDeepProfilerSectionTiming();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
     }
 
@@ -319,62 +320,104 @@ public final class Vanilla189Verifier {
     }
 
     private static void verifyGraphicsPresetBehavior() throws Exception {
-        File root = java.nio.file.Files.createTempDirectory("cylox-graphics-preset").toFile();
+        File root = java.nio.file.Files.createTempDirectory("cylox-graphics-migration").toFile();
         File options = new File(root, "options.txt");
         File cyloxDirectory = new File(root, "cylox");
         File backup = new File(cyloxDirectory, "options-before-graphics-preset.txt");
+        File legacyMarker = new File(cyloxDirectory, "graphics-max-preset-1.4.5.applied");
+        File restoredMarker = new File(cyloxDirectory, "graphics-max-preset-restored-1.5.5.applied");
+        File freshRoot = java.nio.file.Files.createTempDirectory("cylox-graphics-fresh").toFile();
+        File freshOptions = new File(freshRoot, "options.txt");
         try {
-            java.nio.file.Files.write(options.toPath(), java.util.Arrays.asList(
-                "renderDistance:3",
-                "fancyGraphics:false",
-                "ao:0",
-                "particles:2",
-                "entityShadows:false",
-                "renderClouds:false",
-                "mipmapLevels:0",
-                "maxFps:30",
-                "enableVsync:true",
-                "lang:en_US"
+            if (!cyloxDirectory.mkdirs() && !cyloxDirectory.isDirectory()) {
+                throw new IllegalStateException("Could not create graphics migration test directory");
+            }
+            java.nio.file.Files.write(backup.toPath(), Arrays.asList(
+                "renderDistance:3", "fancyGraphics:false", "ao:0", "particles:2",
+                "entityShadows:false", "renderClouds:false", "mipmapLevels:0",
+                "maxFps:30", "enableVsync:true", "lang:en_US"
             ), java.nio.charset.StandardCharsets.UTF_8);
+            java.nio.file.Files.write(options.toPath(), Arrays.asList(
+                "renderDistance:16", "fancyGraphics:true", "ao:2", "particles:0",
+                "entityShadows:true", "renderClouds:true", "mipmapLevels:4",
+                "maxFps:120", "enableVsync:false", "lang:en_US"
+            ), java.nio.charset.StandardCharsets.UTF_8);
+            if (!legacyMarker.createNewFile()) {
+                throw new IllegalStateException("Could not create legacy benchmark marker");
+            }
 
-            CyloxGraphicsPreset.applyBenchmarkPresetOnce(root);
-            java.util.List<String> applied = java.nio.file.Files.readAllLines(
+            CyloxGraphicsPreset.restoreBenchmarkPresetOnce(root);
+            java.util.List<String> restored = java.nio.file.Files.readAllLines(
                 options.toPath(), java.nio.charset.StandardCharsets.UTF_8);
             String[] expected = new String[] {
-                "renderDistance:16",
-                "fancyGraphics:true",
-                "ao:2",
-                "particles:0",
-                "entityShadows:true",
-                "renderClouds:true",
-                "mipmapLevels:4",
-                "maxFps:260",
-                "enableVsync:false",
-                "lang:en_US"
+                "renderDistance:3", "fancyGraphics:false", "ao:0", "particles:2",
+                "entityShadows:false", "renderClouds:false", "mipmapLevels:0",
+                "maxFps:120", "enableVsync:true", "lang:en_US"
             };
             for (String entry : expected) {
-                if (!applied.contains(entry)) {
-                    throw new IllegalStateException("Graphics preset is missing expected setting: " + entry);
+                if (!restored.contains(entry)) {
+                    throw new IllegalStateException("Graphics migration did not preserve/restore expected setting: " + entry);
                 }
             }
-            if (!backup.isFile()) throw new IllegalStateException("Original options.txt backup was not created");
-            java.util.List<String> original = java.nio.file.Files.readAllLines(
-                backup.toPath(), java.nio.charset.StandardCharsets.UTF_8);
-            if (!original.contains("renderDistance:3") || !original.contains("lang:en_US")) {
-                throw new IllegalStateException("Original options.txt backup did not preserve existing settings");
+            if (!restoredMarker.isFile()) {
+                throw new IllegalStateException("Graphics migration completion marker was not created");
+            }
+            if (!backup.isFile()) {
+                throw new IllegalStateException("Original graphics settings backup was removed");
             }
 
-            java.nio.file.Files.write(options.toPath(), java.util.Arrays.asList("renderDistance:4"),
+            java.nio.file.Files.write(options.toPath(), Arrays.asList("renderDistance:4"),
                 java.nio.charset.StandardCharsets.UTF_8);
-            CyloxGraphicsPreset.applyBenchmarkPresetOnce(root);
+            CyloxGraphicsPreset.restoreBenchmarkPresetOnce(root);
             java.util.List<String> afterSecondLaunch = java.nio.file.Files.readAllLines(
                 options.toPath(), java.nio.charset.StandardCharsets.UTF_8);
             if (!afterSecondLaunch.contains("renderDistance:4")) {
-                throw new IllegalStateException("Graphics preset overwrote user settings after its first launch");
+                throw new IllegalStateException("Graphics migration overwrote a later user setting");
             }
-            System.out.println("[Cylox] Verified one-time maximum graphics preset, options.txt backup and user-setting preservation.");
+
+            java.nio.file.Files.write(freshOptions.toPath(), Arrays.asList(
+                "renderDistance:16", "fancyGraphics:true"
+            ), java.nio.charset.StandardCharsets.UTF_8);
+            CyloxGraphicsPreset.restoreBenchmarkPresetOnce(freshRoot);
+            java.util.List<String> fresh = java.nio.file.Files.readAllLines(
+                freshOptions.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            if (!fresh.contains("renderDistance:16") || !fresh.contains("fancyGraphics:true")) {
+                throw new IllegalStateException("A fresh install had its graphics settings changed");
+            }
+            System.out.println("[Cylox] Verified safe legacy graphics migration, manual override preservation and untouched fresh settings.");
         } finally {
             deleteRecursively(root);
+            deleteRecursively(freshRoot);
+        }
+    }
+
+    private static void verifyDeepProfilerSectionTiming() throws Exception {
+        String previous = System.getProperty("cylox.profile");
+        System.setProperty("cylox.profile", "true");
+        try {
+            Class<?> monitor = Class.forName(
+                "dev.cylox.client.minecraft189.CyloxPerformanceMonitor");
+            java.lang.reflect.Field countsField = monitor.getDeclaredField("DEEP_SECTION_COUNTS");
+            countsField.setAccessible(true);
+            long[] before = ((long[]) countsField.get(null)).clone();
+            for (int section = 34; section <= 44; section++) {
+                dev.cylox.client.minecraft189.CyloxPerformanceMonitor.beginSection(section);
+                dev.cylox.client.minecraft189.CyloxPerformanceMonitor.endSection(section);
+            }
+            long[] after = (long[]) countsField.get(null);
+            if (after.length != 11) {
+                throw new IllegalStateException("Unexpected deep profiler section count: " + after.length);
+            }
+            for (int index = 0; index < after.length; index++) {
+                if (after[index] != before[index] + 1L) {
+                    throw new IllegalStateException("Deep profiler section " + (34 + index)
+                        + " was not recorded");
+                }
+            }
+            System.out.println("[Cylox] Verified all deep profiler sections 34-44 record samples.");
+        } finally {
+            if (previous == null) System.clearProperty("cylox.profile");
+            else System.setProperty("cylox.profile", previous);
         }
     }
 

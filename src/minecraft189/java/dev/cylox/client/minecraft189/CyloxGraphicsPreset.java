@@ -16,12 +16,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Applies a one-time, graphics-only stress-test preset to vanilla options.txt.
- * Existing user settings are backed up before the selected graphics values are
- * changed. The in-game Video Settings screen reads the same file.
+ * Safely removes the old one-time maximum-graphics benchmark overrides.
+ * Only values that still match the old preset are restored from the saved
+ * pre-benchmark options file. New installs and later user edits are untouched.
  */
 public final class CyloxGraphicsPreset {
-    private static final String[] PRESET = new String[] {
+    private static final String LEGACY_PRESET_MARKER = "graphics-max-preset-1.4.5.applied";
+    private static final String RESTORED_PRESET_MARKER = "graphics-max-preset-restored-1.5.5.applied";
+    private static final String BACKUP_FILE = "options-before-graphics-preset.txt";
+    private static final String[] LEGACY_PRESET = new String[] {
         "fancyGraphics:true",
         "renderDistance:16",
         "ao:2",
@@ -35,83 +38,116 @@ public final class CyloxGraphicsPreset {
 
     private CyloxGraphicsPreset() { }
 
-    public static void applyBenchmarkPresetOnce(File gameDirectory) {
+    public static void restoreBenchmarkPresetOnce(File gameDirectory) {
         File root = gameDirectory == null ? new File(".") : gameDirectory;
         File cyloxDirectory = new File(root, "cylox");
-        File marker = new File(cyloxDirectory, "graphics-max-preset-1.4.5.applied");
-        if (marker.isFile()) return;
+        File legacyMarker = new File(cyloxDirectory, LEGACY_PRESET_MARKER);
+        File restoredMarker = new File(cyloxDirectory, RESTORED_PRESET_MARKER);
+        if (!legacyMarker.isFile() || restoredMarker.isFile()) return;
 
         File optionsFile = new File(root, "options.txt");
-        File backupFile = new File(cyloxDirectory, "options-before-graphics-preset.txt");
-        File temporaryFile = new File(root, "options.txt.cylox-tmp");
+        File backupFile = new File(cyloxDirectory, BACKUP_FILE);
+        File temporaryFile = new File(root, "options.txt.cylox-restore-tmp");
+        File currentBackupFile = new File(root, "options.txt.cylox-before-restore");
+
+        if (!optionsFile.isFile()) {
+            System.out.println("[Cylox] Skipped graphics preset migration because options.txt is missing.");
+            return;
+        }
+        if (!backupFile.isFile()) {
+            System.err.println("[Cylox] Skipped graphics preset migration because the original settings backup is missing; current settings were preserved.");
+            return;
+        }
 
         try {
-            if (!cyloxDirectory.isDirectory() && !cyloxDirectory.mkdirs()
-                && !cyloxDirectory.isDirectory()) {
-                throw new IllegalStateException("Could not create " + cyloxDirectory);
-            }
-
-            if (optionsFile.isFile() && !backupFile.isFile()) {
-                copyFile(optionsFile, backupFile);
-            }
-
-            Map<String, String> values = new LinkedHashMap<String, String>();
-            for (String entry : PRESET) {
-                int separator = entry.indexOf(':');
-                values.put(entry.substring(0, separator), entry.substring(separator + 1));
-            }
-
+            Map<String, String> originalValues = readValues(backupFile);
+            Map<String, String> forcedValues = valuesFrom(LEGACY_PRESET);
             List<String> updated = new ArrayList<String>();
             Set<String> writtenKeys = new HashSet<String>();
-            if (optionsFile.isFile()) {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(new FileInputStream(optionsFile), "UTF-8"))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        int separator = line.indexOf(':');
-                        String key = separator < 0 ? "" : line.substring(0, separator);
-                        if (values.containsKey(key)) {
-                            if (writtenKeys.add(key)) updated.add(key + ":" + values.get(key));
-                        } else {
-                            updated.add(line);
+            int restoredCount = 0;
+
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(optionsFile), "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    int separator = line.indexOf(':');
+                    String key = separator < 0 ? "" : line.substring(0, separator);
+                    String currentValue = separator < 0 ? "" : line.substring(separator + 1);
+                    if (forcedValues.containsKey(key)
+                        && forcedValues.get(key).equals(currentValue)) {
+                        if (writtenKeys.add(key)) {
+                            if (originalValues.containsKey(key)) {
+                                updated.add(key + ":" + originalValues.get(key));
+                            }
+                            restoredCount++;
                         }
+                    } else {
+                        updated.add(line);
                     }
                 }
             }
 
-            for (Map.Entry<String, String> entry : values.entrySet()) {
-                if (writtenKeys.add(entry.getKey())) {
-                    updated.add(entry.getKey() + ":" + entry.getValue());
+            if (restoredCount > 0) {
+                try (BufferedWriter writer = new BufferedWriter(
+                        new OutputStreamWriter(new FileOutputStream(temporaryFile), "UTF-8"))) {
+                    for (String line : updated) {
+                        writer.write(line);
+                        writer.newLine();
+                    }
+                }
+
+                copyFile(optionsFile, currentBackupFile);
+                if (!optionsFile.delete()) {
+                    throw new IllegalStateException("Could not replace " + optionsFile);
+                }
+                if (!temporaryFile.renameTo(optionsFile)) {
+                    if (currentBackupFile.isFile()) copyFile(currentBackupFile, optionsFile);
+                    throw new IllegalStateException("Could not finalize restored graphics settings");
                 }
             }
 
-            try (BufferedWriter writer = new BufferedWriter(
-                    new OutputStreamWriter(new FileOutputStream(temporaryFile), "UTF-8"))) {
-                for (String line : updated) {
-                    writer.write(line);
-                    writer.newLine();
-                }
+            if (!restoredMarker.createNewFile() && !restoredMarker.isFile()) {
+                throw new IllegalStateException("Could not create graphics migration marker");
             }
-
-            if (optionsFile.exists() && !optionsFile.delete()) {
-                throw new IllegalStateException("Could not replace " + optionsFile);
-            }
-            if (!temporaryFile.renameTo(optionsFile)) {
-                if (backupFile.isFile()) copyFile(backupFile, optionsFile);
-                throw new IllegalStateException("Could not finalize graphics preset");
-            }
-            if (!marker.createNewFile() && !marker.isFile()) {
-                throw new IllegalStateException("Could not create preset marker");
-            }
-
-            System.out.println("[Cylox] Applied one-time max-graphics benchmark preset."
-                + (backupFile.isFile() ? " Original settings backed up to "
-                + backupFile.getAbsolutePath() + "." : ""));
+            if (currentBackupFile.exists()) currentBackupFile.delete();
+            System.out.println("[Cylox] Restored " + restoredCount
+                + " unchanged benchmark graphics settings; later user edits were preserved.");
         } catch (Throwable error) {
+            if (!optionsFile.exists() && currentBackupFile.isFile()) {
+                try { copyFile(currentBackupFile, optionsFile); }
+                catch (Throwable restoreError) {
+                    System.err.println("[Cylox] Could not roll back options.txt: "
+                        + restoreError.getClass().getSimpleName() + ": " + restoreError.getMessage());
+                }
+            }
             if (temporaryFile.exists()) temporaryFile.delete();
-            System.err.println("[Cylox] Could not apply graphics benchmark preset: "
+            System.err.println("[Cylox] Could not restore pre-benchmark graphics settings: "
                 + error.getClass().getSimpleName() + ": " + error.getMessage());
         }
+    }
+
+    private static Map<String, String> valuesFrom(String[] entries) {
+        Map<String, String> values = new LinkedHashMap<String, String>();
+        for (String entry : entries) {
+            int separator = entry.indexOf(':');
+            if (separator > 0) {
+                values.put(entry.substring(0, separator), entry.substring(separator + 1));
+            }
+        }
+        return values;
+    }
+
+    private static Map<String, String> readValues(File file) throws Exception {
+        Map<String, String> values = new LinkedHashMap<String, String>();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(file), "UTF-8"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                int separator = line.indexOf(':');
+                if (separator > 0) values.put(line.substring(0, separator), line.substring(separator + 1));
+            }
+        }
+        return values;
     }
 
     private static void copyFile(File source, File destination) throws Exception {
