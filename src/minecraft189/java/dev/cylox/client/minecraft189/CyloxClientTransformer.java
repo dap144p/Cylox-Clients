@@ -1647,7 +1647,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         java.util.List<VarInsnNode> beginReceivers = new java.util.ArrayList<VarInsnNode>();
         java.util.List<MethodInsnNode> drawCalls = new java.util.ArrayList<MethodInsnNode>();
         java.util.List<VarInsnNode> drawReceivers = new java.util.ArrayList<VarInsnNode>();
-        java.util.List<AbstractInsnNode> drawPops = new java.util.ArrayList<AbstractInsnNode>();
         java.util.List<Integer> loopLocals = new java.util.ArrayList<Integer>();
 
         for (AbstractInsnNode instruction = method.instructions.getFirst();
@@ -1683,14 +1682,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
 
                 if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
-                    && arguments.length == 0 && result.getSort() == Type.INT) {
+                    && arguments.length == 0 && result.getSort() == Type.VOID) {
                     AbstractInsnNode receiverNode = previousRealInstruction(call);
-                    AbstractInsnNode popNode = nextRealInstruction(call);
-                    if (receiverNode instanceof VarInsnNode && receiverNode.getOpcode() == Opcodes.ALOAD
-                        && popNode != null && popNode.getOpcode() == Opcodes.POP) {
+                    if (receiverNode instanceof VarInsnNode && receiverNode.getOpcode() == Opcodes.ALOAD) {
                         drawCalls.add(call);
                         drawReceivers.add((VarInsnNode) receiverNode);
-                        drawPops.add(popNode);
                     }
                 }
             }
@@ -1710,7 +1706,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         MethodInsnNode beginCall = beginCalls.get(0);
         VarInsnNode beginReceiver = beginReceivers.get(0);
         VarInsnNode drawReceiver = drawReceivers.get(0);
-        AbstractInsnNode drawPop = drawPops.get(0);
 
         boolean hasCloudNormal = false;
         for (AbstractInsnNode instruction = method.instructions.getFirst();
@@ -1763,7 +1758,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         InsnList drawSkip = new InsnList();
         drawSkip.add(skipDraw);
         drawSkip.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
-        method.instructions.insert(drawPop, drawSkip);
+        method.instructions.insert(drawCalls.get(0), drawSkip);
         return true;
     }
 
