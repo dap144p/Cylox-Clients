@@ -222,7 +222,7 @@ jobs:
 
           - Adds a standalone Execute .jar installer. The installer embeds the exact same-version ZIP package byte-for-byte, installs its matching version profile, client JAR and license files, and keeps a backup before replacing differing files. The normal ZIP remains available as a manual installation option.
 
-          - Restores the one-time maximum-graphics benchmark preset as the default stress-test baseline for fresh installs, saving the original options.txt before changing only the benchmark graphics values. Subsequent user edits are never overwritten.
+          - Replaces the previous maximum-graphics stress preset with a one-time lightweight profile: 2-chunk render distance, Fancy Graphics off, ambient occlusion off, Minimal particles, entity shadows/clouds off and mipmaps 0. It saves the active options.txt before migration, caps FPS at 60, and preserves later manual edits.
           - Fixes the deep profiler section range so cloud geometry, weather Tessellator submissions and nested HUD component timers (sections 34–44) record samples correctly. Previous zero-sample values for those fields were caused by the profiler guard.
           - This is a settings-migration and diagnostics-correctness update. It does not claim a measured FPS improvement or change vanilla terrain traversal, chunk scheduling, gameplay ticks or networking.
 
@@ -259,7 +259,7 @@ jobs:
           - Adds opt-in profiling for rendered-frame time, terrain setup/culling, chunk upload, entity rendering, block layers and particles; it is disabled by default and can be enabled with -Dcylox.profile=true.
           - Adds a bounded 64-entry LRU camera-block visibility cache to reuse RenderGlobal's opaque-block visibility graph at recently visited camera positions; the cache is invalidated by block-range updates and world replacement, and cached Sets are copied before vanilla may mutate them.
           - Profiling is diagnostic only: it does not change renderer scheduling, gameplay ticks or network handling, and this build does not claim an FPS increase.
-          - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Fresh installs receive the one-time maximum-graphics benchmark baseline. If v1.5.5 already restored an older install, v1.5.6 reapplies only values still equal to the saved pre-benchmark options; later manual edits are preserved.
+          - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Releases 1.4.5–1.5.12 used the maximum-graphics benchmark baseline; 1.5.13 supersedes it with the one-time lightweight preset and preserves later manual edits.
           - Sizes Via's temporary packet buffers from the incoming packet length (minimum 256 bytes) to avoid unnecessary initial buffer growth; translated packets can still expand when required.
           - Java 8 compatibility builds are an upstream fallback and may continue to log that Java 8 is outside normal support. Real MJ Launcher testing is still required to confirm server packet compatibility.
           - Applies the selected Via target at startup or selector change; channel initialization reuses it instead of reloading Via's global protocol manager for every connection.
