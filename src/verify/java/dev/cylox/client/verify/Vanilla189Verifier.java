@@ -46,6 +46,10 @@ public final class Vanilla189Verifier {
         }
 
         require("render suppression", CyloxClientTransformer.getPatchedRenderClassCount());
+        require("F8/F9/F10 keyboard toggle events", CyloxClientTransformer.getPatchedKeyboardToggleClassCount());
+        require("F8 held left-click input", CyloxClientTransformer.getPatchedLeftClickToggleClassCount());
+        require("F10 lost-focus pause exception", CyloxClientTransformer.getPatchedPauseExceptionClassCount());
+        require("F9 six-block background camera frustum", CyloxClientTransformer.getPatchedBackgroundFarPlaneClassCount());
         require("background frame limiter", CyloxClientTransformer.getPatchedFrameLimitClassCount());
         require("Via protocol pipeline", CyloxClientTransformer.getPatchedProtocolPipelineClassCount());
         require("Via compression hook", CyloxClientTransformer.getPatchedCompressionClassCount());

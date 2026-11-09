@@ -17,8 +17,35 @@ public class BackgroundPolicyTest {
     }
 
     @Test
-    public void skipsRenderingOnlyWhenNotForeground() {
+    public void skipsRenderingOnlyWhenNotForegroundUnlessExceptionIsEnabled() {
         assertTrue(BackgroundPolicy.shouldRender(true));
         assertFalse(BackgroundPolicy.shouldRender(false));
+        assertTrue(BackgroundPolicy.shouldRender(false, true));
+        assertFalse(BackgroundPolicy.shouldRender(false, false));
+        assertTrue(BackgroundPolicy.shouldRender(true, false));
+    }
+
+    @Test
+    public void capsBackgroundViewToSixBlocksOnlyWhenRenderExceptionIsEnabled() {
+        assertEquals(96.0F, BackgroundPolicy.backgroundFarPlane(96.0F, true, true), 0.0001F);
+        assertEquals(96.0F, BackgroundPolicy.backgroundFarPlane(96.0F, false, false), 0.0001F);
+        assertEquals(6.0F, BackgroundPolicy.backgroundFarPlane(96.0F, false, true) * 1.41421356237F, 0.0001F);
+        assertEquals(3.0F, BackgroundPolicy.backgroundFarPlane(3.0F, false, true), 0.0001F);
+    }
+
+    @Test
+    public void pauseExceptionOnlyOverridesLostFocusWhileBackgrounded() {
+        assertFalse(BackgroundPolicy.displayActiveForPause(false, false, false));
+        assertTrue(BackgroundPolicy.displayActiveForPause(false, false, true));
+        assertTrue(BackgroundPolicy.displayActiveForPause(true, false, false));
+        assertFalse(BackgroundPolicy.displayActiveForPause(false, true, false));
+    }
+
+    @Test
+    public void leftClickToggleNeverOverridesAnOpenScreen() {
+        assertTrue(BackgroundPolicy.forceLeftClick(false, true, true));
+        assertFalse(BackgroundPolicy.forceLeftClick(false, false, true));
+        assertFalse(BackgroundPolicy.forceLeftClick(false, true, false));
+        assertTrue(BackgroundPolicy.forceLeftClick(true, false, false));
     }
 }
