@@ -981,6 +981,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         org.objectweb.asm.tree.FieldInsnNode screenField = findScreenFieldForClick(runTick, clickCall, owner.name);
         if (screenField == null) return false;
 
+        MethodNode clickMethod = findMethod(owner, clickCall.name, clickCall.desc);
+        if (clickMethod == null || !insertLeftClickCounterReset(owner, clickMethod, screenField)) return false;
+
         InsnList hook = new InsnList();
         hook.add(new InsnNode(Opcodes.DUP));
         hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
@@ -989,6 +992,36 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, BACKGROUND,
             "forceLeftClick", "(ZLjava/lang/Object;)Z", false));
         runTick.instructions.insertBefore(clickCall, hook);
+        return true;
+    }
+
+    private static boolean insertLeftClickCounterReset(ClassNode owner, MethodNode clickMethod,
+        org.objectweb.asm.tree.FieldInsnNode screenField) {
+        java.util.List<org.objectweb.asm.tree.FieldInsnNode> counterWrites =
+            new java.util.ArrayList<org.objectweb.asm.tree.FieldInsnNode>();
+        for (AbstractInsnNode instruction = clickMethod.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
+                org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
+                if (field.getOpcode() == Opcodes.PUTFIELD && owner.name.equals(field.owner)
+                    && "I".equals(field.desc)) counterWrites.add(field);
+            }
+        }
+        if (counterWrites.size() != 1) return false;
+        org.objectweb.asm.tree.FieldInsnNode counter = counterWrites.get(0);
+        InsnList hook = new InsnList();
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        hook.add(new InsnNode(Opcodes.DUP));
+        hook.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD,
+            owner.name, counter.name, counter.desc));
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        hook.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD,
+            owner.name, screenField.name, screenField.desc));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, BACKGROUND,
+            "leftClickCounter", "(ILjava/lang/Object;)I", false));
+        hook.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.PUTFIELD,
+            owner.name, counter.name, counter.desc));
+        clickMethod.instructions.insert(hook);
         return true;
     }
 
