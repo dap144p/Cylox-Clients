@@ -2046,7 +2046,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 if (!(instruction instanceof MethodInsnNode)) continue;
                 MethodInsnNode call = (MethodInsnNode) instruction;
                 if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
-                    && singletonTypes.contains(call.owner) && "()I".equals(call.desc)) {
+                    && singletonTypes.contains(call.owner) && "()V".equals(call.desc)) {
                     drawCalls.add(call);
                 }
             }
@@ -2063,9 +2063,9 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     /**
      * Adds nested timers around the major vanilla HUD component calls. The
-     * one-argument GuiIngame calls are ordered in vanilla as player stats,
-     * selected-item text and demo text; the other descriptors identify the
-     * hotbar, scoreboard and player-list draw paths.
+     * one-argument GuiIngame calls are ordered in vanilla as pumpkin overlay,
+     * player stats, selected-item text and demo text. The other descriptors
+     * identify the hotbar, scoreboard and player-list draw paths.
      */
     private static boolean insertGuiOverlayBreakdown(ClassNode owner, MethodNode method) {
         java.util.List<MethodInsnNode> hotbarCalls = new java.util.ArrayList<MethodInsnNode>();
@@ -2111,19 +2111,26 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         MethodInsnNode titleEnd = titleStart == null ? null
             : findFollowingProfilerEnd(method, titleStart, titleStart.owner, false);
 
-        if (hotbarCalls.size() != 2 || singleArgumentCalls.size() != 3
+        if (hotbarCalls.size() != 2 || singleArgumentCalls.size() != 4
             || scoreboardCalls.size() != 1 || playerListCalls.size() != 1
             || bossStart == null || bossEnd == null || overlayMessageStart == null
-            || overlayMessageEnd == null || titleStart == null || titleEnd == null) return false;
+            || overlayMessageEnd == null || titleStart == null || titleEnd == null) {
+            System.err.println("[Cylox] HUD profiler pattern counts: hotbar=" + hotbarCalls.size()
+                + ", selfOneArg=" + singleArgumentCalls.size() + ", scoreboard=" + scoreboardCalls.size()
+                + ", playerList=" + playerListCalls.size() + ", boss=" + (bossStart != null && bossEnd != null)
+                + ", overlayMessage=" + (overlayMessageStart != null && overlayMessageEnd != null)
+                + ", title=" + (titleStart != null && titleEnd != null) + ".");
+            return false;
+        }
 
         for (MethodInsnNode call : hotbarCalls) insertTimedCall(method, call, 36);
-        insertTimedCall(method, singleArgumentCalls.get(0), 37);
+        insertTimedCall(method, singleArgumentCalls.get(1), 37);
         insertTimedCall(method, scoreboardCalls.get(0), 38);
         insertTerrainSectionBeginAfter(method, bossStart, 39);
         insertTerrainSectionEndBefore(method, bossEnd, 39);
         insertTimedCall(method, playerListCalls.get(0), 40);
-        insertTimedCall(method, singleArgumentCalls.get(1), 41);
-        insertTimedCall(method, singleArgumentCalls.get(2), 42);
+        insertTimedCall(method, singleArgumentCalls.get(2), 41);
+        insertTimedCall(method, singleArgumentCalls.get(3), 42);
         insertTerrainSectionBeginAfter(method, overlayMessageStart, 43);
         insertTerrainSectionEndBefore(method, overlayMessageEnd, 43);
         insertTerrainSectionBeginAfter(method, titleStart, 44);
