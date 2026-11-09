@@ -43,12 +43,13 @@ public final class CyloxUiHooks {
 
     /** Detects vanilla GuiOptionSlider instances without changing their option semantics. */
     private static final class SliderAccess {
-        final Field value;
+        final Field value, dragging;
         final Method drag;
         SliderAccess(Class<?> type) {
             Field found = findField(type, "sliderValue", "field_146150_p", "p");
             value = found != null && found.getType() == Float.TYPE
                 ? found : findDeclaredFieldOfType(type, Float.TYPE);
+            dragging = findDeclaredFieldOfType(type, Boolean.TYPE);
             drag = findSliderDragMethod(type);
         }
         boolean supported() { return value != null && drag != null; }
@@ -233,10 +234,12 @@ public final class CyloxUiHooks {
 
             SliderAccess slider = sliderAccess(button);
             boolean sliderButton = slider.supported();
-            if (sliderButton) {
+            boolean sliderDragging = sliderButton
+                && (slider.dragging == null || readBoolean(slider.dragging, button, true));
+            if (sliderDragging) {
                 // GuiButton's normal draw path calls this virtual method. The Cylox button
-                // hook replaces that path, so invoke it explicitly to retain vanilla dragging
-                // and GameSettings updates before drawing the textureless Cylox slider.
+                // hook replaces that path, so invoke it only while dragging to retain vanilla
+                // option updates without drawing the textured vanilla handle on idle frames.
                 try { slider.drag.invoke(button, minecraft, mouseX, mouseY); }
                 catch (Throwable ignored) { return false; }
             }
@@ -253,7 +256,7 @@ public final class CyloxUiHooks {
 
             if (sliderButton) {
                 float value = readFloat(slider.value, button, 0.0F);
-                drawSliderTrack(x, y, w, h, value, hovered);
+                drawSliderTrack(x, y, w, h, value, hovered || sliderDragging);
             }
 
             String label = readString(access.label, button);
@@ -358,7 +361,7 @@ public final class CyloxUiHooks {
         value = Math.max(0.0F, Math.min(1.0F, value));
         int knobWidth = Math.min(8, width);
         int knobHeight = Math.min(20, height);
-        int knobX = x + Math.round(value * (width - knobWidth));
+        int knobX = x + (int) (value * (width - knobWidth));
         int knobY = y + (height - knobHeight) / 2;
         int trackLeft = x + 4;
         int trackRight = x + width - 4;
