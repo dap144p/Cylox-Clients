@@ -20,6 +20,8 @@ public final class CyloxUiHooks {
         new ConcurrentHashMap<Class<?>, SliderAccess>();
     private static final ConcurrentMap<Class<?>, FontOwnerAccess> FONT_OWNER_ACCESS =
         new ConcurrentHashMap<Class<?>, FontOwnerAccess>();
+    private static final ConcurrentMap<Class<?>, NestedFontOwnerAccess> NESTED_FONT_OWNER_ACCESS =
+        new ConcurrentHashMap<Class<?>, NestedFontOwnerAccess>();
     private static final ConcurrentMap<Class<?>, FontMethods> FONT_METHODS =
         new ConcurrentHashMap<Class<?>, FontMethods>();
     private static final ConcurrentMap<Class<?>, ScreenAccess> SCREEN_ACCESS =
@@ -74,6 +76,16 @@ public final class CyloxUiHooks {
                 }
             }
             renderer = found;
+        }
+    }
+
+    /** Resolves one nested owner (for example GuiIngame -> Minecraft) that holds FontRenderer. */
+    private static final class NestedFontOwnerAccess {
+        final Field owner;
+        final Field renderer;
+        NestedFontOwnerAccess(Field owner, Field renderer) {
+            this.owner = owner;
+            this.renderer = renderer;
         }
     }
 
@@ -146,7 +158,10 @@ public final class CyloxUiHooks {
     }
 
     private static FontOwnerAccess fontOwnerAccess(Object owner) {
-        Class<?> type = owner.getClass();
+        return owner == null ? new FontOwnerAccess(Object.class) : fontOwnerAccess(owner.getClass());
+    }
+
+    private static FontOwnerAccess fontOwnerAccess(Class<?> type) {
         FontOwnerAccess access = FONT_OWNER_ACCESS.get(type);
         if (access == null) {
             FontOwnerAccess created = new FontOwnerAccess(type);
@@ -162,6 +177,29 @@ public final class CyloxUiHooks {
         if (access == null) {
             ScreenAccess created = new ScreenAccess(type);
             ScreenAccess prior = SCREEN_ACCESS.putIfAbsent(type, created);
+            access = prior == null ? created : prior;
+        }
+        return access;
+    }
+
+    private static NestedFontOwnerAccess nestedFontOwnerAccess(Class<?> type) {
+        NestedFontOwnerAccess access = NESTED_FONT_OWNER_ACCESS.get(type);
+        if (access == null) {
+            NestedFontOwnerAccess created = new NestedFontOwnerAccess(null, null);
+            for (Class<?> current = type; current != null && created.owner == null;
+                 current = current.getSuperclass()) {
+                for (Field candidate : current.getDeclaredFields()) {
+                    if (Modifier.isStatic(candidate.getModifiers()) || candidate.getType().isPrimitive()) continue;
+                    Field nestedRenderer = fontOwnerAccess(candidate.getType()).renderer;
+                    if (nestedRenderer == null) continue;
+                    try {
+                        candidate.setAccessible(true);
+                        created = new NestedFontOwnerAccess(candidate, nestedRenderer);
+                        break;
+                    } catch (Throwable ignored) { }
+                }
+            }
+            NestedFontOwnerAccess prior = NESTED_FONT_OWNER_ACCESS.putIfAbsent(type, created);
             access = prior == null ? created : prior;
         }
         return access;
@@ -430,7 +468,11 @@ public final class CyloxUiHooks {
         if (isFontRendererClass(owner.getClass())) return owner;
         try {
             Field field = fontOwnerAccess(owner).renderer;
-            return field == null ? null : field.get(owner);
+            if (field != null) return field.get(owner);
+            NestedFontOwnerAccess nested = nestedFontOwnerAccess(owner.getClass());
+            if (nested.owner == null || nested.renderer == null) return null;
+            Object nestedOwner = nested.owner.get(owner);
+            return nestedOwner == null ? null : nested.renderer.get(nestedOwner);
         } catch (Throwable ignored) { return null; }
     }
 
@@ -455,6 +497,22 @@ public final class CyloxUiHooks {
         if (text == null || text.length() == 0) return;
         Object renderer = font(owner);
         if (renderer != null) drawWithFont(renderer, text, x, y, color);
+    }
+
+    /** Draws a Minecraft string aligned to its right edge using cached text metrics. */
+    public static void drawTextRight(Object owner, String text, float rightX, float y, int color) {
+        if (text == null || text.length() == 0) return;
+        Object renderer = font(owner);
+        if (renderer == null) return;
+        try {
+            FontMethods methods = fontMethods(renderer);
+            int width = text.length() * 6;
+            if (methods.width != null) {
+                Object measured = methods.width.invoke(renderer, text);
+                if (measured instanceof Integer) width = ((Integer) measured).intValue();
+            }
+            drawWithFont(renderer, text, rightX - width, y, color);
+        } catch (Throwable ignored) { }
     }
 
     private static void drawWithFont(Object renderer, String text, float x, float y, int color) {

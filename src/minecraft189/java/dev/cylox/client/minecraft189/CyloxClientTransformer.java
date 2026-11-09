@@ -63,6 +63,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedRenderFrameBreakdownClasses;
     private static volatile int patchedGuiOverlayProfileClasses;
     private static volatile int patchedGuiOverlayBreakdownClasses;
+    private static volatile int patchedToggleStatusClasses;
     private static volatile int patchedFontGlyphBatchClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
@@ -121,6 +122,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedRenderFrameBreakdownClasses = 0;
         patchedGuiOverlayProfileClasses = 0;
         patchedGuiOverlayBreakdownClasses = 0;
+        patchedToggleStatusClasses = 0;
         patchedFontGlyphBatchClasses = 0;
     }
 
@@ -166,6 +168,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedRenderFrameBreakdownClassCount() { return patchedRenderFrameBreakdownClasses; }
     public static int getPatchedGuiOverlayProfileClassCount() { return patchedGuiOverlayProfileClasses; }
     public static int getPatchedGuiOverlayBreakdownClassCount() { return patchedGuiOverlayBreakdownClasses; }
+    public static int getPatchedToggleStatusClassCount() { return patchedToggleStatusClasses; }
     public static int getPatchedFontGlyphBatchClassCount() { return patchedFontGlyphBatchClasses; }
 
     @Override
@@ -217,6 +220,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean renderFrameBreakdownPatched = false;
             boolean guiOverlayProfilePatched = false;
             boolean guiOverlayBreakdownPatched = false;
+            boolean toggleStatusPatched = false;
             boolean fontGlyphBatchPatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
@@ -558,6 +562,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     if (!guiOverlayBreakdownPatched) {
                         throw new IllegalStateException("Could not safely locate vanilla GUI component boundaries");
                     }
+                    toggleStatusPatched = insertToggleStatus(method);
+                    if (!toggleStatusPatched) {
+                        throw new IllegalStateException("Could not safely locate vanilla HUD dimensions for F8/F9/F10 status");
+                    }
                     guiOverlayProfilePatched = true;
                     changed = true;
                     break;
@@ -653,6 +661,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (renderFrameBreakdownPatched) patchedRenderFrameBreakdownClasses++;
             if (guiOverlayProfilePatched) patchedGuiOverlayProfileClasses++;
             if (guiOverlayBreakdownPatched) patchedGuiOverlayBreakdownClasses++;
+            if (toggleStatusPatched) patchedToggleStatusClasses++;
             if (fontGlyphBatchPatched) patchedFontGlyphBatchClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (keyboardTogglePatched) System.out.println("[Cylox] F8/F9/F10 key toggles injected: " + node.name);
@@ -694,6 +703,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (renderFrameBreakdownPatched) System.out.println("[Cylox] Opt-in render-frame phase profiler injected: " + node.name);
             if (guiOverlayProfilePatched) System.out.println("[Cylox] Opt-in HUD overlay/chat profiler injected: " + node.name);
             if (guiOverlayBreakdownPatched) System.out.println("[Cylox] Opt-in HUD component profiler injected: " + node.name);
+            if (toggleStatusPatched) System.out.println("[Cylox] F8/F9/F10 HUD status injected at bottom-right: " + node.name);
             if (fontGlyphBatchPatched) System.out.println("[Cylox] FontRenderer glyph geometry batching injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
@@ -918,6 +928,41 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             slot += argument.getSize();
         }
         return -1;
+    }
+
+    private static boolean insertToggleStatus(MethodNode method) {
+        if ((method.access & Opcodes.ACC_STATIC) != 0 || !"(F)V".equals(method.desc)
+            || !hasMarkers(method, "bossHealth", "titleAndSubtitle", "chat")
+            || !hasLocalStore(method, Opcodes.ASTORE, 2)
+            || !hasLocalStore(method, Opcodes.ISTORE, 3)
+            || !hasLocalStore(method, Opcodes.ISTORE, 4)) return false;
+
+        java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) returns.add(instruction);
+        }
+        if (returns.size() != 1) return false;
+
+        InsnList hook = new InsnList();
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        hook.add(new VarInsnNode(Opcodes.ILOAD, 3));
+        hook.add(new VarInsnNode(Opcodes.ILOAD, 4));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, BACKGROUND,
+            "drawToggleStatus", "(Ljava/lang/Object;II)V", false));
+        method.instructions.insertBefore(returns.get(0), hook);
+        return true;
+    }
+
+    private static boolean hasLocalStore(MethodNode method, int opcode, int localIndex) {
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof VarInsnNode) {
+                VarInsnNode variable = (VarInsnNode) instruction;
+                if (variable.getOpcode() == opcode && variable.var == localIndex) return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isKeyboardTickMethod(MethodNode method) {
