@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.5.6'
+version = '1.5.7'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -110,6 +110,7 @@ tasks.register('downloadViaLibraries') {
 
 sourceSets {
     main { compileClasspath += viaLibraryFiles }
+    installer { java.srcDir 'src/installer/java' }
     minecraft189 {
         java {
             srcDir 'src/minecraft189/java'
@@ -325,6 +326,28 @@ tasks.register('buildClientPackage', Zip) {
     from('LICENSE') { into 'licenses' }
     from('THIRD_PARTY_NOTICES.md') { into 'licenses' }
     from('INSTALLATION.md') { rename { 'CYLOX-INSTALL.txt' } }
+}
+
+tasks.register('installerJar', Jar) {
+    dependsOn tasks.named('buildClientPackage'), tasks.named('installerClasses')
+    archiveBaseName = 'Cylox-Installer-1.8.9'
+    archiveVersion = project.version
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from sourceSets.installer.output
+    from(tasks.named('buildClientPackage').flatMap { it.archiveFile }) {
+        into 'payload'
+    }
+    manifest {
+        attributes(
+            'Main-Class': 'dev.cylox.installer.CyloxInstaller',
+            'Cylox-Version': project.version,
+            'Cylox-Payload': "Cylox-Client-1.8.9-${project.version}.zip",
+            'Implementation-Title': 'Cylox Client Installer',
+            'Implementation-Version': project.version,
+            'Client-Developer': 'dapdev'
+        )
+    }
 }
 
 tasks.register('verifyVanilla189Hooks', JavaExec) {
