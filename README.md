@@ -195,6 +195,14 @@ Not included: anti-AFK, auto-clicking, auto-movement, PvP modules, custom HUD, C
 - All new timers are diagnostic-only and remain disabled unless -Dcylox.profile=true is set. Compare dry and active-rain scenes using the same server, position, renderer and graphics settings.
 - This release does not change rendering, weather density, graphics settings, game ticks, chunk scheduling or networking, and makes no FPS-improvement claim. Use the measurements to select the next targeted optimization.
 
+## HUD text-width lookup optimization (1.5.4)
+
+- Replaces the node-based `LinkedHashMap` text-width cache with a fixed 512-entry, two-way set-associative cache.
+- Each lookup checks at most two slots and uses primitive width/hash/timestamp arrays; it avoids per-entry map nodes and boxed `Integer` values. When both slots in a set are occupied, the least-recently-used slot in that set is replaced.
+- Cache contents remain isolated by the active FontRenderer instance and Unicode-font mode. A miss still falls through to vanilla FontRenderer measurement, so rendered text, formatting, widths and layout remain sourced from Minecraft.
+- This reduces cache bookkeeping and object overhead for repeated text-width lookups used by HUD, scoreboard, player-list and chat drawing. It does not skip, hide or reorder HUD elements, nor change textures, glyph geometry, gameplay or networking.
+- This is a CPU-side cache-structure optimization, not a measured FPS guarantee. Compare the existing `textWidthHits`, `textWidthMisses` and HUD timing fields on the same device and scene.
+
 ## Download
 
 - [Latest release](https://github.com/dap144p/Cylox-Clients/releases/tag/latest)
