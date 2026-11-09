@@ -22,6 +22,10 @@ import org.objectweb.asm.tree.TypeInsnNode;
 /** Adds the background hooks, embedded Via pipeline hooks and manual protocol selector UI. */
 public final class CyloxClientTransformer implements net.minecraft.launchwrapper.IClassTransformer {
     private static volatile int patchedRenderClasses;
+    private static volatile int patchedKeyboardToggleClasses;
+    private static volatile int patchedLeftClickToggleClasses;
+    private static volatile int patchedPauseExceptionClasses;
+    private static volatile int patchedBackgroundFarPlaneClasses;
     private static volatile int patchedFrameLimitClasses;
     private static volatile int patchedProtocolPipelineClasses;
     private static volatile int patchedCompressionClasses;
@@ -76,6 +80,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     public static void resetVerificationCounters() {
         patchedRenderClasses = 0;
+        patchedKeyboardToggleClasses = 0;
+        patchedLeftClickToggleClasses = 0;
+        patchedPauseExceptionClasses = 0;
+        patchedBackgroundFarPlaneClasses = 0;
         patchedFrameLimitClasses = 0;
         patchedProtocolPipelineClasses = 0;
         patchedCompressionClasses = 0;
@@ -117,6 +125,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
+    public static int getPatchedKeyboardToggleClassCount() { return patchedKeyboardToggleClasses; }
+    public static int getPatchedLeftClickToggleClassCount() { return patchedLeftClickToggleClasses; }
+    public static int getPatchedPauseExceptionClassCount() { return patchedPauseExceptionClasses; }
+    public static int getPatchedBackgroundFarPlaneClassCount() { return patchedBackgroundFarPlaneClasses; }
     public static int getPatchedFrameLimitClassCount() { return patchedFrameLimitClasses; }
     public static int getPatchedProtocolPipelineClassCount() { return patchedProtocolPipelineClasses; }
     public static int getPatchedCompressionClassCount() { return patchedCompressionClasses; }
@@ -165,6 +177,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             reader.accept(node, 0);
             boolean changed = false;
             boolean renderPatched = false;
+            boolean keyboardTogglePatched = false;
+            boolean leftClickTogglePatched = false;
+            boolean pauseExceptionPatched = false;
+            boolean backgroundFarPlanePatched = false;
             boolean frameLimitPatched = false;
             boolean protocolPipelinePatched = false;
             boolean compressionPatched = false;
@@ -251,7 +267,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     }
                     if (!renderPatched && "(FJ)V".equals(method.desc)
                         && hasMarkers(method, "mouse", "level", "gui")) {
+                        if (!insertPauseDisplayActiveHook(method)) {
+                            throw new IllegalStateException("Could not safely locate vanilla Display.isActive lost-focus pause check");
+                        }
                         insertRenderGuard(method);
+                        pauseExceptionPatched = true;
                         renderPatched = true;
                         frameProfilePatched = true;
                         changed = true;
@@ -421,6 +441,32 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
+            // Key events and held left-click are added only to vanilla Minecraft.runTick().
+            for (MethodNode method : node.methods) {
+                if (isKeyboardTickMethod(method)) {
+                    keyboardTogglePatched = insertKeyboardToggle(method);
+                    leftClickTogglePatched = insertLeftClickToggle(node, method);
+                    if (!keyboardTogglePatched || !leftClickTogglePatched) {
+                        throw new IllegalStateException("Could not safely locate keyboard toggle events or vanilla block-damage input");
+                    }
+                    changed = true;
+                    break;
+                }
+            }
+
+            // Keep the Background render guard, but clip the camera frustum when F9 is enabled.
+            if (renderPatched) {
+                int farPlaneMatches = 0;
+                for (MethodNode method : node.methods) {
+                    if (insertBackgroundFarPlaneCap(node, method)) farPlaneMatches++;
+                }
+                if (farPlaneMatches != 1) {
+                    throw new IllegalStateException("Expected one vanilla setupCameraTransform far-plane assignment, found " + farPlaneMatches);
+                }
+                backgroundFarPlanePatched = true;
+                changed = true;
+            }
+
             if (frameProfilePatched) {
                 for (MethodNode method : node.methods) {
                     if (!renderFrameBreakdownPatched && "(FJ)V".equals(method.desc)
@@ -566,6 +612,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
             node.accept(writer);
             if (renderPatched) patchedRenderClasses++;
+            if (keyboardTogglePatched) patchedKeyboardToggleClasses++;
+            if (leftClickTogglePatched) patchedLeftClickToggleClasses++;
+            if (pauseExceptionPatched) patchedPauseExceptionClasses++;
+            if (backgroundFarPlanePatched) patchedBackgroundFarPlaneClasses++;
             if (frameLimitPatched) patchedFrameLimitClasses++;
             if (protocolPipelinePatched) patchedProtocolPipelineClasses++;
             if (compressionPatched) patchedCompressionClasses++;
@@ -605,6 +655,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (guiOverlayBreakdownPatched) patchedGuiOverlayBreakdownClasses++;
             if (fontGlyphBatchPatched) patchedFontGlyphBatchClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
+            if (keyboardTogglePatched) System.out.println("[Cylox] F8/F9/F10 key toggles injected: " + node.name);
+            if (leftClickTogglePatched) System.out.println("[Cylox] F8 held left-click input injected: " + node.name);
+            if (pauseExceptionPatched) System.out.println("[Cylox] F10 lost-focus pause exception injected: " + node.name);
+            if (backgroundFarPlanePatched) System.out.println("[Cylox] F9 six-block background camera frustum injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
             if (compressionPatched) System.out.println("[Cylox] Via compression hook injected: " + node.name);
@@ -866,11 +920,208 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         return -1;
     }
 
+    private static boolean isKeyboardTickMethod(MethodNode method) {
+        if (!"()V".equals(method.desc) || !hasMarkers(method, "keyboard")) return false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if ("org/lwjgl/input/Keyboard".equals(call.owner)
+                    && "next".equals(call.name) && "()Z".equals(call.desc)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean insertKeyboardToggle(MethodNode method) {
+        java.util.List<MethodInsnNode> matches = new java.util.ArrayList<MethodInsnNode>();
+        java.util.List<Integer> keyLocals = new java.util.ArrayList<Integer>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() != Opcodes.INVOKESTATIC || !"(IZ)V".equals(call.desc)) continue;
+            AbstractInsnNode previous = previousRealInstruction(call);
+            AbstractInsnNode keyLoad = previousRealInstruction(previous);
+            if (previous instanceof MethodInsnNode
+                && "org/lwjgl/input/Keyboard".equals(((MethodInsnNode) previous).owner)
+                && "getEventKeyState".equals(((MethodInsnNode) previous).name)
+                && "()Z".equals(((MethodInsnNode) previous).desc)
+                && keyLoad instanceof VarInsnNode
+                && keyLoad.getOpcode() == Opcodes.ILOAD) {
+                matches.add(call);
+                keyLocals.add(Integer.valueOf(((VarInsnNode) keyLoad).var));
+            }
+        }
+        if (matches.size() != 1) return false;
+        MethodInsnNode target = matches.get(0);
+        InsnList hook = new InsnList();
+        hook.add(new VarInsnNode(Opcodes.ILOAD, keyLocals.get(0).intValue()));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+            "org/lwjgl/input/Keyboard", "getEventKeyState", "()Z", false));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, BACKGROUND,
+            "onKeyboardEvent", "(IZ)V", false));
+        method.instructions.insert(target, hook);
+        return true;
+    }
+
+    private static boolean insertLeftClickToggle(ClassNode owner, MethodNode runTick) {
+        java.util.List<MethodInsnNode> matches = new java.util.ArrayList<MethodInsnNode>();
+        for (AbstractInsnNode instruction = runTick.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (!owner.name.equals(call.owner) || !"(Z)V".equals(call.desc)
+                || (call.getOpcode() != Opcodes.INVOKESPECIAL && call.getOpcode() != Opcodes.INVOKEVIRTUAL)) continue;
+            MethodNode target = findMethod(owner, call.name, call.desc);
+            if (target != null && isBlockDamageInputMethod(target)) matches.add(call);
+        }
+        if (matches.size() != 1) return false;
+        MethodInsnNode clickCall = matches.get(0);
+        org.objectweb.asm.tree.FieldInsnNode screenField = findScreenFieldForClick(runTick, clickCall, owner.name);
+        if (screenField == null) return false;
+
+        InsnList hook = new InsnList();
+        hook.add(new InsnNode(Opcodes.DUP));
+        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        hook.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD,
+            owner.name, screenField.name, screenField.desc));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, BACKGROUND,
+            "forceLeftClick", "(ZLjava/lang/Object;)Z", false));
+        runTick.instructions.insertBefore(clickCall, hook);
+        return true;
+    }
+
+    private static MethodNode findMethod(ClassNode owner, String name, String descriptor) {
+        for (MethodNode method : owner.methods) {
+            if (name.equals(method.name) && descriptor.equals(method.desc)) return method;
+        }
+        return null;
+    }
+
+    private static boolean isBlockDamageInputMethod(MethodNode method) {
+        if (!"(Z)V".equals(method.desc) || (method.access & Opcodes.ACC_STATIC) != 0) return false;
+        String controllerOwner = null;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            if (Type.getReturnType(call.desc).getSort() == Type.BOOLEAN
+                && arguments.length == 2 && arguments[0].getSort() == Type.OBJECT
+                && arguments[1].getSort() == Type.OBJECT) {
+                if (controllerOwner != null && !controllerOwner.equals(call.owner)) return false;
+                controllerOwner = call.owner;
+            }
+        }
+        if (controllerOwner == null) return false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (controllerOwner.equals(call.owner) && "()V".equals(call.desc)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static org.objectweb.asm.tree.FieldInsnNode findScreenFieldForClick(
+        MethodNode method, MethodInsnNode clickCall, String ownerName) {
+        java.util.List<org.objectweb.asm.tree.FieldInsnNode> matches =
+            new java.util.ArrayList<org.objectweb.asm.tree.FieldInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null && instruction != clickCall; instruction = instruction.getNext()) {
+            if (!(instruction instanceof org.objectweb.asm.tree.FieldInsnNode)) continue;
+            org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
+            if (field.getOpcode() != Opcodes.GETFIELD || !ownerName.equals(field.owner)
+                || !field.desc.startsWith("L")) continue;
+            AbstractInsnNode next = nextRealInstruction(field);
+            if (next == null || next.getOpcode() != Opcodes.IFNONNULL) continue;
+
+            boolean keyDownCheck = false;
+            boolean focusFlagCheck = false;
+            for (AbstractInsnNode scan = next.getNext(); scan != null && scan != clickCall; scan = scan.getNext()) {
+                if (scan instanceof MethodInsnNode) {
+                    MethodInsnNode call = (MethodInsnNode) scan;
+                    if ("()Z".equals(call.desc)) keyDownCheck = true;
+                }
+                if (scan instanceof org.objectweb.asm.tree.FieldInsnNode) {
+                    org.objectweb.asm.tree.FieldInsnNode candidate = (org.objectweb.asm.tree.FieldInsnNode) scan;
+                    if (candidate.getOpcode() == Opcodes.GETFIELD && ownerName.equals(candidate.owner)
+                        && "Z".equals(candidate.desc)) focusFlagCheck = true;
+                }
+            }
+            if (keyDownCheck && focusFlagCheck) matches.add(field);
+        }
+        return matches.size() == 1 ? matches.get(0) : null;
+    }
+
+    private static boolean insertPauseDisplayActiveHook(MethodNode method) {
+        java.util.List<MethodInsnNode> matches = new java.util.ArrayList<MethodInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() == Opcodes.INVOKESTATIC
+                && "org/lwjgl/opengl/Display".equals(call.owner)
+                && "isActive".equals(call.name) && "()Z".equals(call.desc)) matches.add(call);
+        }
+        if (matches.size() != 1) return false;
+        method.instructions.insert(matches.get(0), new MethodInsnNode(Opcodes.INVOKESTATIC,
+            BACKGROUND, "displayActiveForPause", "(Z)Z", false));
+        return true;
+    }
+
+    private static boolean insertBackgroundFarPlaneCap(ClassNode owner, MethodNode method) {
+        if (!"(FI)V".equals(method.desc) || (method.access & Opcodes.ACC_STATIC) != 0) return false;
+        java.util.List<org.objectweb.asm.tree.FieldInsnNode> farPlaneWrites =
+            new java.util.ArrayList<org.objectweb.asm.tree.FieldInsnNode>();
+        int perspectiveCalls = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
+                org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
+                if (field.getOpcode() == Opcodes.PUTFIELD && owner.name.equals(field.owner)
+                    && "F".equals(field.desc)) farPlaneWrites.add(field);
+            } else if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (call.getOpcode() == Opcodes.INVOKESTATIC
+                    && "org/lwjgl/util/glu/Project".equals(call.owner)
+                    && "gluPerspective".equals(call.name) && "(FFFF)V".equals(call.desc)) {
+                    perspectiveCalls++;
+                }
+            }
+        }
+        if (farPlaneWrites.size() != 1 || perspectiveCalls != 1) return false;
+        method.instructions.insertBefore(farPlaneWrites.get(0), new MethodInsnNode(
+            Opcodes.INVOKESTATIC, BACKGROUND, "backgroundFarPlane", "(F)F", false));
+        return true;
+    }
+
+    private static AbstractInsnNode previousRealInstruction(AbstractInsnNode instruction) {
+        AbstractInsnNode previous = instruction == null ? null : instruction.getPrevious();
+        while (previous != null && previous.getOpcode() < 0) previous = previous.getPrevious();
+        return previous;
+    }
+
+    private static AbstractInsnNode nextRealInstruction(AbstractInsnNode instruction) {
+        AbstractInsnNode next = instruction == null ? null : instruction.getNext();
+        while (next != null && next.getOpcode() < 0) next = next.getNext();
+        return next;
+    }
+
     private static void insertRenderGuard(MethodNode method) {
         java.util.List<AbstractInsnNode> originalReturns = new java.util.ArrayList<AbstractInsnNode>();
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null; instruction = instruction.getNext()) {
             if (instruction.getOpcode() == Opcodes.RETURN) originalReturns.add(instruction);
+        }
+
+        MethodInsnNode mouseStart = findProfilerStringCall(method, "mouse");
+        AbstractInsnNode mouseLabel = previousRealInstruction(mouseStart);
+        if (mouseStart == null || !(mouseLabel instanceof LdcInsnNode)
+            || !"mouse".equals(((LdcInsnNode) mouseLabel).cst)) {
+            throw new IllegalStateException("Could not locate the vanilla mouse profiler boundary for Background render suppression");
         }
 
         LabelNode foreground = new LabelNode();
@@ -883,7 +1134,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         guard.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
         guard.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
             "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "beginFrame", "()V", false));
-        method.instructions.insert(guard);
+        method.instructions.insertBefore(mouseLabel, guard);
 
         for (AbstractInsnNode instruction : originalReturns) {
             method.instructions.insertBefore(instruction, new MethodInsnNode(Opcodes.INVOKESTATIC,
