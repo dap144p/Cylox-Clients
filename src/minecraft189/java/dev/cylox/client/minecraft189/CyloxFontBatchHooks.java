@@ -9,9 +9,9 @@ import org.lwjgl.opengl.GL11;
  */
 public final class CyloxFontBatchHooks {
     private static final int TRIANGLE_STRIP = 5;
-    private static final int TRIANGLES = 4;
+    private static final int QUADS = 7;
     private static final int FLOATS_PER_VERTEX = 5;
-    private static final int FLOATS_PER_GLYPH = 6 * FLOATS_PER_VERTEX;
+    private static final int FLOATS_PER_GLYPH = 4 * FLOATS_PER_VERTEX;
 
     private static final ThreadLocal<Context> CONTEXT = new ThreadLocal<Context>() {
         @Override
@@ -103,10 +103,8 @@ public final class CyloxFontBatchHooks {
             context.ensureBatchCapacity(FLOATS_PER_GLYPH);
             appendVertex(context, 0);
             appendVertex(context, 1);
-            appendVertex(context, 2);
-            appendVertex(context, 2);
-            appendVertex(context, 1);
             appendVertex(context, 3);
+            appendVertex(context, 2);
         } else if (context.glyphVertexCount > 0) {
             // Fail-safe for an unexpected glyph shape: render its captured strip
             // immediately rather than dropping or reordering any submitted vertices.
@@ -140,7 +138,7 @@ public final class CyloxFontBatchHooks {
 
     private static void flush(Context context) {
         if (context.batchSize == 0) return;
-        GL11.glBegin(TRIANGLES);
+        GL11.glBegin(QUADS);
         for (int offset = 0; offset < context.batchSize; offset += FLOATS_PER_VERTEX) {
             GL11.glTexCoord2f(context.batch[offset + 3], context.batch[offset + 4]);
             GL11.glVertex3f(context.batch[offset], context.batch[offset + 1],
