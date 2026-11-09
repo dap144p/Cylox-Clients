@@ -121,7 +121,7 @@ public final class CyloxInstaller {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
                 if (entry.isDirectory()) continue;
-                String name = entry.getName().replace('\\\\', '/');
+                String name = entry.getName().replace((char) 92, '/');
                 if (!isAllowedEntry(name)) continue;
                 Path destination = root.resolve(name).normalize();
                 if (!destination.startsWith(root)) throw new SecurityException("Unsafe package path: " + name);
