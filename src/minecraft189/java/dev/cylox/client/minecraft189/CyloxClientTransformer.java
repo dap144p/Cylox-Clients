@@ -1027,8 +1027,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
     private static org.objectweb.asm.tree.FieldInsnNode findScreenFieldForClick(
         MethodNode method, MethodInsnNode clickCall, String ownerName) {
-        java.util.List<org.objectweb.asm.tree.FieldInsnNode> matches =
-            new java.util.ArrayList<org.objectweb.asm.tree.FieldInsnNode>();
+        org.objectweb.asm.tree.FieldInsnNode selected = null;
         for (AbstractInsnNode instruction = method.instructions.getFirst();
              instruction != null && instruction != clickCall; instruction = instruction.getNext()) {
             if (!(instruction instanceof org.objectweb.asm.tree.FieldInsnNode)) continue;
@@ -1041,19 +1040,19 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean keyDownCheck = false;
             boolean focusFlagCheck = false;
             for (AbstractInsnNode scan = next.getNext(); scan != null && scan != clickCall; scan = scan.getNext()) {
-                if (scan instanceof MethodInsnNode) {
-                    MethodInsnNode call = (MethodInsnNode) scan;
-                    if ("()Z".equals(call.desc)) keyDownCheck = true;
-                }
+                if (scan instanceof MethodInsnNode
+                    && "()Z".equals(((MethodInsnNode) scan).desc)) keyDownCheck = true;
                 if (scan instanceof org.objectweb.asm.tree.FieldInsnNode) {
                     org.objectweb.asm.tree.FieldInsnNode candidate = (org.objectweb.asm.tree.FieldInsnNode) scan;
                     if (candidate.getOpcode() == Opcodes.GETFIELD && ownerName.equals(candidate.owner)
                         && "Z".equals(candidate.desc)) focusFlagCheck = true;
                 }
             }
-            if (keyDownCheck && focusFlagCheck) matches.add(field);
+            // The last null check before sendClickBlockToController is the currentScreen gate
+            // in vanilla's compound left-click expression.
+            if (keyDownCheck && focusFlagCheck) selected = field;
         }
-        return matches.size() == 1 ? matches.get(0) : null;
+        return selected;
     }
 
     private static boolean insertPauseDisplayActiveHook(MethodNode method) {
