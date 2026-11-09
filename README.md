@@ -1,12 +1,19 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.3  
+**Version:** 1.5.5  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
 
 Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce rendering work while the game window is inactive. Its protocol compatibility features are embedded in the same Cylox JAR.
+
+## Performance profiling and graphics migration (1.5.5)
+
+- Repairs the profiler completion guard for deep section IDs 34–44. Cloud geometry, weather-submit calls and nested HUD component timers can now record samples; older reports showing zero samples for those fields were an instrumentation defect, not proof those paths were unused.
+- On upgrades affected by the old one-time maximum-graphics benchmark preset, restores only settings that still equal the preset values, using the saved pre-benchmark `options.txt` backup. Values changed afterward are retained.
+- Fresh installs no longer receive an automatic graphics preset. Cylox leaves graphics choices to the user.
+- This update does not replace vanilla terrain traversal, alter chunk scheduling, hide HUD elements, or change gameplay/network handling. It corrects settings migration and profiling accuracy; device FPS gains are not claimed without a same-scene MJ Launcher test.
 
 ## Background behavior
 
