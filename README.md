@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.4.9  
+**Version:** 1.5.0  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -17,6 +17,13 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 - Does not pause the Minecraft network stack deliberately and does not automate player actions.
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
+
+## Fancy Clouds render batching (1.5.0)
+
+- Preserves Fancy Clouds geometry, vertex order, texture coordinates, tint, alpha, animation and both color-mask passes.
+- Combines the 64 small Tessellator submissions inside each pass into one submission per pass (two submissions instead of 128 for each Fancy Clouds render call). This targets OpenGL driver submission overhead without switching to Fast Clouds or lowering graphics settings.
+- Keeps vanilla entity and TileEntity visibility/draw paths intact. The existing render-view sleeping-state reuse and FontRenderer width cache remain enabled; no entity, TileEntity, nameplate, scoreboard, chat or HUD element is hidden or distance-limited.
+- This is a render-submission optimization, not a guaranteed FPS figure. Confirm the result on the same device, server area, render distance and renderer.
 
 ## Java 8 Via stub packaging (1.4.2)
 
