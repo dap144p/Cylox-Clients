@@ -14,6 +14,12 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.analysis.Analyzer;
+import org.objectweb.asm.tree.analysis.BasicValue;
+import org.objectweb.asm.tree.analysis.BasicVerifier;
 
 /** Verifies all critical injection points against Mojang's official obfuscated 1.8.9 JAR. */
 public final class Vanilla189Verifier {
@@ -26,6 +32,7 @@ public final class Vanilla189Verifier {
 
         CyloxClientTransformer.resetVerificationCounters();
         int scanned = 0;
+        boolean minecraftMainBytecodeVerified = false;
         try (JarFile jar = new JarFile(vanillaJar)) {
             Enumeration<JarEntry> entries = jar.entries();
             while (entries.hasMoreElements()) {
@@ -40,11 +47,19 @@ public final class Vanilla189Verifier {
                     bytes = output.toByteArray();
                 }
                 String internalName = entry.getName().substring(0, entry.getName().length() - 6);
-                new CyloxClientTransformer().transform(internalName, internalName, bytes);
+                byte[] transformed = new CyloxClientTransformer().transform(internalName, internalName, bytes);
+                if ("ave".equals(internalName) && transformed != bytes) {
+                    verifyMinecraftRunTickBytecode(transformed);
+                    minecraftMainBytecodeVerified = true;
+                }
                 scanned++;
             }
         }
 
+        if (!minecraftMainBytecodeVerified) {
+            throw new IllegalStateException("Transformed Minecraft main class ave.s()V was not bytecode-verified");
+        }
+        System.out.println("[Cylox] ASM BasicVerifier accepted transformed vanilla method ave.s()V.");
         require("render suppression", CyloxClientTransformer.getPatchedRenderClassCount());
         require("F8/F9/F10 keyboard toggle events", CyloxClientTransformer.getPatchedKeyboardToggleClassCount());
         require("F8 held left-click input", CyloxClientTransformer.getPatchedLeftClickToggleClassCount());
@@ -95,6 +110,26 @@ public final class Vanilla189Verifier {
         verifyGraphicsPresetBehavior();
         verifyDeepProfilerSectionTiming();
         System.out.println("[Cylox] Verified " + scanned + " Minecraft 1.8.9 classes.");
+    }
+
+    /** Runs ASM's operand-stack verifier against the exact method implicated by the crash log. */
+    private static void verifyMinecraftRunTickBytecode(byte[] transformedClass) throws Exception {
+        ClassNode node = new ClassNode();
+        new ClassReader(transformedClass).accept(node, 0);
+        MethodNode target = null;
+        for (MethodNode method : node.methods) {
+            if ("s".equals(method.name) && "()V".equals(method.desc)) {
+                if (target != null) {
+                    throw new IllegalStateException("Found multiple ave.s()V methods in transformed Minecraft class");
+                }
+                target = method;
+            }
+        }
+        if (target == null) {
+            throw new IllegalStateException("Could not find transformed Minecraft method ave.s()V");
+        }
+        Analyzer<BasicValue> analyzer = new Analyzer<BasicValue>(new BasicVerifier());
+        analyzer.analyze(node.name, target);
     }
 
     private static void verifyVisibilityCacheBehavior() {
