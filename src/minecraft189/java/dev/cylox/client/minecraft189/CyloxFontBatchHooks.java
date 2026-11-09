@@ -3,9 +3,9 @@ package dev.cylox.client.minecraft189;
 import org.lwjgl.opengl.GL11;
 
 /**
- * Collects vanilla FontRenderer glyph strips and submits them as triangle batches.
- * The hook is render-thread local and flushes before every texture/color/decorative
- * state boundary, preserving vanilla glyph geometry, formatting and draw order.
+ * Collects vanilla FontRenderer glyph strips and submits their four original
+ * vertices as independent quads. The hook flushes at texture/color/decorative
+ * state boundaries, preserving glyph geometry, formatting and draw order.
  */
 public final class CyloxFontBatchHooks {
     private static final int TRIANGLE_STRIP = 5;
