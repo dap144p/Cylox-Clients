@@ -1683,17 +1683,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
 
                 if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
-                    && arguments.length == 3
-                    && arguments[0].getSort() == Type.FLOAT
-                    && arguments[1].getSort() == Type.FLOAT
-                    && arguments[2].getSort() == Type.FLOAT
-                    && result.getSort() == Type.OBJECT
-                    && call.owner.equals(result.getInternalName())) {
-                    // Fancy cloud faces use WorldRenderer.normal(FFF) repeatedly.
-                    // Its owner is checked against the begin call below.
-                }
-
-                if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
                     && arguments.length == 0 && result.getSort() == Type.INT) {
                     AbstractInsnNode receiverNode = previousRealInstruction(call);
                     AbstractInsnNode popNode = nextRealInstruction(call);
@@ -1720,7 +1709,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
 
         MethodInsnNode beginCall = beginCalls.get(0);
         VarInsnNode beginReceiver = beginReceivers.get(0);
-        MethodInsnNode drawCall = drawCalls.get(0);
         VarInsnNode drawReceiver = drawReceivers.get(0);
         AbstractInsnNode drawPop = drawPops.get(0);
 
