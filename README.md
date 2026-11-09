@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.8  
+**Version:** 1.5.13  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -16,13 +16,14 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 - If a same-version destination file differs, the previous file is preserved under `.cylox-installer-backup/<version>/`. Identical files are left untouched.
 - The installer is Java 8 bytecode and uses Swing/AWT dialogs. Actual Execute .jar compatibility and folder-picker behavior still require testing in MJ Launcher on Android.
 - The manual ZIP package is `cylox-client-1.8.9-<version>.zip` and remains available for manual installation.
-## Benchmark preset and profiler correction (1.5.6)
+## Lightweight graphics preset (1.5.13)
 
-- Restores the one-time maximum-graphics benchmark preset as the stress-test baseline for fresh installs: Fancy Graphics, 16-chunk render distance, maximum ambient occlusion, all particles, entity shadows, clouds, mipmap level 4, 260 FPS target and VSync off.
-- Saves the original `options.txt` before applying the benchmark values. The preset is applied only once; later manual graphics changes are preserved on subsequent launches.
-- Repairs installations affected by the v1.5.5 migration by reapplying only benchmark values that still match the saved pre-benchmark settings. Values that differ because of later user edits are preserved.
+- Replaces the previous maximum-graphics stress-test baseline with a one-time low-load preset: 2-chunk render distance, Fancy Graphics off, ambient occlusion off, Minimal particles, entity shadows off, clouds off and mipmaps 0.
+- Caps the frame rate at 60 FPS for a 60 Hz mobile display instead of forcing the 10 FPS minimum; VSync remains off. This limiter is intentionally not set to the far-left minimum.
+- Saves the active pre-migration `options.txt` to `cylox/options-before-lightweight-preset-1.5.13.txt` before changing graphics options. The preset runs once, then preserves subsequent manual edits.
+- Existing maximum-preset markers from 1.4.5–1.5.6 do not block this one-time migration. The previous backup file remains untouched.
 - Fixes the profiler completion guard for deep section IDs 34–44 so cloud geometry, weather-submit calls and nested HUD component timers can record samples.
-- This update restores the intended stress-test baseline and profiling correctness. It does not claim a measured FPS improvement; compare the same device, renderer, server location and scene before judging optimization gains.
+- This is a graphics-settings change, not a measured FPS claim; compare the same device, renderer, server location and scene after testing.
 
 ## Background behavior
 
@@ -122,7 +123,7 @@ This is not an Android background service. The launcher must keep the game proce
 - Returns defensive Set copies because vanilla can mutate the visibility result. Vanilla BFS traversal, frustum decisions, render queues, chunk scheduling, chunk uploads, and world visibility remain unchanged.
 - On the first 1.4.5 launch only, seeds the standard Minecraft Video Settings through `options.txt`: Fancy Graphics, 16-chunk render distance, maximum smooth lighting, All particles, entity shadows, clouds enabled, mipmap level 4, maximum FPS limit, and VSync off.
 - Backs up an existing `options.txt` to `cylox/options-before-graphics-preset.txt` before changing it. The preset marker prevents repeated overwrites, so later changes made in Minecraft's own Settings menu are preserved.
-- The maximum graphics preset is intentionally a stress test, not a recommended low-end daily profile. Restore the backup or lower settings in Video Settings after profiling.
+- This was the historical stress-test preset. Cylox 1.5.13 replaces it with the lightweight daily preset and keeps the old backup file untouched.
 
 ## Spawn-lobby render optimization — phase 2 (1.4.6)
 
