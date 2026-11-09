@@ -60,6 +60,20 @@ public final class CyloxBackgroundHooks {
         return BackgroundPolicy.frameLimit(isForeground(), requestedFrameLimit);
     }
 
+    /** Draws the current independent keybind states after Minecraft's in-game HUD. */
+    public static void drawToggleStatus(Object hudOwner, int screenWidth, int screenHeight) {
+        if (hudOwner == null || screenWidth <= 0 || screenHeight <= 0) return;
+        int right = screenWidth - 4;
+        int onColor = 0xFF36D7E8;
+        int offColor = 0xFF8DA5B5;
+        CyloxUiHooks.drawTextRight(hudOwner, "F8: " + (toggleLeftClick ? "ON" : "OFF"),
+            right, screenHeight - 31, toggleLeftClick ? onColor : offColor);
+        CyloxUiHooks.drawTextRight(hudOwner, "F9: " + (renderException ? "ON" : "OFF"),
+            right, screenHeight - 21, renderException ? onColor : offColor);
+        CyloxUiHooks.drawTextRight(hudOwner, "F10: " + (pauseException ? "ON" : "OFF"),
+            right, screenHeight - 11, pauseException ? onColor : offColor);
+    }
+
     private static boolean isForeground() {
         try {
             boolean foreground = Display.isActive() && Display.isVisible();
