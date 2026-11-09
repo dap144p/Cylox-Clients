@@ -985,7 +985,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         if (clickMethod == null || !insertLeftClickCounterReset(owner, clickMethod, screenField)) return false;
 
         InsnList hook = new InsnList();
-        hook.add(new InsnNode(Opcodes.DUP));
+        // The vanilla stack already contains the receiver and pressed-state boolean.
+        // Do not duplicate the boolean: forceLeftClick replaces that argument in-place.
         hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
         hook.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD,
             owner.name, screenField.name, screenField.desc));
