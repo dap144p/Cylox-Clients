@@ -1,19 +1,20 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.5  
+**Version:** 1.5.6  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
 
 Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce rendering work while the game window is inactive. Its protocol compatibility features are embedded in the same Cylox JAR.
 
-## Performance profiling and graphics migration (1.5.5)
+## Benchmark preset and profiler correction (1.5.6)
 
-- Repairs the profiler completion guard for deep section IDs 34–44. Cloud geometry, weather-submit calls and nested HUD component timers can now record samples; older reports showing zero samples for those fields were an instrumentation defect, not proof those paths were unused.
-- On upgrades affected by the old one-time maximum-graphics benchmark preset, restores only settings that still equal the preset values, using the saved pre-benchmark `options.txt` backup. Values changed afterward are retained.
-- Fresh installs no longer receive an automatic graphics preset. Cylox leaves graphics choices to the user.
-- This update does not replace vanilla terrain traversal, alter chunk scheduling, hide HUD elements, or change gameplay/network handling. It corrects settings migration and profiling accuracy; device FPS gains are not claimed without a same-scene MJ Launcher test.
+- Restores the one-time maximum-graphics benchmark preset as the stress-test baseline for fresh installs: Fancy Graphics, 16-chunk render distance, maximum ambient occlusion, all particles, entity shadows, clouds, mipmap level 4, 260 FPS target and VSync off.
+- Saves the original `options.txt` before applying the benchmark values. The preset is applied only once; later manual graphics changes are preserved on subsequent launches.
+- Repairs installations affected by the v1.5.5 migration by reapplying only benchmark values that still match the saved pre-benchmark settings. Values that differ because of later user edits are preserved.
+- Fixes the profiler completion guard for deep section IDs 34–44 so cloud geometry, weather-submit calls and nested HUD component timers can record samples.
+- This update restores the intended stress-test baseline and profiling correctness. It does not claim a measured FPS improvement; compare the same device, renderer, server location and scene before judging optimization gains.
 
 ## Background behavior
 
