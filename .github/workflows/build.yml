@@ -176,6 +176,10 @@ jobs:
           NOTES="$(cat <<EOF
           Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla terrain traversal and Via equipment handling.
 
+          - Migrates installations that received the old maximum-graphics benchmark preset: only values still equal to the forced preset are restored from the pre-benchmark backup; subsequent user edits are preserved. Fresh installs are not assigned a graphics preset.
+          - Fixes the deep profiler section range so cloud geometry, weather Tessellator submissions and nested HUD component timers (sections 34–44) record samples correctly. Previous zero-sample values for those fields were caused by the profiler guard.
+          - This is a settings-migration and diagnostics-correctness update. It does not claim a measured FPS improvement or change vanilla terrain traversal, chunk scheduling, gameplay ticks or networking.
+
           - Replaces the node-based LinkedHashMap text-width cache with a fixed 512-entry, two-way set-associative cache. Each lookup checks at most two slots and uses primitive width storage; collisions use least-recently-used replacement within the selected set.
           - Keeps text-width results scoped to the active FontRenderer and Unicode-font mode. Cache misses still use vanilla measurement; rendered text, formatting, scoreboard/player-list/chat content, layout, gameplay and networking are unchanged.
           - Targets repeated HUD text-measurement overhead without hiding or reordering any UI. This is a CPU-side cache optimization, not a guaranteed FPS figure; compare the existing text-width and HUD profile fields on the same device and scene.
@@ -209,7 +213,7 @@ jobs:
           - Adds opt-in profiling for rendered-frame time, terrain setup/culling, chunk upload, entity rendering, block layers and particles; it is disabled by default and can be enabled with -Dcylox.profile=true.
           - Adds a bounded 64-entry LRU camera-block visibility cache to reuse RenderGlobal's opaque-block visibility graph at recently visited camera positions; the cache is invalidated by block-range updates and world replacement, and cached Sets are copied before vanilla may mutate them.
           - Profiling is diagnostic only: it does not change renderer scheduling, gameplay ticks or network handling, and this build does not claim an FPS increase.
-          - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. Adds a one-time max-graphics stress preset in options.txt (Fancy, 16 chunks, maximum smooth lighting, all particles, entity shadows/clouds on, mipmap 4, 260 FPS, VSync off), backing up existing settings to cylox/options-before-graphics-preset.txt and preserving later user edits.
+          - Preserves vanilla chunk meshes, frustum/visibility culling, world layers, entities, tile entities, particles, HUD, controls, ticks and network behavior. On affected upgrades, legacy benchmark settings are restored from the saved original options only while current values still match the former forced preset; later user edits are preserved. Fresh installs receive no automatic graphics preset.
           - Sizes Via's temporary packet buffers from the incoming packet length (minimum 256 bytes) to avoid unnecessary initial buffer growth; translated packets can still expand when required.
           - Java 8 compatibility builds are an upstream fallback and may continue to log that Java 8 is outside normal support. Real MJ Launcher testing is still required to confirm server packet compatibility.
           - Applies the selected Via target at startup or selector change; channel initialization reuses it instead of reloading Via's global protocol manager for every connection.
