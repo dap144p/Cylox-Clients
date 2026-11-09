@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.2  
+**Version:** 1.5.3  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -17,6 +17,14 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 - Does not pause the Minecraft network stack deliberately and does not automate player actions.
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
+
+## Ultra 1px UI and slider rendering (1.5.3)
+
+- Keeps menu backgrounds, panels, button fills, borders, dividers, slider rails and slider handles textureless using flat OpenGL primitives. The UI does not need a 1×1 bitmap upload or texture lookup for these simple surfaces.
+- Preserves translucent navy surfaces with 1px cyan/orange accents; blur, gradients, decorative shadows, shaders and menu animations remain unused.
+- Restores the vanilla slider `mouseDragged` callback inside the Cylox button skin, preserving option-value updates while drawing a visible compact track, progress fill and handle.
+- Keeps slider labels and font rendering unchanged. The handle changes to the orange accent when hovered.
+- Scope is limited to menu and option-control drawing. Gameplay, HUD, world rendering, chunk scheduling, networking and protocol translation are unchanged.
 
 ## Font glyph batching (1.5.1)
 
@@ -159,6 +167,7 @@ This is not an Android background service. The launcher must keep the game proce
 - Clips long button labels to their available width and preserves original vanilla button objects, IDs and click actions.
 - Caches reflective button and FontRenderer accessors, and builds the supported protocol-family list once instead of repeating reflection and route discovery every frame.
 - Uses immediate-mode rectangles and Minecraft's existing font renderer; no added UI framework, texture packs, blur, shaders or animations.
+- Standard controls and backgrounds use flat, textureless geometry; option sliders retain vanilla drag updates while using a visible 1px rail and compact handle.
 
 ## Manual Via protocol selector
 
