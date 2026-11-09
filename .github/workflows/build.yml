@@ -196,6 +196,9 @@ jobs:
           - Choose the target server protocol manually using the Via selector on the Multiplayer screen; selection is saved in the game directory.
           - No automatic server-version detection or status-ping protocol selection.
           - Uses translucent dark menus, buttons and protocol selector panels to keep the gameplay visible behind the UI, with readable text.
+          - Keeps simple UI surfaces textureless with flat 1px geometry instead of adding bitmap assets or 1x1 textures.
+          - Restores vanilla option-slider dragging and settings updates while drawing a visible cyan progress rail and compact handle with the Cylox orange hover accent.
+          - Menu and option-control drawing only; gameplay, HUD, world rendering, chunk scheduling, networking and protocol translation are unchanged.
           - Adapts protocol-selector rows to screen height, fits long button labels, caches UI reflection lookups and caches protocol-family discovery.
           - Reuses Minecraft 1.8.9's existing two chunk workers and render-buffer pool; Cylox does not create extra worker threads.
           - Preserves Minecraft 1.8.9's native near/far chunk-update scheduling; Cylox does not add a custom chunk queue or renderer.
