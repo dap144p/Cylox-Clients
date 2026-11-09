@@ -53,9 +53,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedWorldRenderProfileClasses;
     private static volatile int patchedWorldPassProfileClasses;
     private static volatile int patchedCloudsProfileClasses;
+    private static volatile int patchedCloudGeometryProfileClasses;
+    private static volatile int patchedWeatherSubmitProfileClasses;
     private static volatile int patchedFancyCloudBatchClasses;
     private static volatile int patchedRenderFrameBreakdownClasses;
     private static volatile int patchedGuiOverlayProfileClasses;
+    private static volatile int patchedGuiOverlayBreakdownClasses;
     private static volatile int patchedFontGlyphBatchClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
@@ -104,9 +107,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedWorldRenderProfileClasses = 0;
         patchedWorldPassProfileClasses = 0;
         patchedCloudsProfileClasses = 0;
+        patchedCloudGeometryProfileClasses = 0;
+        patchedWeatherSubmitProfileClasses = 0;
         patchedFancyCloudBatchClasses = 0;
         patchedRenderFrameBreakdownClasses = 0;
         patchedGuiOverlayProfileClasses = 0;
+        patchedGuiOverlayBreakdownClasses = 0;
         patchedFontGlyphBatchClasses = 0;
     }
 
@@ -142,9 +148,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedWorldRenderProfileClassCount() { return patchedWorldRenderProfileClasses; }
     public static int getPatchedWorldPassProfileClassCount() { return patchedWorldPassProfileClasses; }
     public static int getPatchedCloudsProfileClassCount() { return patchedCloudsProfileClasses; }
+    public static int getPatchedCloudGeometryProfileClassCount() { return patchedCloudGeometryProfileClasses; }
+    public static int getPatchedWeatherSubmitProfileClassCount() { return patchedWeatherSubmitProfileClasses; }
     public static int getPatchedFancyCloudBatchClassCount() { return patchedFancyCloudBatchClasses; }
     public static int getPatchedRenderFrameBreakdownClassCount() { return patchedRenderFrameBreakdownClasses; }
     public static int getPatchedGuiOverlayProfileClassCount() { return patchedGuiOverlayProfileClasses; }
+    public static int getPatchedGuiOverlayBreakdownClassCount() { return patchedGuiOverlayBreakdownClasses; }
     public static int getPatchedFontGlyphBatchClassCount() { return patchedFontGlyphBatchClasses; }
 
     @Override
@@ -186,9 +195,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean worldRenderProfilePatched = false;
             boolean worldPassProfilePatched = false;
             boolean cloudsProfilePatched = false;
+            boolean cloudGeometryProfilePatched = false;
+            boolean weatherSubmitProfilePatched = false;
             boolean fancyCloudBatchPatched = false;
             boolean renderFrameBreakdownPatched = false;
             boolean guiOverlayProfilePatched = false;
+            boolean guiOverlayBreakdownPatched = false;
             boolean fontGlyphBatchPatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
@@ -434,11 +446,27 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         worldPassProfilePatched = true;
                         changed = true;
                     }
-                    if (!cloudsProfilePatched && isCloudsCheckMethod(method)) {
-                        insertTimedSection(method, 26);
-                        cloudsProfilePatched = true;
-                        changed = true;
+                    if (isCloudsCheckMethod(method)) {
+                        if (!cloudsProfilePatched) {
+                            insertTimedSection(method, 26);
+                            cloudsProfilePatched = true;
+                            changed = true;
+                        }
+                        if (!cloudGeometryProfilePatched) {
+                            cloudGeometryProfilePatched = insertCloudGeometryProfile(method);
+                            if (!cloudGeometryProfilePatched) {
+                                throw new IllegalStateException("Could not safely locate the vanilla RenderGlobal.renderClouds call");
+                            }
+                            changed = true;
+                        }
                     }
+                }
+                if (!weatherSubmitProfilePatched) {
+                    weatherSubmitProfilePatched = insertWeatherSubmissionProfile(node);
+                    if (!weatherSubmitProfilePatched) {
+                        throw new IllegalStateException("Could not safely identify the vanilla rain/snow Tessellator submissions");
+                    }
+                    changed = true;
                 }
             }
 
@@ -480,6 +508,10 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     insertTimedSection(method, 28);
                     insertTerrainSectionBeginAfter(method, chatStart, 29);
                     insertTerrainSectionEndBefore(method, chatEnd, 29);
+                    guiOverlayBreakdownPatched = insertGuiOverlayBreakdown(node, method);
+                    if (!guiOverlayBreakdownPatched) {
+                        throw new IllegalStateException("Could not safely locate vanilla GUI component boundaries");
+                    }
                     guiOverlayProfilePatched = true;
                     changed = true;
                     break;
@@ -565,9 +597,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (worldRenderProfilePatched) patchedWorldRenderProfileClasses++;
             if (worldPassProfilePatched) patchedWorldPassProfileClasses++;
             if (cloudsProfilePatched) patchedCloudsProfileClasses++;
+            if (cloudGeometryProfilePatched) patchedCloudGeometryProfileClasses++;
+            if (weatherSubmitProfilePatched) patchedWeatherSubmitProfileClasses++;
             if (fancyCloudBatchPatched) patchedFancyCloudBatchClasses++;
             if (renderFrameBreakdownPatched) patchedRenderFrameBreakdownClasses++;
             if (guiOverlayProfilePatched) patchedGuiOverlayProfileClasses++;
+            if (guiOverlayBreakdownPatched) patchedGuiOverlayBreakdownClasses++;
             if (fontGlyphBatchPatched) patchedFontGlyphBatchClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
@@ -599,9 +634,12 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (worldRenderProfilePatched) System.out.println("[Cylox] Opt-in whole-world renderer profiler injected: " + node.name);
             if (worldPassProfilePatched) System.out.println("[Cylox] Opt-in world-pass phase profiler injected: " + node.name);
             if (cloudsProfilePatched) System.out.println("[Cylox] Opt-in cloud-check profiler injected: " + node.name);
+            if (cloudGeometryProfilePatched) System.out.println("[Cylox] Opt-in cloud-geometry profiler injected: " + node.name);
+            if (weatherSubmitProfilePatched) System.out.println("[Cylox] Opt-in weather Tessellator-submit profiler injected: " + node.name);
             if (fancyCloudBatchPatched) System.out.println("[Cylox] Fancy cloud geometry batched without changing vertices or render passes: " + node.name);
             if (renderFrameBreakdownPatched) System.out.println("[Cylox] Opt-in render-frame phase profiler injected: " + node.name);
             if (guiOverlayProfilePatched) System.out.println("[Cylox] Opt-in HUD overlay/chat profiler injected: " + node.name);
+            if (guiOverlayBreakdownPatched) System.out.println("[Cylox] Opt-in HUD component profiler injected: " + node.name);
             if (fontGlyphBatchPatched) System.out.println("[Cylox] FontRenderer glyph geometry batching injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
@@ -1961,6 +1999,136 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             && hasMarkers(method, "clear", "sky", "prepareterrain", "terrain_setup",
                 "updatechunks", "terrain", "entities", "litParticles", "particles",
                 "weather", "translucent", "aboveClouds", "hand");
+    }
+
+    private static boolean insertCloudGeometryProfile(MethodNode method) {
+        java.util.List<MethodInsnNode> cloudCalls = new java.util.ArrayList<MethodInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() == Opcodes.INVOKEVIRTUAL && "(FI)V".equals(call.desc)) {
+                Type[] arguments = Type.getArgumentTypes(call.desc);
+                if (arguments.length == 2 && arguments[0].getSort() == Type.FLOAT
+                    && arguments[1].getSort() == Type.INT) cloudCalls.add(call);
+            }
+        }
+        if (cloudCalls.size() != 1) return false;
+        insertTimedCall(method, cloudCalls.get(0), 34);
+        return true;
+    }
+
+    /**
+     * Profiles Tessellator.draw() calls inside vanilla renderRainSnow(float).
+     * The outer worldWeather timer still measures the complete rain/snow pass;
+     * this nested timer isolates CPU time spent submitting the generated batches.
+     */
+    private static boolean insertWeatherSubmissionProfile(ClassNode owner) {
+        MethodNode target = null;
+        java.util.List<MethodInsnNode> targetDrawCalls = null;
+        for (MethodNode method : owner.methods) {
+            if (!"(F)V".equals(method.desc) || !hasMethodCallDescriptor(method, "(F)F")) continue;
+            java.util.Set<String> singletonTypes = new java.util.HashSet<String>();
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (!(instruction instanceof MethodInsnNode)) continue;
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (call.getOpcode() == Opcodes.INVOKESTATIC
+                    && Type.getArgumentTypes(call.desc).length == 0
+                    && Type.getReturnType(call.desc).getSort() == Type.OBJECT) {
+                    singletonTypes.add(Type.getReturnType(call.desc).getInternalName());
+                }
+            }
+
+            java.util.List<MethodInsnNode> drawCalls = new java.util.ArrayList<MethodInsnNode>();
+            for (AbstractInsnNode instruction = method.instructions.getFirst();
+                 instruction != null; instruction = instruction.getNext()) {
+                if (!(instruction instanceof MethodInsnNode)) continue;
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                    && singletonTypes.contains(call.owner) && "()I".equals(call.desc)) {
+                    drawCalls.add(call);
+                }
+            }
+            if (drawCalls.size() == 2) {
+                if (target != null) return false;
+                target = method;
+                targetDrawCalls = drawCalls;
+            }
+        }
+        if (target == null || targetDrawCalls == null) return false;
+        for (MethodInsnNode drawCall : targetDrawCalls) insertTimedCall(target, drawCall, 35);
+        return true;
+    }
+
+    /**
+     * Adds nested timers around the major vanilla HUD component calls. The
+     * one-argument GuiIngame calls are ordered in vanilla as player stats,
+     * selected-item text and demo text; the other descriptors identify the
+     * hotbar, scoreboard and player-list draw paths.
+     */
+    private static boolean insertGuiOverlayBreakdown(ClassNode owner, MethodNode method) {
+        java.util.List<MethodInsnNode> hotbarCalls = new java.util.ArrayList<MethodInsnNode>();
+        java.util.List<MethodInsnNode> singleArgumentCalls = new java.util.ArrayList<MethodInsnNode>();
+        java.util.List<MethodInsnNode> scoreboardCalls = new java.util.ArrayList<MethodInsnNode>();
+        java.util.List<MethodInsnNode> playerListCalls = new java.util.ArrayList<MethodInsnNode>();
+
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            Type result = Type.getReturnType(call.desc);
+            if (result.getSort() != Type.VOID) continue;
+
+            if (arguments.length == 2 && arguments[0].getSort() == Type.OBJECT
+                && arguments[1].getSort() == Type.FLOAT) {
+                hotbarCalls.add(call);
+            }
+            if (owner.name.equals(call.owner) && arguments.length == 1
+                && arguments[0].getSort() == Type.OBJECT) {
+                singleArgumentCalls.add(call);
+            }
+            if (owner.name.equals(call.owner) && arguments.length == 2
+                && arguments[0].getSort() == Type.OBJECT
+                && arguments[1].getSort() == Type.OBJECT) {
+                scoreboardCalls.add(call);
+            }
+            if (arguments.length == 3 && arguments[0].getSort() == Type.INT
+                && arguments[1].getSort() == Type.OBJECT
+                && arguments[2].getSort() == Type.OBJECT) {
+                playerListCalls.add(call);
+            }
+        }
+
+        MethodInsnNode bossStart = findProfilerStringCall(method, "bossHealth");
+        MethodInsnNode bossEnd = bossStart == null ? null
+            : findFollowingProfilerEnd(method, bossStart, bossStart.owner, false);
+        MethodInsnNode overlayMessageStart = findProfilerStringCall(method, "overlayMessage");
+        MethodInsnNode overlayMessageEnd = overlayMessageStart == null ? null
+            : findFollowingProfilerEnd(method, overlayMessageStart, overlayMessageStart.owner, false);
+        MethodInsnNode titleStart = findProfilerStringCall(method, "titleAndSubtitle");
+        MethodInsnNode titleEnd = titleStart == null ? null
+            : findFollowingProfilerEnd(method, titleStart, titleStart.owner, false);
+
+        if (hotbarCalls.size() != 2 || singleArgumentCalls.size() != 3
+            || scoreboardCalls.size() != 1 || playerListCalls.size() != 1
+            || bossStart == null || bossEnd == null || overlayMessageStart == null
+            || overlayMessageEnd == null || titleStart == null || titleEnd == null) return false;
+
+        for (MethodInsnNode call : hotbarCalls) insertTimedCall(method, call, 36);
+        insertTimedCall(method, singleArgumentCalls.get(0), 37);
+        insertTimedCall(method, scoreboardCalls.get(0), 38);
+        insertTerrainSectionBeginAfter(method, bossStart, 39);
+        insertTerrainSectionEndBefore(method, bossEnd, 39);
+        insertTimedCall(method, playerListCalls.get(0), 40);
+        insertTimedCall(method, singleArgumentCalls.get(1), 41);
+        insertTimedCall(method, singleArgumentCalls.get(2), 42);
+        insertTerrainSectionBeginAfter(method, overlayMessageStart, 43);
+        insertTerrainSectionEndBefore(method, overlayMessageEnd, 43);
+        insertTerrainSectionBeginAfter(method, titleStart, 44);
+        insertTerrainSectionEndBefore(method, titleEnd, 44);
+        return true;
     }
 
     private static boolean isCloudsCheckMethod(MethodNode method) {
