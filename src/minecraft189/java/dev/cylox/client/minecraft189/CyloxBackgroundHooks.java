@@ -35,6 +35,11 @@ public final class CyloxBackgroundHooks {
         return BackgroundPolicy.forceLeftClick(vanillaLeftClick, currentScreen == null, toggleLeftClick);
     }
 
+    /** Clears vanilla's regain-focus attack delay only while the F8 toggle is active. */
+    public static int leftClickCounter(int currentCounter, Object currentScreen) {
+        return BackgroundPolicy.leftClickCounter(currentCounter, currentScreen == null, toggleLeftClick);
+    }
+
     /** Allows the vanilla lost-focus pause check to run before Background skips rendering. */
     public static boolean displayActiveForPause(boolean displayActive) {
         return BackgroundPolicy.displayActiveForPause(displayActive, isForeground(), pauseException);

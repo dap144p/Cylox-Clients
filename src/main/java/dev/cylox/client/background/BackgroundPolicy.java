@@ -34,4 +34,8 @@ public final class BackgroundPolicy {
     public static boolean forceLeftClick(boolean vanillaLeftClick, boolean noOpenScreen, boolean toggleEnabled) {
         return vanillaLeftClick || (noOpenScreen && toggleEnabled);
     }
+
+    public static int leftClickCounter(int currentCounter, boolean noOpenScreen, boolean toggleEnabled) {
+        return noOpenScreen && toggleEnabled ? 0 : currentCounter;
+    }
 }
