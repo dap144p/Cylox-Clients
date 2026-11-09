@@ -158,7 +158,10 @@ public final class CyloxUiHooks {
     }
 
     private static FontOwnerAccess fontOwnerAccess(Object owner) {
-        Class<?> type = owner.getClass();
+        return owner == null ? new FontOwnerAccess(Object.class) : fontOwnerAccess(owner.getClass());
+    }
+
+    private static FontOwnerAccess fontOwnerAccess(Class<?> type) {
         FontOwnerAccess access = FONT_OWNER_ACCESS.get(type);
         if (access == null) {
             FontOwnerAccess created = new FontOwnerAccess(type);
