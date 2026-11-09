@@ -2,10 +2,7 @@ package dev.cylox.installer;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -83,7 +80,6 @@ public final class CyloxInstaller {
             if (isGameDirectory(resolved)) return resolved;
         }
 
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir", "/storage/emulated/0")));
         chooser.setDialogTitle("Select MJ Launcher game directory (.minecraft)");
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
