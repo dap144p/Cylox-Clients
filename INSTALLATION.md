@@ -1,20 +1,32 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.5.6
+Version: 1.5.7
 
 BENCHMARK BASELINE
 - On first launch, Cylox applies a one-time maximum-graphics preset for stress-testing the optimized rendering pipeline.
 - The original options.txt is backed up before the preset is applied. Later manual graphics changes are preserved on subsequent launches.
 
 INSTALL
-1. Download the complete Cylox Client ZIP from GitHub Releases.
+METHOD A — EXECUTE JAR
+1. Download Cylox-Installer-1.8.9-1.5.7.jar from the same GitHub release as this document.
+2. In MJ Launcher, open Execute a .jar and select the installer JAR.
+3. If the installer does not detect the game directory automatically, select the game directory used by MJ Launcher (the folder containing versions/libraries/assets).
+4. Confirm the displayed destination and wait for the completion message.
+5. Refresh the launcher's version list, select Cylox-1.8.9 and launch.
+
+METHOD B — ZIP
+1. Download the complete Cylox Client ZIP from the same GitHub release.
 2. Open the game directory configured in MJ Launcher (the directory containing versions and libraries).
 3. Extract the ZIP into that directory and merge the folders.
 4. Refresh the launcher's version list.
 5. Select Cylox-1.8.9 and launch it. Its standalone profile declares the vanilla 1.8.9 client JAR, game libraries and asset index as dependencies, allowing MJ Launcher to download missing files. A separate vanilla 1.8.9 profile should not be required.
-6. Keep the launcher's normal Java and renderer settings.
-7. Open Multiplayer and tap "Select: [version]" beside the standard "Cancel" button. The modern menu groups versions as 1.8x, 1.9x, 1.10x and onward; scroll with the mouse wheel or arrow controls.
-8. Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
+
+For both methods:
+- Keep the launcher's normal Java and renderer settings.
+- Open Multiplayer and tap "Select: [version]" beside the standard "Cancel" button. The modern menu groups versions as 1.8x, 1.9x, 1.10x and onward; scroll with the mouse wheel or arrow controls.
+- Choose the exact target protocol from the menu that opens above the selector before connecting. The selection is saved in cylox/protocol.properties.
+- The installer JAR embeds the ZIP matching its own version. It never downloads a different/latest client build.
+- If an existing same-version file differs, the installer backs it up under .cylox-installer-backup/<version>/ before replacing it. Identical files are not rewritten.
 
 RENDERER AND NETWORK CORE
 - Via decode handler now forwards unexpected packet/translation exceptions to Minecraft's NetworkManager; only Via's normal CancelCodecException cancellation is swallowed. This makes failed packet translations visible to the normal connection error path rather than silently ignoring them.
