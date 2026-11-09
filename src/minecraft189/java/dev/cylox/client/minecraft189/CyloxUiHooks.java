@@ -48,7 +48,7 @@ public final class CyloxUiHooks {
         SliderAccess(Class<?> type) {
             Field found = findField(type, "sliderValue", "field_146150_p", "p");
             value = found != null && found.getType() == Float.TYPE
-                ? found : findFirstField(type, Float.TYPE);
+                ? found : findDeclaredFieldOfType(type, Float.TYPE);
             drag = findSliderDragMethod(type);
         }
         boolean supported() { return value != null && drag != null; }
@@ -530,6 +530,16 @@ public final class CyloxUiHooks {
                     field.setAccessible(true);
                     return field;
                 } catch (Throwable ignored) { }
+            }
+        }
+        return null;
+    }
+
+    private static Field findDeclaredFieldOfType(Class<?> type, Class<?> fieldType) {
+        for (Field field : type.getDeclaredFields()) {
+            if (field.getType() == fieldType && !Modifier.isStatic(field.getModifiers())) {
+                try { field.setAccessible(true); return field; }
+                catch (Throwable ignored) { }
             }
         }
         return null;
