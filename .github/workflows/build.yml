@@ -218,6 +218,8 @@ jobs:
           NOTES="$(cat <<EOF
           Cylox Client ${VERSION} — Minecraft Java 1.8.9 client with vanilla terrain traversal and Via equipment handling.
 
+          - Fixes a Minecraft 1.8.9 startup VerifyError caused by the F8 held-left-click bytecode hook leaving an extra operand on the stack. The F8 behavior remains enabled; the hook now preserves the vanilla receiver and replaces only the pressed-state boolean. CI verifies the transformed `ave.s()V` operand stack with ASM BasicVerifier.
+
           - Adds a standalone Execute .jar installer. The installer embeds the exact same-version ZIP package byte-for-byte, installs its matching version profile, client JAR and license files, and keeps a backup before replacing differing files. The normal ZIP remains available as a manual installation option.
 
           - Restores the one-time maximum-graphics benchmark preset as the default stress-test baseline for fresh installs, saving the original options.txt before changing only the benchmark graphics values. Subsequent user edits are never overwritten.
