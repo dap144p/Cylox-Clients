@@ -140,21 +140,20 @@ public final class CyloxInstaller {
                         installed.add(name + " (unchanged)");
                         continue;
                     }
+                    Path backup = null;
                     if (Files.exists(destination)) {
-                        Path backup = root.resolve(".cylox-installer-backup").resolve(version).resolve(name).normalize();
+                        backup = root.resolve(".cylox-installer-backup").resolve(version).resolve(name).normalize();
                         if (!backup.startsWith(root)) throw new SecurityException("Unsafe backup path.");
                         Files.createDirectories(backup.getParent());
-                        if (!Files.exists(backup)) {
-                            Files.move(destination, backup, StandardCopyOption.REPLACE_EXISTING);
-                        } else {
-                            Files.delete(destination);
+                        if (Files.exists(backup)) {
+                            backup = backup.resolveSibling(backup.getFileName().toString() + "." + System.currentTimeMillis());
                         }
+                        Files.move(destination, backup);
                     }
                     try {
                         Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
                     } catch (Exception moveFailure) {
-                        Path backup = root.resolve(".cylox-installer-backup").resolve(version).resolve(name).normalize();
-                        if (!Files.exists(destination) && Files.exists(backup)) {
+                        if (backup != null && !Files.exists(destination) && Files.exists(backup)) {
                             Files.move(backup, destination, StandardCopyOption.REPLACE_EXISTING);
                         }
                         throw moveFailure;
