@@ -1453,7 +1453,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
              instruction != null; instruction = instruction.getNext()) {
             if (!(instruction instanceof MethodInsnNode)) continue;
             MethodInsnNode call = (MethodInsnNode) instruction;
-            if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
+            if ((call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                || call.getOpcode() == Opcodes.INVOKESPECIAL)
                 && owner.name.equals(call.owner) && "(I)V".equals(call.desc)) {
                 if (unicodeLoaderCall != null) return false;
                 unicodeLoaderCall = call;
