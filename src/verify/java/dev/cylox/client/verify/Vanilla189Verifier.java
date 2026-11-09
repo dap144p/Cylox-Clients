@@ -295,6 +295,19 @@ public final class Vanilla189Verifier {
             throw new IllegalStateException("Text-width cache reused measurements across FontRenderer instances");
         }
 
+        Object collisionRenderer = new Object();
+        CyloxTextWidthCache.cacheWidth(collisionRenderer, "AaAa", false, 11);
+        CyloxTextWidthCache.cacheWidth(collisionRenderer, "BBBB", false, 22);
+        if (CyloxTextWidthCache.getCachedWidth(collisionRenderer, "AaAa", false) != 11) {
+            throw new IllegalStateException("Text-width cache did not refresh the first colliding entry");
+        }
+        CyloxTextWidthCache.cacheWidth(collisionRenderer, "AaBB", false, 33);
+        if (CyloxTextWidthCache.getCachedWidth(collisionRenderer, "AaAa", false) != 11
+            || CyloxTextWidthCache.getCachedWidth(collisionRenderer, "BBBB", false) != -1
+            || CyloxTextWidthCache.getCachedWidth(collisionRenderer, "AaBB", false) != 33) {
+            throw new IllegalStateException("Text-width cache did not evict the least-recently-used entry in a colliding set");
+        }
+
         Object boundedRenderer = new Object();
         for (int i = 0; i < 513; i++) {
             CyloxTextWidthCache.cacheWidth(boundedRenderer, "label-" + i, false, i);
@@ -302,7 +315,7 @@ public final class Vanilla189Verifier {
         if (CyloxTextWidthCache.getSize() > 512) {
             throw new IllegalStateException("Text-width cache exceeded its 512-entry bound");
         }
-        System.out.println("[Cylox] Verified FontRenderer-scoped text widths, Unicode isolation and 512-entry LRU bound.");
+        System.out.println("[Cylox] Verified FontRenderer-scoped text widths, Unicode isolation, two-way collision handling and 512-entry bound.");
     }
 
     private static void verifyGraphicsPresetBehavior() throws Exception {
