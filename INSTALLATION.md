@@ -1,6 +1,10 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.4.6 Beta 1
+Version: 1.5.6
+
+BENCHMARK BASELINE
+- On first launch, Cylox applies a one-time maximum-graphics preset for stress-testing the optimized rendering pipeline.
+- The original options.txt is backed up before the preset is applied. Later manual graphics changes are preserved on subsequent launches.
 
 INSTALL
 1. Download the complete Cylox Client ZIP from GitHub Releases.
