@@ -53,6 +53,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedWorldRenderProfileClasses;
     private static volatile int patchedWorldPassProfileClasses;
     private static volatile int patchedCloudsProfileClasses;
+    private static volatile int patchedFancyCloudBatchClasses;
     private static volatile int patchedRenderFrameBreakdownClasses;
     private static volatile int patchedGuiOverlayProfileClasses;
 
@@ -101,6 +102,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedWorldRenderProfileClasses = 0;
         patchedWorldPassProfileClasses = 0;
         patchedCloudsProfileClasses = 0;
+        patchedFancyCloudBatchClasses = 0;
         patchedRenderFrameBreakdownClasses = 0;
         patchedGuiOverlayProfileClasses = 0;
     }
@@ -137,6 +139,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedWorldRenderProfileClassCount() { return patchedWorldRenderProfileClasses; }
     public static int getPatchedWorldPassProfileClassCount() { return patchedWorldPassProfileClasses; }
     public static int getPatchedCloudsProfileClassCount() { return patchedCloudsProfileClasses; }
+    public static int getPatchedFancyCloudBatchClassCount() { return patchedFancyCloudBatchClasses; }
     public static int getPatchedRenderFrameBreakdownClassCount() { return patchedRenderFrameBreakdownClasses; }
     public static int getPatchedGuiOverlayProfileClassCount() { return patchedGuiOverlayProfileClasses; }
 
@@ -179,6 +182,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean worldRenderProfilePatched = false;
             boolean worldPassProfilePatched = false;
             boolean cloudsProfilePatched = false;
+            boolean fancyCloudBatchPatched = false;
             boolean renderFrameBreakdownPatched = false;
             boolean guiOverlayProfilePatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
@@ -288,6 +292,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         insertVisibilityCacheInvalidation(method);
                         visibilityInvalidationPatched = true;
                         changed = true;
+                    }
+
+                    if (terrainClass && !fancyCloudBatchPatched && "(FI)V".equals(method.desc)) {
+                        fancyCloudBatchPatched = batchFancyCloudGeometry(method);
+                        if (fancyCloudBatchPatched) changed = true;
                     }
 
                     if (terrainClass && !entityProfilePatched
@@ -546,6 +555,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (worldRenderProfilePatched) patchedWorldRenderProfileClasses++;
             if (worldPassProfilePatched) patchedWorldPassProfileClasses++;
             if (cloudsProfilePatched) patchedCloudsProfileClasses++;
+            if (fancyCloudBatchPatched) patchedFancyCloudBatchClasses++;
             if (renderFrameBreakdownPatched) patchedRenderFrameBreakdownClasses++;
             if (guiOverlayProfilePatched) patchedGuiOverlayProfileClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
@@ -578,6 +588,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (worldRenderProfilePatched) System.out.println("[Cylox] Opt-in whole-world renderer profiler injected: " + node.name);
             if (worldPassProfilePatched) System.out.println("[Cylox] Opt-in world-pass phase profiler injected: " + node.name);
             if (cloudsProfilePatched) System.out.println("[Cylox] Opt-in cloud-check profiler injected: " + node.name);
+            if (fancyCloudBatchPatched) System.out.println("[Cylox] Fancy cloud geometry batched without changing vertices or render passes: " + node.name);
             if (renderFrameBreakdownPatched) System.out.println("[Cylox] Opt-in render-frame phase profiler injected: " + node.name);
             if (guiOverlayProfilePatched) System.out.println("[Cylox] Opt-in HUD overlay/chat profiler injected: " + node.name);
             return writer.toByteArray();
@@ -1617,6 +1628,155 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         end.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
             "dev/cylox/client/minecraft189/CyloxPerformanceMonitor", "endSection", "(I)V", false));
         method.instructions.insert(call, end);
+    }
+
+
+    /**
+     * Vanilla Fancy Clouds rebuilds the same cloud surface as 64 tiny
+     * Tessellator submissions in each of its two color-mask passes. Keep the
+     * exact vertex generation and ordering, but begin only on the first tile
+     * and submit only after the final tile of each pass.
+     *
+     * The loop-local values are located from their adjacent BIPUSH -3 / ISTORE
+     * initialization pairs so this remains independent of obfuscated names.
+     */
+    private static boolean batchFancyCloudGeometry(MethodNode method) {
+        if (!"(FI)V".equals(method.desc)) return false;
+
+        java.util.List<MethodInsnNode> beginCalls = new java.util.ArrayList<MethodInsnNode>();
+        java.util.List<VarInsnNode> beginReceivers = new java.util.ArrayList<VarInsnNode>();
+        java.util.List<MethodInsnNode> drawCalls = new java.util.ArrayList<MethodInsnNode>();
+        java.util.List<VarInsnNode> drawReceivers = new java.util.ArrayList<VarInsnNode>();
+        java.util.List<AbstractInsnNode> drawPops = new java.util.ArrayList<AbstractInsnNode>();
+        java.util.List<Integer> loopLocals = new java.util.ArrayList<Integer>();
+
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                Type[] arguments = Type.getArgumentTypes(call.desc);
+                Type result = Type.getReturnType(call.desc);
+                if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                    && arguments.length == 2
+                    && arguments[0].getSort() == Type.INT
+                    && arguments[1].getSort() == Type.OBJECT
+                    && result.getSort() == Type.VOID) {
+                    AbstractInsnNode formatNode = previousRealInstruction(call);
+                    AbstractInsnNode modeNode = previousRealInstruction(formatNode);
+                    AbstractInsnNode receiverNode = previousRealInstruction(modeNode);
+                    if (formatNode instanceof org.objectweb.asm.tree.FieldInsnNode
+                        && formatNode.getOpcode() == Opcodes.GETSTATIC
+                        && arguments[1].getDescriptor().equals(
+                            ((org.objectweb.asm.tree.FieldInsnNode) formatNode).desc)
+                        && modeNode instanceof org.objectweb.asm.tree.IntInsnNode
+                        && modeNode.getOpcode() == Opcodes.BIPUSH
+                        && ((org.objectweb.asm.tree.IntInsnNode) modeNode).operand == 7
+                        && receiverNode instanceof VarInsnNode
+                        && receiverNode.getOpcode() == Opcodes.ALOAD
+                        && call.owner.equals(((org.objectweb.asm.tree.FieldInsnNode) formatNode).owner)
+                            == false) {
+                        // The format is a static field on DefaultVertexFormats,
+                        // not on WorldRenderer. Keep the receiver local.
+                        beginCalls.add(call);
+                        beginReceivers.add((VarInsnNode) receiverNode);
+                    }
+                }
+
+                if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                    && arguments.length == 3
+                    && arguments[0].getSort() == Type.FLOAT
+                    && arguments[1].getSort() == Type.FLOAT
+                    && arguments[2].getSort() == Type.FLOAT
+                    && result.getSort() == Type.OBJECT
+                    && call.owner.equals(result.getInternalName())) {
+                    // Fancy cloud faces use WorldRenderer.normal(FFF) repeatedly.
+                    // Its owner is checked against the begin call below.
+                }
+
+                if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                    && arguments.length == 0 && result.getSort() == Type.INT) {
+                    AbstractInsnNode receiverNode = previousRealInstruction(call);
+                    AbstractInsnNode popNode = nextRealInstruction(call);
+                    if (receiverNode instanceof VarInsnNode && receiverNode.getOpcode() == Opcodes.ALOAD
+                        && popNode != null && popNode.getOpcode() == Opcodes.POP) {
+                        drawCalls.add(call);
+                        drawReceivers.add((VarInsnNode) receiverNode);
+                        drawPops.add(popNode);
+                    }
+                }
+            }
+
+            if (instruction.getOpcode() == Opcodes.BIPUSH
+                && instruction instanceof org.objectweb.asm.tree.IntInsnNode
+                && ((org.objectweb.asm.tree.IntInsnNode) instruction).operand == -3) {
+                AbstractInsnNode storeNode = nextRealInstruction(instruction);
+                if (storeNode instanceof VarInsnNode && storeNode.getOpcode() == Opcodes.ISTORE) {
+                    loopLocals.add(Integer.valueOf(((VarInsnNode) storeNode).var));
+                }
+            }
+        }
+
+        if (beginCalls.size() != 1 || drawCalls.size() != 1 || loopLocals.size() < 2) return false;
+
+        MethodInsnNode beginCall = beginCalls.get(0);
+        VarInsnNode beginReceiver = beginReceivers.get(0);
+        MethodInsnNode drawCall = drawCalls.get(0);
+        VarInsnNode drawReceiver = drawReceivers.get(0);
+        AbstractInsnNode drawPop = drawPops.get(0);
+
+        boolean hasCloudNormal = false;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            Type result = Type.getReturnType(call.desc);
+            if (call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                && call.owner.equals(beginCall.owner)
+                && arguments.length == 3
+                && arguments[0].getSort() == Type.FLOAT
+                && arguments[1].getSort() == Type.FLOAT
+                && arguments[2].getSort() == Type.FLOAT
+                && result.getSort() == Type.OBJECT
+                && call.owner.equals(result.getInternalName())) {
+                hasCloudNormal = true;
+                break;
+            }
+        }
+        if (!hasCloudNormal) return false;
+
+        int jLocal = loopLocals.get(loopLocals.size() - 2).intValue();
+        int kLocal = loopLocals.get(loopLocals.size() - 1).intValue();
+        if (jLocal == kLocal) return false;
+
+        LabelNode skipBegin = new LabelNode();
+        InsnList beginGuard = new InsnList();
+        beginGuard.add(new VarInsnNode(Opcodes.ILOAD, jLocal));
+        beginGuard.add(new org.objectweb.asm.tree.IntInsnNode(Opcodes.BIPUSH, -3));
+        beginGuard.add(new JumpInsnNode(Opcodes.IF_ICMPNE, skipBegin));
+        beginGuard.add(new VarInsnNode(Opcodes.ILOAD, kLocal));
+        beginGuard.add(new org.objectweb.asm.tree.IntInsnNode(Opcodes.BIPUSH, -3));
+        beginGuard.add(new JumpInsnNode(Opcodes.IF_ICMPNE, skipBegin));
+        method.instructions.insertBefore(beginReceiver, beginGuard);
+        InsnList beginSkip = new InsnList();
+        beginSkip.add(skipBegin);
+        beginSkip.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        method.instructions.insert(beginCall, beginSkip);
+
+        LabelNode skipDraw = new LabelNode();
+        InsnList drawGuard = new InsnList();
+        drawGuard.add(new VarInsnNode(Opcodes.ILOAD, jLocal));
+        drawGuard.add(new org.objectweb.asm.tree.IntInsnNode(Opcodes.BIPUSH, 4));
+        drawGuard.add(new JumpInsnNode(Opcodes.IF_ICMPNE, skipDraw));
+        drawGuard.add(new VarInsnNode(Opcodes.ILOAD, kLocal));
+        drawGuard.add(new org.objectweb.asm.tree.IntInsnNode(Opcodes.BIPUSH, 4));
+        drawGuard.add(new JumpInsnNode(Opcodes.IF_ICMPNE, skipDraw));
+        method.instructions.insertBefore(drawReceiver, drawGuard);
+        InsnList drawSkip = new InsnList();
+        drawSkip.add(skipDraw);
+        drawSkip.add(new FrameNode(Opcodes.F_SAME, 0, null, 0, null));
+        method.instructions.insert(drawPop, drawSkip);
+        return true;
     }
 
     private static boolean isWorldPassMethod(MethodNode method) {
