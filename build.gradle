@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.5.0'
+version = '1.5.1'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -122,6 +122,7 @@ sourceSets {
             include '**/CyloxPerformanceMonitor.java'
             include '**/CyloxVisibilityCacheHooks.java'
             include '**/CyloxTextWidthCache.java'
+            include '**/CyloxFontBatchHooks.java'
             include '**/CyloxUiHooks.java'
         }
         compileClasspath += sourceSets.main.output

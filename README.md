@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.0  
+**Version:** 1.5.1  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -17,6 +17,14 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 - Does not pause the Minecraft network stack deliberately and does not automate player actions.
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
+
+## Font glyph batching (1.5.1)
+
+- Groups adjacent vanilla glyph geometry into one independent-quad batch while the active font texture and GL color remain unchanged.
+- Keeps the same four vanilla glyph vertices and UV coordinates, reordering only the quad perimeter for submission. Glyph positions, affine texture mapping, bold overdraw, color formatting and shadow rendering are retained.
+- Flushes before Unicode font-page changes, color-format transitions, underline/strikethrough texture-state changes and the end of each string. Chat, scoreboard, HUD contents and their draw order remain unchanged.
+- Uses a render-thread-local reusable buffer and the existing OpenGL 1.1 path; it does not require VBO support or lower the graphics preset.
+- This keeps the original four vertex submissions per glyph while reducing per-glyph begin/end calls; actual FPS impact must be measured on the same MJ Launcher/GL4ES device and scene.
 
 ## Fancy Clouds render batching (1.5.0)
 

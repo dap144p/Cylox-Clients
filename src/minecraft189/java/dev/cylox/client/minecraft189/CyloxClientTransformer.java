@@ -56,6 +56,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedFancyCloudBatchClasses;
     private static volatile int patchedRenderFrameBreakdownClasses;
     private static volatile int patchedGuiOverlayProfileClasses;
+    private static volatile int patchedFontGlyphBatchClasses;
 
     private static final String BACKGROUND = "dev/cylox/client/minecraft189/CyloxBackgroundHooks";
     private static final String VIA = "dev/cylox/client/minecraft189/CyloxProtocolBridge";
@@ -63,6 +64,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static final String VIA_REWIND = "dev/cylox/client/minecraft189/CyloxViaRewindHooks";
     private static final String RENDER_HOOKS = "dev/cylox/client/minecraft189/CyloxVisibilityCacheHooks";
     private static final String TEXT_WIDTH_CACHE = "dev/cylox/client/minecraft189/CyloxTextWidthCache";
+    private static final String FONT_BATCH_HOOKS = "dev/cylox/client/minecraft189/CyloxFontBatchHooks";
     private static final String CHUNK_BUILD_HOOKS = "dev/cylox/client/chunk/CyloxPredictiveChunkBuildHooks";
     private static final String VIA_REWIND_EQUIPMENT_REWRITER = "com/viaversion/viarewind/protocol/v1_9to1_8/rewriter/EntityPacketRewriter1_9";
     // In the pinned ViaRewind 4.2.0 Java 8 artifact, the tenth anonymous
@@ -105,6 +107,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedFancyCloudBatchClasses = 0;
         patchedRenderFrameBreakdownClasses = 0;
         patchedGuiOverlayProfileClasses = 0;
+        patchedFontGlyphBatchClasses = 0;
     }
 
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
@@ -142,6 +145,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedFancyCloudBatchClassCount() { return patchedFancyCloudBatchClasses; }
     public static int getPatchedRenderFrameBreakdownClassCount() { return patchedRenderFrameBreakdownClasses; }
     public static int getPatchedGuiOverlayProfileClassCount() { return patchedGuiOverlayProfileClasses; }
+    public static int getPatchedFontGlyphBatchClassCount() { return patchedFontGlyphBatchClasses; }
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -185,6 +189,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean fancyCloudBatchPatched = false;
             boolean renderFrameBreakdownPatched = false;
             boolean guiOverlayProfilePatched = false;
+            boolean fontGlyphBatchPatched = false;
             boolean terrainClass = hasClassMarkers(node, "renderlistcamera", "culling", "build near");
             boolean particleManagerClass = hasClassString(node, "textures/particle/particles.png");
             boolean fontRendererClass = hasClassString(node, "textures/font/ascii.png")
@@ -445,6 +450,11 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                         changed = true;
                     }
                 }
+                fontGlyphBatchPatched = injectFontGlyphBatch(node);
+                if (!fontGlyphBatchPatched) {
+                    throw new IllegalStateException("Could not safely locate all vanilla FontRenderer glyph batching boundaries");
+                }
+                changed = true;
             }
 
             if (nameTagRenderClass) {
@@ -558,6 +568,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (fancyCloudBatchPatched) patchedFancyCloudBatchClasses++;
             if (renderFrameBreakdownPatched) patchedRenderFrameBreakdownClasses++;
             if (guiOverlayProfilePatched) patchedGuiOverlayProfileClasses++;
+            if (fontGlyphBatchPatched) patchedFontGlyphBatchClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
@@ -591,6 +602,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (fancyCloudBatchPatched) System.out.println("[Cylox] Fancy cloud geometry batched without changing vertices or render passes: " + node.name);
             if (renderFrameBreakdownPatched) System.out.println("[Cylox] Opt-in render-frame phase profiler injected: " + node.name);
             if (guiOverlayProfilePatched) System.out.println("[Cylox] Opt-in HUD overlay/chat profiler injected: " + node.name);
+            if (fontGlyphBatchPatched) System.out.println("[Cylox] FontRenderer glyph geometry batching injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
             System.err.println("[Cylox] Transformer skipped " + name + ": "
@@ -1414,6 +1426,187 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             }
         }
         return stringWidthCalls >= 3;
+    }
+
+    /**
+     * Batches the four immediate-mode vertices used by each vanilla font glyph.
+     * Only glyph geometry is combined; texture and color changes flush the batch
+     * so vanilla formatting, Unicode pages, decorations and draw order stay exact.
+     */
+    private static boolean injectFontGlyphBatch(ClassNode owner) {
+        MethodNode defaultGlyph = findUniqueGlyphMethod(owner, "(IZ)F");
+        MethodNode unicodeGlyph = findUniqueGlyphMethod(owner, "(CZ)F");
+        MethodNode textLoop = null;
+        if (defaultGlyph == null || unicodeGlyph == null) return false;
+
+        for (MethodNode method : owner.methods) {
+            if (!"(Ljava/lang/String;Z)V".equals(method.desc)) continue;
+            if (!hasFontTextLoopPattern(owner, method)) continue;
+            if (textLoop != null) return false;
+            textLoop = method;
+        }
+        if (textLoop == null) return false;
+
+        MethodInsnNode defaultTextureBind = findUniqueTextureBindCall(defaultGlyph, owner.name);
+        MethodInsnNode unicodeLoaderCall = null;
+        for (AbstractInsnNode instruction = unicodeGlyph.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if ((call.getOpcode() == Opcodes.INVOKEVIRTUAL
+                || call.getOpcode() == Opcodes.INVOKESPECIAL)
+                && owner.name.equals(call.owner) && "(I)V".equals(call.desc)) {
+                if (unicodeLoaderCall != null) return false;
+                unicodeLoaderCall = call;
+            }
+        }
+        if (defaultTextureBind == null || unicodeLoaderCall == null) return false;
+
+        MethodNode unicodeLoader = null;
+        for (MethodNode method : owner.methods) {
+            if (method.name.equals(unicodeLoaderCall.name) && method.desc.equals(unicodeLoaderCall.desc)) {
+                if (unicodeLoader != null) return false;
+                unicodeLoader = method;
+            }
+        }
+        if (unicodeLoader == null) return false;
+        MethodInsnNode unicodeTextureBind = findUniqueTextureBindCall(unicodeLoader, owner.name);
+        if (unicodeTextureBind == null) return false;
+
+        replaceGlyphImmediateCalls(defaultGlyph);
+        replaceGlyphImmediateCalls(unicodeGlyph);
+        injectTextureBindFlush(defaultGlyph, defaultTextureBind);
+        injectTextureBindFlush(unicodeLoader, unicodeTextureBind);
+        injectFontTextLifecycle(textLoop);
+        return true;
+    }
+
+    private static MethodNode findUniqueGlyphMethod(ClassNode owner, String descriptor) {
+        MethodNode found = null;
+        for (MethodNode method : owner.methods) {
+            if (!descriptor.equals(method.desc) || (method.access & Opcodes.ACC_STATIC) != 0
+                || !hasGlyphImmediateModePattern(method)) continue;
+            if (found != null) return null;
+            found = method;
+        }
+        return found;
+    }
+
+    private static boolean hasGlyphImmediateModePattern(MethodNode method) {
+        int begins = 0, ends = 0, texCoords = 0, vertices = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() != Opcodes.INVOKESTATIC
+                || !"org/lwjgl/opengl/GL11".equals(call.owner)) continue;
+            if ("glBegin".equals(call.name) && "(I)V".equals(call.desc)) begins++;
+            else if ("glEnd".equals(call.name) && "()V".equals(call.desc)) ends++;
+            else if ("glTexCoord2f".equals(call.name) && "(FF)V".equals(call.desc)) texCoords++;
+            else if ("glVertex3f".equals(call.name) && "(FFF)V".equals(call.desc)) vertices++;
+        }
+        return begins == 1 && ends == 1 && texCoords == 4 && vertices == 4;
+    }
+
+    private static MethodInsnNode findUniqueTextureBindCall(MethodNode method, String ownerName) {
+        MethodInsnNode found = null;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if ((call.getOpcode() != Opcodes.INVOKEVIRTUAL
+                && call.getOpcode() != Opcodes.INVOKEINTERFACE)
+                || ownerName.equals(call.owner)
+                || "org/lwjgl/opengl/GL11".equals(call.owner)
+                || Type.getReturnType(call.desc).getSort() != Type.VOID) continue;
+            Type[] arguments = Type.getArgumentTypes(call.desc);
+            if (arguments.length != 1 || arguments[0].getSort() != Type.OBJECT) continue;
+            if (found != null) return null;
+            found = call;
+        }
+        return found;
+    }
+
+    private static void injectTextureBindFlush(MethodNode method, MethodInsnNode bindCall) {
+        InsnList hook = new InsnList();
+        hook.add(new InsnNode(Opcodes.DUP));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FONT_BATCH_HOOKS,
+            "beforeTextureBind", "(Ljava/lang/Object;)V", false));
+        method.instructions.insertBefore(bindCall, hook);
+    }
+
+    private static void replaceGlyphImmediateCalls(MethodNode method) {
+        java.util.List<MethodInsnNode> calls = new java.util.ArrayList<MethodInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (call.getOpcode() == Opcodes.INVOKESTATIC
+                    && "org/lwjgl/opengl/GL11".equals(call.owner)) calls.add(call);
+            }
+        }
+        for (MethodInsnNode call : calls) {
+            String hookName = null;
+            if ("glBegin".equals(call.name) && "(I)V".equals(call.desc)) hookName = "beginGlyph";
+            else if ("glTexCoord2f".equals(call.name) && "(FF)V".equals(call.desc)) hookName = "texCoord";
+            else if ("glVertex3f".equals(call.name) && "(FFF)V".equals(call.desc)) hookName = "vertex";
+            else if ("glEnd".equals(call.name) && "()V".equals(call.desc)) hookName = "endGlyph";
+            if (hookName == null) continue;
+            method.instructions.set(call, new MethodInsnNode(Opcodes.INVOKESTATIC,
+                FONT_BATCH_HOOKS, hookName, call.desc, false));
+        }
+    }
+
+    private static boolean hasFontTextLoopPattern(ClassNode owner, MethodNode method) {
+        boolean length = false, charAt = false, glyph = false;
+        int returns = 0, colorCalls = 0, stateBarriers = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) returns++;
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if ("java/lang/String".equals(call.owner) && "length".equals(call.name)
+                && "()I".equals(call.desc)) length = true;
+            if ("java/lang/String".equals(call.owner) && "charAt".equals(call.name)
+                && "(I)C".equals(call.desc)) charAt = true;
+            if (owner.name.equals(call.owner) && "(CZ)F".equals(call.desc)) glyph = true;
+            if (call.getOpcode() == Opcodes.INVOKESTATIC) {
+                if ("(FFFF)V".equals(call.desc) || "(FFF)V".equals(call.desc)) colorCalls++;
+                if ("()V".equals(call.desc)) stateBarriers++;
+            }
+        }
+        return length && charAt && glyph && returns > 0 && colorCalls > 0 && stateBarriers > 0;
+    }
+
+    private static void injectFontTextLifecycle(MethodNode method) {
+        InsnList begin = new InsnList();
+        begin.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FONT_BATCH_HOOKS,
+            "beginText", "()V", false));
+        method.instructions.insert(begin);
+
+        java.util.List<AbstractInsnNode> returns = new java.util.ArrayList<AbstractInsnNode>();
+        java.util.List<AbstractInsnNode> flushPoints = new java.util.ArrayList<AbstractInsnNode>();
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null; instruction = instruction.getNext()) {
+            if (instruction.getOpcode() == Opcodes.RETURN) returns.add(instruction);
+            if (!(instruction instanceof MethodInsnNode)) continue;
+            MethodInsnNode call = (MethodInsnNode) instruction;
+            if (call.getOpcode() != Opcodes.INVOKESTATIC) continue;
+            if ("()V".equals(call.desc) || "(FFFF)V".equals(call.desc) || "(FFF)V".equals(call.desc)) {
+                flushPoints.add(call);
+            }
+        }
+        if (returns.isEmpty() || flushPoints.isEmpty()) {
+            throw new IllegalStateException("FontRenderer text method has no safe batch flush boundaries");
+        }
+        for (AbstractInsnNode point : flushPoints) {
+            method.instructions.insertBefore(point,
+                new MethodInsnNode(Opcodes.INVOKESTATIC, FONT_BATCH_HOOKS, "flush", "()V", false));
+        }
+        for (AbstractInsnNode point : returns) {
+            method.instructions.insertBefore(point,
+                new MethodInsnNode(Opcodes.INVOKESTATIC, FONT_BATCH_HOOKS, "endText", "()V", false));
+        }
     }
 
     private static boolean hasFontRendererWidthPattern(ClassNode owner) {

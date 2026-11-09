@@ -71,6 +71,7 @@ public final class Vanilla189Verifier {
         require("opt-in entity renderer profiler", CyloxClientTransformer.getPatchedEntityProfileClassCount());
         require("opt-in floating nameplate profiler", CyloxClientTransformer.getPatchedNameTagProfileClassCount());
         require("FontRenderer text-width cache", CyloxClientTransformer.getPatchedFontWidthCacheClassCount());
+        require("FontRenderer glyph geometry batching", CyloxClientTransformer.getPatchedFontGlyphBatchClassCount());
         require("opt-in block-layer profiler", CyloxClientTransformer.getPatchedBlockLayerProfileClassCount());
         require("opt-in particle profiler", CyloxClientTransformer.getPatchedParticleProfileClassCount());
         require("opt-in whole-world renderer profiler", CyloxClientTransformer.getPatchedWorldRenderProfileClassCount());
