@@ -1,7 +1,7 @@
 plugins { id 'java' }
 
 group = 'dev.cylox'
-version = '1.5.7'
+version = '1.5.8'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -314,7 +314,7 @@ tasks.register('generateClientVersion') {
 
 tasks.register('buildClientPackage', Zip) {
     dependsOn tasks.named('minecraft189AdapterJar'), tasks.named('generateClientVersion')
-    archiveBaseName = 'Cylox-Client-1.8.9'
+    archiveBaseName = 'cylox-client-1.8.9'
     archiveVersion = project.version
     destinationDirectory = layout.buildDirectory.dir('distributions')
     from(layout.buildDirectory.file('generated/cylox/Cylox-1.8.9.json')) {
@@ -330,7 +330,7 @@ tasks.register('buildClientPackage', Zip) {
 
 tasks.register('installerJar', Jar) {
     dependsOn tasks.named('buildClientPackage'), tasks.named('installerClasses')
-    archiveBaseName = 'Cylox-Installer-1.8.9'
+    archiveBaseName = 'cylox-client-1.8.9-installer'
     archiveVersion = project.version
     destinationDirectory = layout.buildDirectory.dir('distributions')
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -342,7 +342,7 @@ tasks.register('installerJar', Jar) {
         attributes(
             'Main-Class': 'dev.cylox.installer.CyloxInstaller',
             'Cylox-Version': project.version,
-            'Cylox-Payload': "Cylox-Client-1.8.9-${project.version}.zip",
+            'Cylox-Payload': "cylox-client-1.8.9-${project.version}.zip",
             'Implementation-Title': 'Cylox Client Installer',
             'Implementation-Version': project.version,
             'Client-Developer': 'dapdev'

@@ -72,7 +72,7 @@ jobs:
           expected_cylox_path = f"dev/cylox/client/{version}/Cylox-Client-1.8.9-{version}.jar"
           assert cylox.get("downloads", {}).get("artifact", {}).get("path") == expected_cylox_path
 
-          package_path = pathlib.Path(f"build/distributions/Cylox-Client-1.8.9-{version}.zip")
+          package_path = pathlib.Path(f"build/distributions/cylox-client-1.8.9-{version}.zip")
           with zipfile.ZipFile(package_path) as archive:
               names = set(archive.namelist())
           assert "versions/Cylox-1.8.9/Cylox-1.8.9.json" in names
@@ -159,9 +159,14 @@ jobs:
           import zipfile
 
           version = re.search(r"^version = '([^']+)'", pathlib.Path("build.gradle").read_text(encoding="utf-8"), re.MULTILINE).group(1)
-          installer = pathlib.Path(f"build/distributions/Cylox-Installer-1.8.9-{version}.jar")
-          package = pathlib.Path(f"build/distributions/Cylox-Client-1.8.9-{version}.zip")
-          expected_payload = f"payload/Cylox-Client-1.8.9-{version}.zip"
+          installer = pathlib.Path(f"build/distributions/cylox-client-1.8.9-installer-{version}.jar")
+          package = pathlib.Path(f"build/distributions/cylox-client-1.8.9-{version}.zip")
+          expected_payload = f"payload/cylox-client-1.8.9-{version}.zip"
+          installer_source = pathlib.Path("src/installer/java/dev/cylox/installer/CyloxInstaller.java").read_text(encoding="utf-8")
+          assert "CyloxInstaller.class.getProtectionDomain().getCodeSource()" in installer_source
+          assert "installerJar.getManifest()" in installer_source
+          assert 'installerJar.getJarEntry("payload/" + payloadName)' in installer_source
+          assert "getResourceAsStream" not in installer_source
           with zipfile.ZipFile(installer) as jar:
               names = set(jar.namelist())
               assert "dev/cylox/installer/CyloxInstaller.class" in names, "installer main class missing"
@@ -169,7 +174,7 @@ jobs:
               manifest = jar.read("META-INF/MANIFEST.MF").decode("utf-8")
               assert f"Main-Class: dev.cylox.installer.CyloxInstaller" in manifest
               assert f"Cylox-Version: {version}" in manifest
-              assert f"Cylox-Payload: Cylox-Client-1.8.9-{version}.zip" in manifest
+              assert f"Cylox-Payload: cylox-client-1.8.9-{version}.zip" in manifest
               embedded = jar.read(expected_payload)
           assert embedded == package.read_bytes(), "installer payload is not byte-identical to the release ZIP"
           with zipfile.ZipFile(installer) as jar:
@@ -189,8 +194,8 @@ jobs:
           name: Cylox-Client-1.8.9
           path: |
             build/libs/Cylox-Client-1.8.9-*.jar
-            build/distributions/Cylox-Client-1.8.9-*.zip
-            build/distributions/Cylox-Installer-1.8.9-*.jar
+            build/distributions/cylox-client-1.8.9-*.zip
+            build/distributions/cylox-client-1.8.9-installer-*.jar
           if-no-files-found: error
           retention-days: 30
 
@@ -204,8 +209,8 @@ jobs:
           VERSION="$(sed -n "s/^version = '\\(.*\\)'/\\1/p" build.gradle | head -n1)"
           TAG="v${VERSION}"
           JAR="build/libs/Cylox-Client-1.8.9-${VERSION}.jar"
-          ZIP="build/distributions/Cylox-Client-1.8.9-${VERSION}.zip"
-          INSTALLER="build/distributions/Cylox-Installer-1.8.9-${VERSION}.jar"
+          ZIP="build/distributions/cylox-client-1.8.9-${VERSION}.zip"
+          INSTALLER="build/distributions/cylox-client-1.8.9-installer-${VERSION}.jar"
           test -s "$JAR"
           test -s "$ZIP"
           test -s "$INSTALLER"

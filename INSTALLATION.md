@@ -1,6 +1,6 @@
 CYLOX CLIENT 1.8.9 — INSTALLATION
 Developer: dapdev
-Version: 1.5.7
+Version: 1.5.8
 
 BENCHMARK BASELINE
 - On first launch, Cylox applies a one-time maximum-graphics preset for stress-testing the optimized rendering pipeline.
@@ -8,14 +8,14 @@ BENCHMARK BASELINE
 
 INSTALL
 METHOD A — EXECUTE JAR
-1. Download Cylox-Installer-1.8.9-1.5.7.jar from the same GitHub release as this document.
+1. Download cylox-client-1.8.9-installer-1.5.8.jar from the same GitHub release as this document.
 2. In MJ Launcher, open Execute a .jar and select the installer JAR.
 3. If the installer does not detect the game directory automatically, select the game directory used by MJ Launcher (the folder containing versions/libraries/assets).
 4. Confirm the displayed destination and wait for the completion message.
 5. Refresh the launcher's version list, select Cylox-1.8.9 and launch.
 
 METHOD B — ZIP
-1. Download the complete Cylox Client ZIP from the same GitHub release.
+1. Download cylox-client-1.8.9-1.5.8.zip from the same GitHub release.
 2. Open the game directory configured in MJ Launcher (the directory containing versions and libraries).
 3. Extract the ZIP into that directory and merge the folders.
 4. Refresh the launcher's version list.
