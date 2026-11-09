@@ -2050,7 +2050,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     drawCalls.add(call);
                 }
             }
-            if (drawCalls.size() == 2) {
+            if (drawCalls.size() == 3) {
                 if (target != null) return false;
                 target = method;
                 targetDrawCalls = drawCalls;
