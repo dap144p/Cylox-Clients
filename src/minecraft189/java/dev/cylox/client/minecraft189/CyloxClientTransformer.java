@@ -1097,18 +1097,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         return true;
     }
 
-    private static AbstractInsnNode previousRealInstruction(AbstractInsnNode instruction) {
-        AbstractInsnNode previous = instruction == null ? null : instruction.getPrevious();
-        while (previous != null && previous.getOpcode() < 0) previous = previous.getPrevious();
-        return previous;
-    }
-
-    private static AbstractInsnNode nextRealInstruction(AbstractInsnNode instruction) {
-        AbstractInsnNode next = instruction == null ? null : instruction.getNext();
-        while (next != null && next.getOpcode() < 0) next = next.getNext();
-        return next;
-    }
-
     private static void insertRenderGuard(MethodNode method) {
         java.util.List<AbstractInsnNode> originalReturns = new java.util.ArrayList<AbstractInsnNode>();
         for (AbstractInsnNode instruction = method.instructions.getFirst();
