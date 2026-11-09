@@ -48,4 +48,12 @@ public class BackgroundPolicyTest {
         assertFalse(BackgroundPolicy.forceLeftClick(false, true, false));
         assertTrue(BackgroundPolicy.forceLeftClick(true, false, false));
     }
+
+    @Test
+    public void leftClickToggleClearsOnlyTheVanillaRegainFocusDelay() {
+        assertEquals(0, BackgroundPolicy.leftClickCounter(10000, true, true));
+        assertEquals(10000, BackgroundPolicy.leftClickCounter(10000, false, true));
+        assertEquals(10000, BackgroundPolicy.leftClickCounter(10000, true, false));
+        assertEquals(5, BackgroundPolicy.leftClickCounter(5, true, false));
+    }
 }
