@@ -63,6 +63,7 @@ public final class Vanilla189Verifier {
         require("render suppression", CyloxClientTransformer.getPatchedRenderClassCount());
         require("F8 keyboard toggle event", CyloxClientTransformer.getPatchedKeyboardToggleClassCount());
         require("F8 held left-click input", CyloxClientTransformer.getPatchedLeftClickToggleClassCount());
+        require("container WASD movement", CyloxClientTransformer.getPatchedContainerMovementClassCount());
         require("F8 bottom-right HUD status", CyloxClientTransformer.getPatchedToggleStatusClassCount());
         require("background frame limiter", CyloxClientTransformer.getPatchedFrameLimitClassCount());
         require("Via protocol pipeline", CyloxClientTransformer.getPatchedProtocolPipelineClassCount());
