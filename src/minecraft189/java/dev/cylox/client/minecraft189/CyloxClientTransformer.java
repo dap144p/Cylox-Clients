@@ -24,8 +24,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     private static volatile int patchedRenderClasses;
     private static volatile int patchedKeyboardToggleClasses;
     private static volatile int patchedLeftClickToggleClasses;
-    private static volatile int patchedPauseExceptionClasses;
-    private static volatile int patchedBackgroundFarPlaneClasses;
     private static volatile int patchedFrameLimitClasses;
     private static volatile int patchedProtocolPipelineClasses;
     private static volatile int patchedCompressionClasses;
@@ -83,8 +81,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
         patchedRenderClasses = 0;
         patchedKeyboardToggleClasses = 0;
         patchedLeftClickToggleClasses = 0;
-        patchedPauseExceptionClasses = 0;
-        patchedBackgroundFarPlaneClasses = 0;
         patchedFrameLimitClasses = 0;
         patchedProtocolPipelineClasses = 0;
         patchedCompressionClasses = 0;
@@ -129,8 +125,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
     public static int getPatchedRenderClassCount() { return patchedRenderClasses; }
     public static int getPatchedKeyboardToggleClassCount() { return patchedKeyboardToggleClasses; }
     public static int getPatchedLeftClickToggleClassCount() { return patchedLeftClickToggleClasses; }
-    public static int getPatchedPauseExceptionClassCount() { return patchedPauseExceptionClasses; }
-    public static int getPatchedBackgroundFarPlaneClassCount() { return patchedBackgroundFarPlaneClasses; }
     public static int getPatchedFrameLimitClassCount() { return patchedFrameLimitClasses; }
     public static int getPatchedProtocolPipelineClassCount() { return patchedProtocolPipelineClasses; }
     public static int getPatchedCompressionClassCount() { return patchedCompressionClasses; }
@@ -182,8 +176,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             boolean renderPatched = false;
             boolean keyboardTogglePatched = false;
             boolean leftClickTogglePatched = false;
-            boolean pauseExceptionPatched = false;
-            boolean backgroundFarPlanePatched = false;
             boolean frameLimitPatched = false;
             boolean protocolPipelinePatched = false;
             boolean compressionPatched = false;
@@ -271,11 +263,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     }
                     if (!renderPatched && "(FJ)V".equals(method.desc)
                         && hasMarkers(method, "mouse", "level", "gui")) {
-                        if (!insertPauseDisplayActiveHook(method)) {
-                            throw new IllegalStateException("Could not safely locate vanilla Display.isActive lost-focus pause check");
-                        }
                         insertRenderGuard(method);
-                        pauseExceptionPatched = true;
                         renderPatched = true;
                         frameProfilePatched = true;
                         changed = true;
@@ -458,19 +446,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                 }
             }
 
-            // Keep the Background render guard, but clip the camera frustum when F9 is enabled.
-            if (renderPatched) {
-                int farPlaneMatches = 0;
-                for (MethodNode method : node.methods) {
-                    if (insertBackgroundFarPlaneCap(node, method)) farPlaneMatches++;
-                }
-                if (farPlaneMatches != 1) {
-                    throw new IllegalStateException("Expected one vanilla setupCameraTransform far-plane assignment, found " + farPlaneMatches);
-                }
-                backgroundFarPlanePatched = true;
-                changed = true;
-            }
-
             if (frameProfilePatched) {
                 for (MethodNode method : node.methods) {
                     if (!renderFrameBreakdownPatched && "(FJ)V".equals(method.desc)
@@ -564,7 +539,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
                     }
                     toggleStatusPatched = insertToggleStatus(method);
                     if (!toggleStatusPatched) {
-                        throw new IllegalStateException("Could not safely locate vanilla HUD dimensions for F8/F9/F10 status");
+                        throw new IllegalStateException("Could not safely locate vanilla HUD dimensions for F8 status");
                     }
                     guiOverlayProfilePatched = true;
                     changed = true;
@@ -622,8 +597,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (renderPatched) patchedRenderClasses++;
             if (keyboardTogglePatched) patchedKeyboardToggleClasses++;
             if (leftClickTogglePatched) patchedLeftClickToggleClasses++;
-            if (pauseExceptionPatched) patchedPauseExceptionClasses++;
-            if (backgroundFarPlanePatched) patchedBackgroundFarPlaneClasses++;
             if (frameLimitPatched) patchedFrameLimitClasses++;
             if (protocolPipelinePatched) patchedProtocolPipelineClasses++;
             if (compressionPatched) patchedCompressionClasses++;
@@ -664,10 +637,8 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (toggleStatusPatched) patchedToggleStatusClasses++;
             if (fontGlyphBatchPatched) patchedFontGlyphBatchClasses++;
             if (renderPatched) System.out.println("[Cylox] Background render suppression injected: " + node.name);
-            if (keyboardTogglePatched) System.out.println("[Cylox] F8/F9/F10 key toggles injected: " + node.name);
+            if (keyboardTogglePatched) System.out.println("[Cylox] F8 key toggle injected: " + node.name);
             if (leftClickTogglePatched) System.out.println("[Cylox] F8 held left-click input injected: " + node.name);
-            if (pauseExceptionPatched) System.out.println("[Cylox] F10 lost-focus pause exception injected: " + node.name);
-            if (backgroundFarPlanePatched) System.out.println("[Cylox] F9 six-block background camera frustum injected: " + node.name);
             if (frameLimitPatched) System.out.println("[Cylox] Background frame limit injected: " + node.name);
             if (protocolPipelinePatched) System.out.println("[Cylox] Via protocol pipeline hook injected: " + node.name);
             if (compressionPatched) System.out.println("[Cylox] Via compression hook injected: " + node.name);
@@ -703,7 +674,7 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (renderFrameBreakdownPatched) System.out.println("[Cylox] Opt-in render-frame phase profiler injected: " + node.name);
             if (guiOverlayProfilePatched) System.out.println("[Cylox] Opt-in HUD overlay/chat profiler injected: " + node.name);
             if (guiOverlayBreakdownPatched) System.out.println("[Cylox] Opt-in HUD component profiler injected: " + node.name);
-            if (toggleStatusPatched) System.out.println("[Cylox] F8/F9/F10 HUD status injected at bottom-right: " + node.name);
+            if (toggleStatusPatched) System.out.println("[Cylox] F8 HUD status injected at bottom-right: " + node.name);
             if (fontGlyphBatchPatched) System.out.println("[Cylox] FontRenderer glyph geometry batching injected: " + node.name);
             return writer.toByteArray();
         } catch (Throwable error) {
@@ -1132,48 +1103,6 @@ public final class CyloxClientTransformer implements net.minecraft.launchwrapper
             if (keyDownCheck && focusFlagCheck) selected = field;
         }
         return selected;
-    }
-
-    private static boolean insertPauseDisplayActiveHook(MethodNode method) {
-        java.util.List<MethodInsnNode> matches = new java.util.ArrayList<MethodInsnNode>();
-        for (AbstractInsnNode instruction = method.instructions.getFirst();
-             instruction != null; instruction = instruction.getNext()) {
-            if (!(instruction instanceof MethodInsnNode)) continue;
-            MethodInsnNode call = (MethodInsnNode) instruction;
-            if (call.getOpcode() == Opcodes.INVOKESTATIC
-                && "org/lwjgl/opengl/Display".equals(call.owner)
-                && "isActive".equals(call.name) && "()Z".equals(call.desc)) matches.add(call);
-        }
-        if (matches.size() != 1) return false;
-        method.instructions.insert(matches.get(0), new MethodInsnNode(Opcodes.INVOKESTATIC,
-            BACKGROUND, "displayActiveForPause", "(Z)Z", false));
-        return true;
-    }
-
-    private static boolean insertBackgroundFarPlaneCap(ClassNode owner, MethodNode method) {
-        if (!"(FI)V".equals(method.desc) || (method.access & Opcodes.ACC_STATIC) != 0) return false;
-        java.util.List<org.objectweb.asm.tree.FieldInsnNode> farPlaneWrites =
-            new java.util.ArrayList<org.objectweb.asm.tree.FieldInsnNode>();
-        int perspectiveCalls = 0;
-        for (AbstractInsnNode instruction = method.instructions.getFirst();
-             instruction != null; instruction = instruction.getNext()) {
-            if (instruction instanceof org.objectweb.asm.tree.FieldInsnNode) {
-                org.objectweb.asm.tree.FieldInsnNode field = (org.objectweb.asm.tree.FieldInsnNode) instruction;
-                if (field.getOpcode() == Opcodes.PUTFIELD && owner.name.equals(field.owner)
-                    && "F".equals(field.desc)) farPlaneWrites.add(field);
-            } else if (instruction instanceof MethodInsnNode) {
-                MethodInsnNode call = (MethodInsnNode) instruction;
-                if (call.getOpcode() == Opcodes.INVOKESTATIC
-                    && "org/lwjgl/util/glu/Project".equals(call.owner)
-                    && "gluPerspective".equals(call.name) && "(FFFF)V".equals(call.desc)) {
-                    perspectiveCalls++;
-                }
-            }
-        }
-        if (farPlaneWrites.size() != 1 || perspectiveCalls != 1) return false;
-        method.instructions.insertBefore(farPlaneWrites.get(0), new MethodInsnNode(
-            Opcodes.INVOKESTATIC, BACKGROUND, "backgroundFarPlane", "(F)F", false));
-        return true;
     }
 
     private static void insertRenderGuard(MethodNode method) {

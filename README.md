@@ -1,7 +1,7 @@
 # Cylox Client
 
 **Developer:** dapdev  
-**Version:** 1.5.13  
+**Version:** 1.5.14  
 **Minecraft:** Java 1.8.9 (base protocol 47)  
 **Runtime:** MJ Launcher-provided Java and renderer; Minecraft 1.8.9 client, libraries and assets resolved from version metadata  
 **Loader:** LaunchWrapper tweaker only; no Forge or Fabric
@@ -31,7 +31,8 @@ Cylox is a minimal 1.8.9 client. Its gameplay-side purpose is to reduce renderin
 - Skips the vanilla `EntityRenderer` frame completely when the display is inactive/hidden, so world rendering drops to **0 FPS**.
 - Keeps the whole Minecraft main loop at **20 Hz** in the background. This is deliberately not reduced to 2 FPS: `Display.sync()` throttles the game loop itself, so a 2 FPS cap could starve client ticks and delay queued packet processing.
 - Returns to normal rendering and the launcher's selected frame limit when the display becomes active again.
-- Does not pause the Minecraft network stack deliberately and does not automate player actions.
+- Keeps only the F8 held-left-click toggle; the F9 render exception and F10 lost-focus pause override have been removed.
+- Does not pause the Minecraft network stack deliberately. F8 can keep left-click input active while no menu is open; it does not automate movement.
 
 This is not an Android background service. The launcher must keep the game process alive for the connection to remain open. Android may suspend or kill background applications, and the JAR cannot override that operating-system or launcher policy. A real MJ Launcher/device test is required before treating background connectivity as guaranteed.
 
