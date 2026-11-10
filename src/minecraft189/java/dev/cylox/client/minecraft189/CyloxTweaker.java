@@ -28,9 +28,8 @@ public final class CyloxTweaker implements ITweaker {
         classLoader.addClassLoaderExclusion("io.netty.");
         classLoader.addTransformerExclusion("dev.cylox.client.");
         System.out.println("[Cylox] Netty package parent delegation enabled: io.netty.");
-        // Apply the one-time lightweight graphics preset before Minecraft reads options.txt.
-        // The helper also repairs only untouched values reverted by the v1.5.5 migration.
-        CyloxGraphicsPreset.applyLightweightPresetOnce(gameDirectory);
+        // Apply the one-time stress baseline or migrate only untouched defaults before Minecraft reads options.txt.
+        CyloxGraphicsPreset.applyBenchmarkPresetOnce(gameDirectory);
         // Register before ViaLoadingBase initializes protocols so the bundled
         // ViaRewind classes pass through Cylox's transformer on first load.
         classLoader.registerTransformer("dev.cylox.client.minecraft189.CyloxClientTransformer");
