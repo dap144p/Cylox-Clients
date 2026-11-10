@@ -361,16 +361,20 @@ public final class Vanilla189Verifier {
         File migratedRoot = java.nio.file.Files.createTempDirectory("cylox-graphics-migrated").toFile();
         File migratedOptions = new File(migratedRoot, "options.txt");
         File migratedCylox = new File(migratedRoot, "cylox");
-        File migratedBackup = new File(migratedCylox, "options-before-lightweight-preset-1.5.13.txt");
+        File migratedBackup = new File(migratedCylox, "options-before-stress-preset-1.5.15.txt");
         File oldBackup = new File(migratedCylox, "options-before-graphics-preset.txt");
-        File oldPresetMarker = new File(migratedCylox, "graphics-max-preset-1.4.5.applied");
-        File oldRestoredMarker = new File(migratedCylox, "graphics-max-preset-restored-1.5.5.applied");
-        File oldReappliedMarker = new File(migratedCylox, "graphics-max-preset-reapplied-1.5.6.applied");
+        File lightweightMarker = new File(migratedCylox, "graphics-lightweight-preset-1.5.13.applied");
 
         File freshRoot = java.nio.file.Files.createTempDirectory("cylox-graphics-fresh").toFile();
         File freshOptions = new File(freshRoot, "options.txt");
         File freshCylox = new File(freshRoot, "cylox");
-        File freshMarker = new File(freshCylox, "graphics-lightweight-preset-1.5.13.applied");
+        File freshMarker = new File(freshCylox, "graphics-stress-preset-1.5.15.applied");
+
+        File legacyRoot = java.nio.file.Files.createTempDirectory("cylox-graphics-legacy").toFile();
+        File legacyOptions = new File(legacyRoot, "options.txt");
+        File legacyCylox = new File(legacyRoot, "cylox");
+        File legacyMarker = new File(legacyCylox, "graphics-max-preset-1.4.5.applied");
+        File migratedMarker = new File(migratedCylox, "graphics-stress-preset-1.5.15.applied");
 
         try {
             if (!migratedCylox.mkdirs() && !migratedCylox.isDirectory()) {
@@ -380,75 +384,93 @@ public final class Vanilla189Verifier {
                 "renderDistance:8", "fancyGraphics:false", "ao:0", "particles:2"
             ), java.nio.charset.StandardCharsets.UTF_8);
             java.nio.file.Files.write(migratedOptions.toPath(), Arrays.asList(
-                "renderDistance:16", "fancyGraphics:true", "ao:2", "particles:0",
-                "entityShadows:true", "renderClouds:true", "mipmapLevels:4",
-                "maxFps:260", "enableVsync:false", "guiScale:2", "lang:en_US"
+                "renderDistance:5", "fancyGraphics:false", "ao:0", "particles:2",
+                "entityShadows:false", "renderClouds:false", "mipmapLevels:0",
+                "maxFps:75", "enableVsync:false", "guiScale:2", "lang:en_US"
             ), java.nio.charset.StandardCharsets.UTF_8);
-            if (!oldPresetMarker.createNewFile() || !oldRestoredMarker.createNewFile()
-                || !oldReappliedMarker.createNewFile()) {
-                throw new IllegalStateException("Could not create legacy graphics-preset markers");
+            if (!lightweightMarker.createNewFile()) {
+                throw new IllegalStateException("Could not create lightweight graphics-preset marker");
             }
 
-            CyloxGraphicsPreset.applyLightweightPresetOnce(migratedRoot);
-            java.util.List<String> applied = java.nio.file.Files.readAllLines(
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(migratedRoot);
+            java.util.List<String> migrated = java.nio.file.Files.readAllLines(
                 migratedOptions.toPath(), java.nio.charset.StandardCharsets.UTF_8);
-            String[] expectedPreset = new String[] {
-                "renderDistance:2", "fancyGraphics:false", "ao:0", "particles:2",
-                "entityShadows:false", "renderClouds:false", "mipmapLevels:0",
-                "maxFps:60", "enableVsync:false", "guiScale:2", "lang:en_US"
+            String[] expectedMigrated = new String[] {
+                "renderDistance:5", "fancyGraphics:true", "ao:2", "particles:0",
+                "entityShadows:true", "renderClouds:true", "mipmapLevels:4",
+                "maxFps:75", "enableVsync:false", "guiScale:2", "lang:en_US"
             };
-            for (String entry : expectedPreset) {
-                if (!applied.contains(entry)) {
-                    throw new IllegalStateException("Lightweight preset is missing setting: " + entry);
+            for (String entry : expectedMigrated) {
+                if (!migrated.contains(entry)) {
+                    throw new IllegalStateException("Stress-preset migration did not preserve/apply setting: " + entry);
                 }
             }
             if (!migratedBackup.isFile()) {
-                throw new IllegalStateException("Lightweight preset did not save the pre-migration options.txt");
+                throw new IllegalStateException("Stress-preset migration did not back up pre-migration options.txt");
             }
             java.util.List<String> backedUp = java.nio.file.Files.readAllLines(
                 migratedBackup.toPath(), java.nio.charset.StandardCharsets.UTF_8);
-            if (!backedUp.contains("renderDistance:16") || !backedUp.contains("fancyGraphics:true")) {
-                throw new IllegalStateException("Pre-migration high-graphics settings were not backed up");
+            if (!backedUp.contains("renderDistance:5") || !backedUp.contains("maxFps:75")) {
+                throw new IllegalStateException("Stress-preset migration backup does not contain original manual values");
             }
             java.util.List<String> previousBackup = java.nio.file.Files.readAllLines(
                 oldBackup.toPath(), java.nio.charset.StandardCharsets.UTF_8);
             if (!previousBackup.contains("renderDistance:8")) {
                 throw new IllegalStateException("The original legacy graphics backup was modified");
             }
-            if (!new File(migratedCylox, "graphics-lightweight-preset-1.5.13.applied").isFile()) {
-                throw new IllegalStateException("Lightweight preset marker was not created");
+            if (!migratedMarker.isFile()) {
+                throw new IllegalStateException("Stress-preset migration marker was not created");
             }
 
             java.nio.file.Files.write(migratedOptions.toPath(), Arrays.asList(
                 "renderDistance:8", "maxFps:45", "lang:en_US"
             ), java.nio.charset.StandardCharsets.UTF_8);
-            CyloxGraphicsPreset.applyLightweightPresetOnce(migratedRoot);
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(migratedRoot);
             java.util.List<String> afterManualEdit = java.nio.file.Files.readAllLines(
                 migratedOptions.toPath(), java.nio.charset.StandardCharsets.UTF_8);
             if (!afterManualEdit.contains("renderDistance:8") || !afterManualEdit.contains("maxFps:45")) {
                 throw new IllegalStateException("A later manual graphics edit was overwritten");
             }
 
-            CyloxGraphicsPreset.applyLightweightPresetOnce(freshRoot);
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(freshRoot);
             java.util.List<String> fresh = java.nio.file.Files.readAllLines(
                 freshOptions.toPath(), java.nio.charset.StandardCharsets.UTF_8);
             for (String entry : new String[] {
-                "renderDistance:2", "fancyGraphics:false", "ao:0", "particles:2",
-                "entityShadows:false", "renderClouds:false", "mipmapLevels:0",
-                "maxFps:60", "enableVsync:false"
+                "fancyGraphics:true", "renderDistance:16", "ao:2", "particles:0",
+                "entityShadows:true", "renderClouds:true", "mipmapLevels:4",
+                "maxFps:260", "enableVsync:false"
             }) {
                 if (!fresh.contains(entry)) {
-                    throw new IllegalStateException("Fresh install is missing lightweight setting: " + entry);
+                    throw new IllegalStateException("Fresh install is missing stress setting: " + entry);
                 }
             }
             if (!freshMarker.isFile()) {
-                throw new IllegalStateException("Fresh lightweight preset marker was not created");
+                throw new IllegalStateException("Fresh stress-preset marker was not created");
             }
 
-            System.out.println("[Cylox] Verified one-time lightweight graphics preset, legacy-profile migration, original settings backup and manual-edit preservation.");
+            if (!legacyCylox.mkdirs() && !legacyCylox.isDirectory()) {
+                throw new IllegalStateException("Could not create legacy graphics test directory");
+            }
+            java.nio.file.Files.write(legacyOptions.toPath(), Arrays.asList(
+                "renderDistance:7", "fancyGraphics:false", "maxFps:80"
+            ), java.nio.charset.StandardCharsets.UTF_8);
+            if (!legacyMarker.createNewFile()) {
+                throw new IllegalStateException("Could not create legacy maximum-preset marker");
+            }
+            CyloxGraphicsPreset.applyBenchmarkPresetOnce(legacyRoot);
+            java.util.List<String> legacy = java.nio.file.Files.readAllLines(
+                legacyOptions.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            if (!legacy.contains("renderDistance:7") || !legacy.contains("fancyGraphics:false")
+                || !legacy.contains("maxFps:80")
+                || !new File(legacyCylox, "graphics-stress-preset-1.5.15.applied").isFile()) {
+                throw new IllegalStateException("Legacy maximum-preset settings were not preserved");
+            }
+
+            System.out.println("[Cylox] Verified one-time stress preset, lightweight-to-stress migration, legacy marker preservation, backups and manual-edit preservation.");
         } finally {
             deleteRecursively(migratedRoot);
             deleteRecursively(freshRoot);
+            deleteRecursively(legacyRoot);
         }
     }
 
